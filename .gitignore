@@ -1,0 +1,14 @@
+/build-*/
+/build/
+/package/
+/ui-check*.png
+/.qt/
+/.qtcreator/
+/CMakeUserPresets.json
+*.user
+*.user.*
+*.autosave
+.vs/
+.idea/
+Thumbs.db
+.DS_Store
