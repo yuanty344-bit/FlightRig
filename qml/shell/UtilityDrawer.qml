@@ -21,12 +21,6 @@ Drawer {
     signal flightRequested()
     readonly property string panelTitle: mode === "settings" ? "设置" : mode === "health" ? "健康检查" : mode === "telemetry" ? "更多遥测" : "仿真环境"
     readonly property int panelIndex: mode === "settings" ? 1 : mode === "health" ? 2 : mode === "telemetry" ? 3 : 0
-    readonly property int healthPassedCount: (App.gyrometerOk ? 1 : 0)
-                                             + (App.accelerometerOk ? 1 : 0)
-                                             + (App.magnetometerOk ? 1 : 0)
-                                             + (App.localPositionOk ? 1 : 0)
-                                             + (App.globalPositionOk ? 1 : 0)
-                                             + (App.homePositionOk ? 1 : 0)
     readonly property bool sensorsReady: App.gyrometerOk && App.accelerometerOk && App.magnetometerOk
     readonly property bool positionReady: App.localPositionOk
     readonly property bool globalReady: App.globalPositionOk
@@ -163,12 +157,21 @@ Drawer {
         property string value: "—"
         property color valueColor: Theme.textPrimary
         Layout.fillWidth: true
-        Layout.preferredHeight: 38
+        implicitHeight: Math.max(38, valueText.lineCount * valueText.lineHeight)
         RowLayout {
             anchors.fill: parent
             spacing: 12
-            Text { Layout.fillWidth: true; text: valueRow.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-            Text { Layout.maximumWidth: 218; text: valueRow.value; color: valueRow.valueColor; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; elide: Text.ElideMiddle }
+            Text { text: valueRow.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+            Text {
+                id: valueText
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
+                text: valueRow.value
+                color: valueRow.valueColor
+                font.family: Theme.monoFontFamily
+                font.pixelSize: Theme.textSmall
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+            }
         }
     }
 
@@ -197,7 +200,7 @@ Drawer {
             font.pixelSize: Theme.textSmall
             font.weight: themeChoice.selected ? Font.Medium : Font.Normal
         }
-        MouseArea { id: choiceMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: themeChoice.chosen() }
+        MouseArea { id: choiceMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { themeChoice.chosen(); root.contentItem.forceActiveFocus(Qt.MouseFocusReason) } }
     }
 
     component ToggleSwitch: Rectangle {
@@ -230,7 +233,10 @@ Drawer {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: toggleSwitch.toggled()
+            onClicked: {
+                toggleSwitch.toggled()
+                root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
+            }
         }
     }
 
@@ -262,7 +268,10 @@ Drawer {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: pathColorChoice.chosen()
+            onClicked: {
+                pathColorChoice.chosen()
+                root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
+            }
         }
     }
 
@@ -410,6 +419,19 @@ Drawer {
                                 Layout.preferredHeight: 54
                                 radius: Theme.radiusSmall
                                 color: optionMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
+                                border.width: activeFocus ? 1 : 0
+                                border.color: Theme.accent
+                                activeFocusOnTab: true
+                                Accessible.name: modelOption.modelData.name
+                                Accessible.role: Accessible.Button
+                                Keys.onReturnPressed: modelOption.selectOption()
+                                Keys.onEnterPressed: modelOption.selectOption()
+                                Keys.onSpacePressed: modelOption.selectOption()
+
+                                function selectOption() {
+                                    App.selectedModelId = modelOption.modelData.id
+                                    root.modelListOpen = false
+                                }
                                 RowLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 12
@@ -437,8 +459,8 @@ Drawer {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        App.selectedModelId = modelOption.modelData.id
-                                        root.modelListOpen = false
+                                        modelOption.selectOption()
+                                        root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
                                     }
                                 }
                             }
@@ -508,11 +530,23 @@ Drawer {
                                 Layout.preferredHeight: 54
                                 radius: Theme.radiusSmall
                                 color: worldOptionMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
+                                border.width: activeFocus ? 1 : 0
+                                border.color: Theme.accent
+                                activeFocusOnTab: true
+                                Accessible.name: worldOption.modelData.name
+                                Accessible.role: Accessible.Button
+                                Keys.onReturnPressed: worldOption.selectOption()
+                                Keys.onEnterPressed: worldOption.selectOption()
+                                Keys.onSpacePressed: worldOption.selectOption()
+
+                                function selectOption() {
+                                    App.selectedWorldId = worldOption.modelData.id
+                                    root.worldListOpen = false
+                                }
                                 RowLayout {
-                                    anchors.fill: parent
+                                    anchors.fill: parent; spacing: 10
                                     anchors.leftMargin: 12
                                     anchors.rightMargin: 10
-                                    spacing: 10
                                     Rectangle {
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16; radius: 8
                                         color: "transparent"; border.width: 1
@@ -529,8 +563,8 @@ Drawer {
                                     id: worldOptionMouse
                                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        App.selectedWorldId = worldOption.modelData.id
-                                        root.worldListOpen = false
+                                        worldOption.selectOption()
+                                        root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
                                     }
                                 }
                             }

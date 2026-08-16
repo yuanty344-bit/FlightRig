@@ -41,7 +41,7 @@ Rectangle {
                     color: root.currentIndex === optionButton.index
                            ? Theme.surface
                            : optionButton.hovered ? Theme.surfaceInteractive : "transparent"
-                    border.width: optionButton.activeFocus ? 1 : 0
+                    border.width: optionButton.visualFocus ? 1 : 0
                     border.color: Theme.accent
                 }
                 contentItem: Text {

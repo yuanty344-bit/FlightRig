@@ -246,16 +246,18 @@ Item {
                     iconColor: App.savedRoutes.length > 0 ? Theme.accent : Theme.textFaint
                 }
                 ColumnLayout {
-                    Layout.fillWidth: true
                     spacing: 2
                     Text {
+                        Layout.maximumWidth: 480
                         text: App.savedRoutes.length > 0 ? "继续最近航线" : "还没有保存的航线"
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
                         font.weight: Font.Medium
+                        elide: Text.ElideRight
                     }
                     Text {
+                        Layout.maximumWidth: 480
                         text: App.savedRoutes.length > 0
                               ? String(root.recentRoute.name || "未命名航线") + " · "
                                 + Number(root.recentRoute.waypointCount || 0) + " 个航点 · "
@@ -264,6 +266,7 @@ Item {
                         color: Theme.textMuted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textTiny
+                        elide: Text.ElideRight
                     }
                 }
                 CompactIconButton {
@@ -284,6 +287,7 @@ Item {
                             root.openMission(false)
                     }
                 }
+                Item { Layout.fillWidth: true }
             }
         }
 

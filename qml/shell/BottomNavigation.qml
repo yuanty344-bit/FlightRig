@@ -46,7 +46,7 @@ Rectangle {
             background: Rectangle {
                 radius: Theme.radiusMedium
                 color: nav.hovered ? Theme.surfaceRaised : "transparent"
-                border.width: nav.activeFocus ? 1 : 0
+                border.width: nav.visualFocus ? 1 : 0
                 border.color: Theme.accent
             }
 

@@ -44,6 +44,11 @@ Rectangle {
             valueEdited(result)
     }
 
+    function currentEntry() {
+        const entry = Number(field.text.replace(",", "."))
+        return Number.isFinite(entry) ? entry : value
+    }
+
     onValueChanged: {
         if (!field.activeFocus)
             field.text = formatted(value)
@@ -79,8 +84,8 @@ Rectangle {
         }
         background: Item { }
         onEditingFinished: root.commit(Number(text.replace(",", ".")))
-        Keys.onUpPressed: root.commit(root.value + root.stepSize)
-        Keys.onDownPressed: root.commit(root.value - root.stepSize)
+        Keys.onUpPressed: root.commit(root.currentEntry() + root.stepSize)
+        Keys.onDownPressed: root.commit(root.currentEntry() - root.stepSize)
 
         Text {
             id: unitLabel

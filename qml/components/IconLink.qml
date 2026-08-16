@@ -20,7 +20,7 @@ Button {
         radius: Theme.radiusMedium
         color: root.down ? Theme.surfaceInteractive
                          : root.hovered ? Theme.surfaceRaised : "transparent"
-        border.width: root.activeFocus ? 1 : 0
+        border.width: root.visualFocus ? 1 : 0
         border.color: Theme.accent
         Behavior on color { ColorAnimation { duration: 100 } }
     }

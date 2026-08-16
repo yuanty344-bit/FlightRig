@@ -116,13 +116,28 @@ Item {
                         spacing: 0
 
                         Item {
+                            id: activeSessionRow
                             visible: App.flightSessionActive
                             Layout.fillWidth: true
                             Layout.preferredHeight: visible ? 72 : 0
+                            activeFocusOnTab: true
+                            Accessible.name: "当前会话"
+                            Accessible.role: Accessible.Button
+                            Keys.onReturnPressed: root.selectSession(String(App.activeFlightSession.id || ""))
+                            Keys.onEnterPressed: root.selectSession(String(App.activeFlightSession.id || ""))
+                            Keys.onSpacePressed: root.selectSession(String(App.activeFlightSession.id || ""))
                             Rectangle {
                                 anchors.fill: parent
                                 color: root.selectedSessionId === String(App.activeFlightSession.id || "")
                                        ? Theme.accentSoft : activeMouse.containsMouse ? Theme.surfaceRaised : "transparent"
+                            }
+                            Rectangle {
+                                visible: activeSessionRow.activeFocus
+                                anchors.fill: parent
+                                radius: Theme.radiusSmall
+                                color: "transparent"
+                                border.width: 1
+                                border.color: Theme.accent
                             }
                             RowLayout {
                                 anchors.fill: parent
@@ -143,7 +158,10 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: root.selectSession(String(App.activeFlightSession.id || ""))
+                                onClicked: {
+                                    root.selectSession(String(App.activeFlightSession.id || ""))
+                                    root.forceActiveFocus(Qt.MouseFocusReason)
+                                }
                             }
                         }
 
@@ -211,7 +229,7 @@ Item {
                                     Item { Layout.fillHeight: true }
                                 }
                                 Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.line }
-                                MouseArea { id: rowMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.selectSession(String(sessionRow.modelData.id || "")) }
+                                MouseArea { id: rowMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.selectSession(String(sessionRow.modelData.id || "")); root.forceActiveFocus(Qt.MouseFocusReason) } }
                             }
                         }
 
@@ -335,6 +353,7 @@ Item {
                                 height: 46
                                 RowLayout {
                                     anchors.fill: parent
+                                    anchors.rightMargin: 12
                                     spacing: 12
                                     Rectangle {
                                         Layout.preferredWidth: 7

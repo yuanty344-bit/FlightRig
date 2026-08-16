@@ -10,6 +10,7 @@ Item {
     property real cameraDistance: 18
     property real pressedX: 0
     property real pressedY: 0
+    property vector3d panOffset: Qt.vector3d(0, 0, 0)
     readonly property real vehicleVisualHeight: 0.32
     readonly property string flightPathStatus: {
         if (!App.flightPathVisible)
@@ -33,6 +34,7 @@ Item {
         orbitYaw = -34
         orbitPitch = -24
         cameraDistance = App.selectedWorldId !== "default" ? 72 : 18
+        panOffset = Qt.vector3d(0, 0, 0)
     }
 
     Connections {
@@ -73,7 +75,7 @@ Item {
         Node {
             id: cameraFocus
             position: root.followVehicle && App.localPositionAvailable
-                      ? App.vehicleScenePosition : Qt.vector3d(0, 0, 0)
+                      ? App.vehicleScenePosition : root.panOffset
             Node {
                 eulerRotation.y: root.orbitYaw
                 Node {
@@ -181,15 +183,47 @@ Item {
 
     MouseArea {
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        property bool panning: false
         onPressed: mouse => {
             root.pressedX = mouse.x
             root.pressedY = mouse.y
+            if (mouse.button === Qt.RightButton) {
+                panning = true
+                root.followVehicle = false
+                root.panOffset = cameraFocus.position
+            }
+            if (!App.keyboardControlActive)
+                root.forceActiveFocus(Qt.MouseFocusReason)
         }
+        onReleased: panning = false
         onPositionChanged: mouse => {
             if (!pressed)
                 return
+            if (panning) {
+                const fovRadians = 43 * Math.PI / 180
+                const visibleHeight = 2 * root.cameraDistance * Math.tan(fovRadians / 2)
+                const metersPerPixel = visibleHeight / Math.max(1, height)
+                const yawRadians = root.orbitYaw * Math.PI / 180
+                const pitchRadians = root.orbitPitch * Math.PI / 180
+                const rightX = Math.cos(yawRadians)
+                const rightZ = -Math.sin(yawRadians)
+                const upX = Math.sin(pitchRadians) * Math.sin(yawRadians)
+                const upY = Math.cos(pitchRadians)
+                const upZ = Math.sin(pitchRadians) * Math.cos(yawRadians)
+                const deltaX = mouse.x - root.pressedX
+                const deltaY = mouse.y - root.pressedY
+                root.panOffset = Qt.vector3d(
+                    root.panOffset.x - rightX * deltaX * metersPerPixel
+                                    + upX * deltaY * metersPerPixel,
+                    root.panOffset.y + upY * deltaY * metersPerPixel,
+                    root.panOffset.z - rightZ * deltaX * metersPerPixel
+                                    + upZ * deltaY * metersPerPixel)
+                root.pressedX = mouse.x
+                root.pressedY = mouse.y
+                return
+            }
             root.orbitYaw -= (mouse.x - root.pressedX) * 0.32
             root.orbitPitch = Math.max(-78, Math.min(-8,
                                       root.orbitPitch - (mouse.y - root.pressedY) * 0.24))
@@ -224,6 +258,7 @@ Item {
                 color: Theme.darkMode ? "#D90E1928" : "#EFFFFFFF"
                 border.width: 1
                 border.color: Theme.line
+                Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
                 Text {
                     id: metricText
                     anchors.centerIn: parent
@@ -252,7 +287,7 @@ Item {
             border.width: 1
             border.color: root.followVehicle ? Theme.accent : Theme.line
             Text { anchors.centerIn: parent; text: root.followVehicle ? "跟随" : "自由"; color: root.followVehicle ? Theme.accentHover : Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-            MouseArea { id: followMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.followVehicle = !root.followVehicle }
+            MouseArea { id: followMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.followVehicle = !root.followVehicle; if (!App.keyboardControlActive) root.forceActiveFocus(Qt.MouseFocusReason) } }
         }
         Rectangle {
             width: 58
@@ -262,7 +297,7 @@ Item {
             border.width: 1
             border.color: Theme.line
             Text { anchors.centerIn: parent; text: "重置"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-            MouseArea { id: resetMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.resetView() }
+            MouseArea { id: resetMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.resetView(); if (!App.keyboardControlActive) root.forceActiveFocus(Qt.MouseFocusReason) } }
         }
     }
 
@@ -270,7 +305,7 @@ Item {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 12
-        text: App.localPositionAvailable ? "X 东 / Y 上 / Z 南  ·  拖动旋转  ·  滚轮缩放" : "等待本地位置遥测"
+        text: App.localPositionAvailable ? "X 东 / Y 上 / Z 南  ·  左键旋转  ·  右键平移  ·  滚轮缩放" : "等待本地位置遥测"
         color: Theme.textFaint
         font.family: Theme.fontFamily
         font.pixelSize: Theme.textTiny

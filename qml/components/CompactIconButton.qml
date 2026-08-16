@@ -25,8 +25,8 @@ Button {
                              : root.down ? Theme.surfaceInteractive
                              : root.hovered ? (root.danger ? Theme.dangerSoft : Theme.surfaceInteractive)
                                             : "transparent"
-        border.width: root.activeFocus || root.outlined ? 1 : 0
-        border.color: root.activeFocus ? Theme.accent : Theme.line
+        border.width: root.visualFocus || root.outlined ? 1 : 0
+        border.color: root.visualFocus ? Theme.accent : Theme.line
         Behavior on color { ColorAnimation { duration: 90 } }
     }
 

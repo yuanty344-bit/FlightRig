@@ -746,6 +746,7 @@ Item {
                         pressX = mouse.x
                         pressY = mouse.y
                         moved = false
+                        mapArea.forceActiveFocus(Qt.MouseFocusReason)
                     }
                     onPositionChanged: mouse => {
                         if (!pressed)
@@ -1259,13 +1260,15 @@ Item {
             border.color: Theme.line
 
             ScrollView {
+                id: waypointScroll
                 anchors.fill: parent
                 anchors.margins: root.compactEditor ? 12 : 14
                 clip: true
+                rightPadding: 12
                 contentWidth: availableWidth
 
                 ColumnLayout {
-                width: parent.width
+                width: waypointScroll.availableWidth
                 spacing: root.compactEditor ? 7 : 9
 
                 RowLayout {
@@ -1429,7 +1432,10 @@ Item {
                                         enabled: !root.editingLocked
                                         hoverEnabled: true
                                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                        onClicked: parent.selectEndAction()
+                                        onClicked: {
+                                            parent.selectEndAction()
+                                            root.forceActiveFocus(Qt.MouseFocusReason)
+                                        }
                                     }
                                 }
                             }
@@ -1608,7 +1614,10 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: parent.selectRoute()
+                            onClicked: {
+                                parent.selectRoute()
+                                routeLibraryDialog.contentItem.forceActiveFocus(Qt.MouseFocusReason)
+                            }
                             onDoubleClicked: root.loadLibraryRoute(modelData.id)
                         }
                     }
@@ -1637,7 +1646,6 @@ Item {
                     onClicked: missionModel.count > 0 ? routeNewDialog.open()
                                                        : root.createNewRoute()
                 }
-                Item { Layout.fillWidth: true }
                 CompactIconButton {
                     iconSource: "qrc:/icons/trash-2.svg"
                     accessibleLabel: "删除所选航线"
@@ -1673,6 +1681,7 @@ Item {
                         routeNameField.selectAll()
                     }
                 }
+                Item { Layout.fillWidth: true }
                 ActionButton {
                     Layout.preferredWidth: 84
                     compact: true

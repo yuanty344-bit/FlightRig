@@ -66,7 +66,7 @@ Rectangle {
                 radius: Theme.radiusMedium
                 color: environmentButton.hovered ? Theme.surfaceRaised : Theme.surface
                 border.width: 1
-                border.color: environmentButton.activeFocus ? Theme.accent : Theme.line
+                border.color: environmentButton.visualFocus ? Theme.accent : Theme.line
             }
             contentItem: RowLayout {
                 id: environmentRow

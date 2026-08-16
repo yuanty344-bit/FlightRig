@@ -35,7 +35,7 @@ Button {
                              : root.hovered ? Theme.surfaceRaised : "transparent"
         }
         Rectangle {
-            visible: root.activeFocus
+            visible: root.visualFocus
             anchors.fill: parent
             radius: Theme.radiusSmall
             color: "transparent"
