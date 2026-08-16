@@ -1,0 +1,133 @@
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
+import FlightBench
+
+Rectangle {
+    id: root
+
+    property real value: 0
+    property real from: 0
+    property real to: 100
+    property real stepSize: 1
+    property int decimals: 1
+    property string unit: ""
+    property bool showSteppers: true
+    property string accessibleName: "数值"
+    signal valueEdited(real value)
+
+    implicitWidth: 132
+    implicitHeight: 34
+    radius: Theme.radiusMedium
+    color: field.activeFocus ? Theme.surface : Theme.surfaceRaised
+    border.width: field.activeFocus ? 1.5 : 1
+    border.color: field.activeFocus ? Theme.accent : Theme.line
+    opacity: enabled ? 1 : 0.55
+
+    function formatted(number) {
+        return Number(number).toFixed(decimals)
+    }
+
+    function normalized(number) {
+        if (!Number.isFinite(number))
+            return Math.max(from, Math.min(to, value))
+        const stepped = stepSize > 0
+                      ? Math.round((number - from) / stepSize) * stepSize + from
+                      : number
+        return Math.max(from, Math.min(to, stepped))
+    }
+
+    function commit(number) {
+        const result = normalized(number)
+        field.text = formatted(result)
+        if (Math.abs(result - value) > Math.pow(10, -decimals) / 2)
+            valueEdited(result)
+    }
+
+    onValueChanged: {
+        if (!field.activeFocus)
+            field.text = formatted(value)
+    }
+
+    Component.onCompleted: field.text = formatted(value)
+
+    TextField {
+        id: field
+        anchors.left: parent.left
+        anchors.right: stepperColumn.visible ? stepperColumn.left : parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        leftPadding: 10
+        rightPadding: unitLabel.visible ? unitLabel.width + 10 : 8
+        color: Theme.textPrimary
+        selectedTextColor: Theme.accentContent
+        selectionColor: Theme.accent
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.textSmall
+        horizontalAlignment: Text.AlignRight
+        verticalAlignment: Text.AlignVCenter
+        inputMethodHints: Qt.ImhFormattedNumbersOnly
+        selectByMouse: true
+        enabled: root.enabled
+        Accessible.name: root.accessibleName
+        Accessible.role: Accessible.EditableText
+        validator: DoubleValidator {
+            bottom: root.from
+            top: root.to
+            decimals: root.decimals
+            notation: DoubleValidator.StandardNotation
+        }
+        background: Item { }
+        onEditingFinished: root.commit(Number(text.replace(",", ".")))
+        Keys.onUpPressed: root.commit(root.value + root.stepSize)
+        Keys.onDownPressed: root.commit(root.value - root.stepSize)
+
+        Text {
+            id: unitLabel
+            visible: root.unit.length > 0
+            anchors.right: parent.right
+            anchors.rightMargin: 7
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.unit
+            color: Theme.textMuted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.textTiny
+        }
+    }
+
+    Column {
+        id: stepperColumn
+        visible: root.showSteppers
+        width: 24
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+
+        Repeater {
+            model: [1, -1]
+            delegate: Rectangle {
+                required property int modelData
+                width: stepperColumn.width
+                height: root.height / 2
+                color: stepMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
+
+                Text {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: modelData > 0 ? 1 : -1
+                    text: modelData > 0 ? "⌃" : "⌄"
+                    color: root.enabled ? Theme.textMuted : Theme.textFaint
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                }
+
+                MouseArea {
+                    id: stepMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    enabled: root.enabled
+                    onClicked: root.commit(root.value + modelData * root.stepSize)
+                }
+            }
+        }
+    }
+}

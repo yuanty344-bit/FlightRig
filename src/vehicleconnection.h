@@ -53,7 +53,7 @@ class VehicleConnection final : public QObject
     Q_PROPERTY(bool keyboardControlTransitioning READ keyboardControlTransitioning NOTIFY keyboardControlTransitioningChanged)
     Q_PROPERTY(bool preciseTurnActive READ preciseTurnActive NOTIFY preciseTurnChanged)
     Q_PROPERTY(double preciseTurnTargetDegrees READ preciseTurnTargetDegrees NOTIFY preciseTurnChanged)
-    Q_PROPERTY(int controlSpeedMode READ controlSpeedMode WRITE setControlSpeedMode NOTIFY controlSpeedModeChanged)
+    Q_PROPERTY(double controlSpeedMetersPerSecond READ controlSpeedMetersPerSecond WRITE setControlSpeedMetersPerSecond NOTIFY controlSpeedChanged)
     Q_PROPERTY(QString controlCommandText READ controlCommandText NOTIFY controlCommandChanged)
     Q_PROPERTY(bool globalPositionAvailable READ globalPositionAvailable NOTIFY globalPositionChanged)
     Q_PROPERTY(bool missionBusy READ missionBusy NOTIFY missionStateChanged)
@@ -110,7 +110,10 @@ public:
     [[nodiscard]] bool keyboardControlTransitioning() const;
     [[nodiscard]] bool preciseTurnActive() const { return m_preciseTurnActive; }
     [[nodiscard]] double preciseTurnTargetDegrees() const { return m_preciseTurnTargetDegrees; }
-    [[nodiscard]] int controlSpeedMode() const { return m_controlSpeedMode; }
+    [[nodiscard]] double controlSpeedMetersPerSecond() const
+    {
+        return m_controlSpeedMetersPerSecond;
+    }
     [[nodiscard]] QString controlCommandText() const;
     [[nodiscard]] bool globalPositionAvailable() const { return m_globalPositionAvailable; }
     [[nodiscard]] bool missionBusy() const { return m_missionBusy; }
@@ -147,7 +150,7 @@ public:
     Q_INVOKABLE void returnToLaunch();
     void setSitlExpected(bool expected);
     void setTakeoffAltitude(double value);
-    void setControlSpeedMode(int mode);
+    void setControlSpeedMetersPerSecond(double value);
 
 signals:
     void connectedChanged();
@@ -175,7 +178,7 @@ signals:
     void keyboardControlActiveChanged();
     void keyboardControlTransitioningChanged();
     void preciseTurnChanged();
-    void controlSpeedModeChanged();
+    void controlSpeedChanged();
     void controlCommandChanged();
     void globalPositionChanged();
     void missionStateChanged();
@@ -306,7 +309,7 @@ private:
     bool m_preciseTurnActive{false};
     double m_preciseTurnTargetDegrees{0.0};
     double m_preciseTurnRequestedDegrees{0.0};
-    int m_controlSpeedMode{1};
+    double m_controlSpeedMetersPerSecond{1.0};
     double m_controlForwardAxis{0.0};
     double m_controlRightAxis{0.0};
     double m_controlUpAxis{0.0};

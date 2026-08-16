@@ -6,9 +6,11 @@
 #include <cmath>
 
 namespace {
-QVariantMap waypoint(double east, double north, double altitude, double speed)
+QVariantMap waypoint(const QString &name, double east, double north,
+                     double altitude, double speed)
 {
-    return {{QStringLiteral("eastMeters"), east},
+    return {{QStringLiteral("name"), name},
+            {QStringLiteral("eastMeters"), east},
             {QStringLiteral("northMeters"), north},
             {QStringLiteral("altitudeMeters"), altitude},
             {QStringLiteral("speedMetersPerSecond"), speed},
@@ -28,8 +30,8 @@ int main(int argc, char *argv[])
     const QString testName = QStringLiteral("RouteLibraryTest-%1")
                                  .arg(QDateTime::currentMSecsSinceEpoch());
     const QVariantList points{
-        waypoint(110.0, -45.0, 6.0, 3.0),
-        waypoint(125.0, -30.0, 8.0, 4.0),
+        waypoint(QStringLiteral("入口"), 110.0, -45.0, 6.0, 3.0),
+        waypoint(QStringLiteral("巡检点"), 125.0, -30.0, 8.0, 4.0),
     };
 
     const QVariantMap saved = library.saveRoute({}, testName, points,
@@ -43,7 +45,8 @@ int main(int argc, char *argv[])
     if (loadedPoints.size() != 2) return 3;
     const QVariantMap first = loadedPoints.constFirst().toMap();
     if (!closeEnough(first.value(QStringLiteral("eastMeters")).toDouble(), 20.0)
-        || !closeEnough(first.value(QStringLiteral("northMeters")).toDouble(), 25.0)) {
+        || !closeEnough(first.value(QStringLiteral("northMeters")).toDouble(), 25.0)
+        || first.value(QStringLiteral("name")).toString() != QStringLiteral("入口")) {
         return 4;
     }
 

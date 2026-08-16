@@ -9,6 +9,7 @@ Drawer {
     id: root
     property string mode: "environment"
     property bool modelListOpen: false
+    property bool worldListOpen: false
     property bool technicalDetailsOpen: false
     property bool healthDetailsOpen: false
     property bool softwareDetailsOpen: false
@@ -41,6 +42,9 @@ Drawer {
                                                 || App.issueCode === "start-failed"
                                                 || App.issueCode === "stop-failed"
                                                 || App.issueCode === "model-invalid"
+                                                || App.issueCode === "world-invalid"
+                                                || App.issueCode === "world-assets-missing"
+                                                || App.issueCode === "container-name-invalid"
 
     function openMode(requestedMode) {
         if (requestedMode === "telemetry") telemetryFrozen = false
@@ -183,9 +187,9 @@ Drawer {
         Layout.fillWidth: true
         Layout.fillHeight: true
         radius: Theme.radiusSmall
-        color: selected ? Theme.accent : choiceMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
-        border.width: activeFocus ? 1 : 0
-        border.color: Theme.accent
+        color: selected ? Theme.surface : choiceMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
+        border.width: selected || activeFocus ? 1 : 0
+        border.color: activeFocus ? Theme.accent : Theme.lineStrong
         activeFocusOnTab: true
         Accessible.name: label
         Accessible.role: Accessible.Button
@@ -195,7 +199,7 @@ Drawer {
         Text {
             anchors.centerIn: parent
             text: themeChoice.label
-            color: themeChoice.selected ? Theme.accentContent : Theme.textMuted
+            color: themeChoice.selected ? Theme.textPrimary : Theme.textMuted
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textSmall
             font.weight: themeChoice.selected ? Font.Medium : Font.Normal
@@ -293,7 +297,7 @@ Drawer {
     edge: Qt.RightEdge
     modal: true
     interactive: true
-    width: Math.min(370, parent ? parent.width * 0.9 : 370)
+    width: Math.min(340, parent ? parent.width * 0.9 : 340)
     height: parent ? parent.height : 700
     padding: 0
 
@@ -394,10 +398,20 @@ Drawer {
                                 Text { Layout.fillWidth: true; text: App.selectedModelDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
                             }
                             Text {
-                                text: App.simulationRunning ? "运行中" : root.modelListOpen ? "⌃" : "⌄"
-                                color: App.simulationRunning ? Theme.textFaint : Theme.textSecondary
+                                visible: App.simulationRunning
+                                text: "运行中"
+                                color: Theme.textFaint
                                 font.family: Theme.fontFamily
-                                font.pixelSize: App.simulationRunning ? Theme.textTiny : Theme.textBody
+                                font.pixelSize: Theme.textTiny
+                            }
+                            ThemedIcon {
+                                visible: !App.simulationRunning
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                source: "qrc:/icons/chevron-down.svg"
+                                iconColor: Theme.textSecondary
+                                rotation: root.modelListOpen ? 180 : 0
+                                Behavior on rotation { NumberAnimation { duration: 120 } }
                             }
                         }
                         MouseArea {
@@ -468,26 +482,142 @@ Drawer {
                         font.pixelSize: Theme.textTiny
                     }
 
+                    SectionTitle { Layout.topMargin: 8; text: "仿真世界" }
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 68
+                        radius: Theme.radiusMedium
+                        color: worldPickerMouse.containsMouse && worldPickerMouse.enabled
+                               ? Theme.surfaceInteractive : Theme.surfaceRaised
+                        border.width: 1
+                        border.color: root.worldListOpen ? Theme.accent : Theme.line
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 14
+                            spacing: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 3
+                                Text { text: App.selectedWorldName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
+                                Text { Layout.fillWidth: true; text: App.selectedWorldDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
+                            }
+                            Text { visible: App.simulationRunning; text: "运行中"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            ThemedIcon {
+                                visible: !App.simulationRunning
+                                Layout.preferredWidth: 16
+                                Layout.preferredHeight: 16
+                                source: "qrc:/icons/chevron-down.svg"
+                                iconColor: Theme.textSecondary
+                                rotation: root.worldListOpen ? 180 : 0
+                                Behavior on rotation { NumberAnimation { duration: 120 } }
+                            }
+                        }
+                        MouseArea {
+                            id: worldPickerMouse
+                            anchors.fill: parent
+                            enabled: !App.simulationRunning && !App.busy
+                            hoverEnabled: true
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: root.worldListOpen = !root.worldListOpen
+                        }
+                    }
+                    ColumnLayout {
+                        visible: root.worldListOpen
+                        Layout.fillWidth: true
+                        Layout.topMargin: 6
+                        spacing: 2
+                        Repeater {
+                            model: App.simulationWorlds
+                            delegate: Rectangle {
+                                id: worldOption
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 54
+                                radius: Theme.radiusSmall
+                                color: worldOptionMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 10
+                                    spacing: 10
+                                    Rectangle {
+                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16; radius: 8
+                                        color: "transparent"; border.width: 1
+                                        border.color: worldOption.modelData.id === App.selectedWorldId ? Theme.accent : Theme.lineStrong
+                                        Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.accent; visible: worldOption.modelData.id === App.selectedWorldId }
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { text: worldOption.modelData.name; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: worldOption.modelData.id === App.selectedWorldId ? Font.Medium : Font.Normal }
+                                        Text { Layout.fillWidth: true; text: worldOption.modelData.description; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
+                                    }
+                                }
+                                MouseArea {
+                                    id: worldOptionMouse
+                                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        App.selectedWorldId = worldOption.modelData.id
+                                        root.worldListOpen = false
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    SectionTitle { Layout.topMargin: 8; text: "临时容器" }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 46
+                        spacing: 12
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text { text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                            Text { text: "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                        }
+                        TextField {
+                            id: containerNameField
+                            Layout.preferredWidth: 176
+                            Layout.preferredHeight: 34
+                            text: App.containerName
+                            enabled: !App.simulationRunning && !App.busy
+                            maximumLength: 63
+                            selectByMouse: true
+                            color: Theme.textPrimary
+                            font.family: Theme.monoFontFamily
+                            font.pixelSize: Theme.textTiny
+                            validator: RegularExpressionValidator { regularExpression: /^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$/ }
+                            onEditingFinished: {
+                                if (acceptableInput) App.containerName = text
+                                else text = App.containerName
+                            }
+                            background: Rectangle {
+                                radius: Theme.radiusMedium
+                                color: Theme.surfaceRaised
+                                border.width: 1
+                                border.color: containerNameField.activeFocus ? Theme.accent : Theme.line
+                            }
+                        }
+                    }
+
                     SectionTitle { Layout.topMargin: 8; text: "运行连接" }
                     ValueRow { label: "PX4 SITL"; value: App.simulationRunning ? "运行中" : "未启动"; valueColor: App.simulationRunning ? Theme.success : Theme.textMuted }
                     ValueRow { label: "MAVSDK"; value: App.vehicleConnected ? "已连接" : App.simulationRunning ? "等待连接" : "未连接"; valueColor: App.vehicleConnected ? Theme.success : Theme.textMuted }
 
-                    Item {
+                    DisclosureRow {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 42
-                        RowLayout {
-                            anchors.fill: parent
-                            Text { Layout.fillWidth: true; text: "连接详情"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                            Text { text: root.technicalDetailsOpen ? "收起" : "查看"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.technicalDetailsOpen = !root.technicalDetailsOpen }
+                        label: "连接详情"
+                        expanded: root.technicalDetailsOpen
+                        onToggled: root.technicalDetailsOpen = !root.technicalDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.technicalDetailsOpen
                         Layout.fillWidth: true
                         spacing: 0
                         ValueRow { label: "镜像"; value: "px4io/px4-sitl-gazebo:latest" }
-                        ValueRow { label: "容器"; value: "flightbench-px4" }
+                        ValueRow { label: "世界"; value: App.selectedWorldName }
+                        ValueRow { label: "容器"; value: App.containerName }
                         ValueRow { label: "MAVLink"; value: "UDP 14540" }
                         ValueRow { label: "图形输出"; value: "无界面（HEADLESS）" }
                     }
@@ -538,7 +668,7 @@ Drawer {
                         Layout.topMargin: 14
                         text: App.landingAndStopping
                               ? "正在等待飞行器落地并自动锁定，请保持仿真运行。"
-                              : "机型配置将在下次启动时生效。FlightBench 只管理本软件创建的临时容器。"
+                              : "机型、世界与容器名称将在下次启动时生效。"
                         color: App.landingAndStopping ? Theme.textMuted : Theme.textFaint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textTiny
@@ -571,7 +701,32 @@ Drawer {
                         }
                     }
 
-                    SectionTitle { Layout.topMargin: 6; text: "飞行控制" }
+                    SectionTitle { Layout.topMargin: 6; text: "外观" }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 82
+                        spacing: 8
+                        Text { text: "界面主题"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                        Text { text: "切换后立即应用并保存"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            radius: Theme.radiusMedium
+                            color: Theme.surfaceRaised
+                            border.width: 1
+                            border.color: Theme.line
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                spacing: 2
+                                ThemeChoice { label: "浅色"; selected: Theme.mode === "light"; onChosen: Theme.mode = "light" }
+                                ThemeChoice { label: "深色"; selected: Theme.mode === "dark"; onChosen: Theme.mode = "dark" }
+                                ThemeChoice { label: "跟随系统"; selected: Theme.mode === "system"; onChosen: Theme.mode = "system" }
+                            }
+                        }
+                    }
+
+                    SectionTitle { Layout.topMargin: 14; text: "飞行控制" }
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 58
@@ -580,11 +735,15 @@ Drawer {
                             Layout.fillWidth: true
                             spacing: 2
                             Text { text: "默认起飞高度"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: "范围 1–20 米"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { text: "范围 1.0–100.0 米"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                         }
-                        StepButton { label: "−"; enabled: App.takeoffAltitude > 1; onClicked: App.takeoffAltitude = Math.max(1, App.takeoffAltitude - 1) }
-                        Text { Layout.preferredWidth: 50; horizontalAlignment: Text.AlignHCenter; text: App.takeoffAltitude.toFixed(0) + " m"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
-                        StepButton { label: "+"; enabled: App.takeoffAltitude < 20; onClicked: App.takeoffAltitude = Math.min(20, App.takeoffAltitude + 1) }
+                        NumericField {
+                            Layout.preferredWidth: 138
+                            value: App.takeoffAltitude
+                            from: 1.0; to: 100.0; stepSize: 0.1; decimals: 1; unit: "m"
+                            accessibleName: "默认起飞高度"
+                            onValueEdited: value => App.takeoffAltitude = value
+                        }
                     }
                     RowLayout {
                         visible: Math.abs(App.takeoffAltitude - 5) > 0.1
@@ -711,56 +870,27 @@ Drawer {
                         }
                     }
 
-                    SectionTitle { Layout.topMargin: 16; text: "外观" }
-                    RowLayout {
+                    DisclosureRow {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        spacing: 12
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            Text { text: "界面主题"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: "立即应用并保存"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        Rectangle {
-                            Layout.preferredWidth: 156
-                            Layout.preferredHeight: 34
-                            radius: Theme.radiusMedium
-                            color: Theme.surfaceRaised
-                            border.width: 1
-                            border.color: Theme.line
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                spacing: 2
-                                ThemeChoice { label: "浅色"; selected: !Theme.darkMode; onChosen: Theme.darkMode = false }
-                                ThemeChoice { label: "深色"; selected: Theme.darkMode; onChosen: Theme.darkMode = true }
-                            }
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 48
                         Layout.topMargin: 12
-                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; height: 1; color: Theme.line }
-                        RowLayout {
-                            anchors.fill: parent
-                            Text { Layout.fillWidth: true; text: "软件信息"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                            Text { text: root.softwareDetailsOpen ? "收起" : "查看"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.softwareDetailsOpen = !root.softwareDetailsOpen }
+                        label: "软件信息"
+                        expanded: root.softwareDetailsOpen
+                        topDivider: true
+                        onToggled: root.softwareDetailsOpen = !root.softwareDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.softwareDetailsOpen
                         Layout.fillWidth: true
                         spacing: 0
-                        ValueRow { label: "FlightBench"; value: "0.8.0" }
-                        ValueRow { label: "界面"; value: "Qt 6 / QML" }
-                        ValueRow { label: "通信"; value: "MAVSDK 3.17.1" }
+                        ValueRow { label: "FlightBench"; value: App.applicationVersion }
+                        ValueRow { label: "Qt 运行库"; value: App.qtRuntimeVersion }
+                        ValueRow { label: "MAVSDK"; value: App.mavsdkVersion }
+                        ValueRow { label: "构建"; value: App.buildDescription }
+                        ValueRow { label: "系统"; value: App.platformDescription }
+                        ValueRow { label: "PX4 镜像"; value: "px4io/px4-sitl-gazebo:latest" }
                     }
 
-                    Text { Layout.fillWidth: true; Layout.topMargin: 14; text: "仅控制本机软件仿真，不连接真实无人机。镜像、容器和通信地址在仿真环境中只读显示。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                    Text { Layout.fillWidth: true; Layout.topMargin: 14; text: "仅控制本机软件仿真，不连接真实无人机。镜像和通信地址只读；临时容器名称可在仿真启动前修改。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
                 }
             }
 
@@ -799,17 +929,13 @@ Drawer {
                     HealthCheckRow { Layout.fillWidth: true; label: "GPS 与全局位置"; description: complete ? (App.gpsAvailable ? App.gpsFixType + " · " + App.gpsSatellites + " 星" : "全局位置估计已经建立") : "等待 GPS 与全局坐标"; complete: root.globalReady }
                     HealthCheckRow { Layout.fillWidth: true; label: "Home 与解锁许可"; description: complete ? "返航参考点和解锁许可均正常" : !App.homePositionOk ? "等待 Home 返航参考点" : "等待 PX4 允许解锁"; complete: root.homeAndArmReady; dividerVisible: false }
 
-                    Item {
+                    DisclosureRow {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 44
                         Layout.topMargin: 8
-                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; height: 1; color: Theme.line }
-                        RowLayout {
-                            anchors.fill: parent
-                            Text { Layout.fillWidth: true; text: "技术详情"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                            Text { text: root.healthDetailsOpen ? "收起" : "查看"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.healthDetailsOpen = !root.healthDetailsOpen }
+                        label: "技术详情"
+                        expanded: root.healthDetailsOpen
+                        topDivider: true
+                        onToggled: root.healthDetailsOpen = !root.healthDetailsOpen
                     }
 
                     ColumnLayout {
@@ -911,17 +1037,13 @@ Drawer {
                     ValueRow { label: "GPS"; value: (root.telemetryFrozen ? root.telemetrySnapshot.gpsAvailable : App.gpsAvailable) ? (root.telemetryFrozen ? root.telemetrySnapshot.gpsFix + " · " + root.telemetrySnapshot.satellites + " 星" : App.gpsFixType + " · " + App.gpsSatellites + " 星") : "—" }
                     ValueRow { label: "电池"; value: (root.telemetryFrozen ? root.telemetrySnapshot.batteryAvailable : App.batteryAvailable) ? (root.telemetryFrozen ? Number(root.telemetrySnapshot.batteryPercent).toFixed(0) + "% · " + Number(root.telemetrySnapshot.batteryVoltage).toFixed(1) + " V" : App.batteryRemainingPercent.toFixed(0) + "% · " + App.batteryVoltageVolts.toFixed(1) + " V") : "—" }
 
-                    Item {
+                    DisclosureRow {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 44
                         Layout.topMargin: 10
-                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; height: 1; color: Theme.line }
-                        RowLayout {
-                            anchors.fill: parent
-                            Text { Layout.fillWidth: true; text: "技术详情"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                            Text { text: root.telemetryDetailsOpen ? "收起" : "查看"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.telemetryDetailsOpen = !root.telemetryDetailsOpen }
+                        label: "技术详情"
+                        expanded: root.telemetryDetailsOpen
+                        topDivider: true
+                        onToggled: root.telemetryDetailsOpen = !root.telemetryDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.telemetryDetailsOpen

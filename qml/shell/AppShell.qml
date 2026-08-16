@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Layouts
 import FlightBench
 import "../pages"
+import "../components"
 
 Item {
     id: root
     property int currentIndex: 0
+    property alias flightViewIndex: flightPage.viewIndex
 
     function openDrawer(mode) {
         utilityDrawer.openMode(mode)
@@ -17,7 +19,7 @@ Item {
 
         TopBar {
             Layout.fillWidth: true
-            Layout.preferredHeight: 58
+            Layout.preferredHeight: 68
             onEnvironmentRequested: utilityDrawer.openMode("environment")
             onSettingsRequested: utilityDrawer.openMode("settings")
             onRefreshRequested: App.refresh()
@@ -31,9 +33,18 @@ Item {
             WorkbenchPage {
                 onOpenEnvironment: utilityDrawer.openMode("environment")
                 onOpenFlight: root.currentIndex = 1
+                onOpenMission: showLibrary => {
+                    root.currentIndex = 1
+                    flightPage.openMissionPlanner(showLibrary)
+                }
                 onOpenHealth: utilityDrawer.openMode("health")
+                onLoadRoute: routeId => {
+                    root.currentIndex = 1
+                    flightPage.loadSavedRoute(routeId)
+                }
             }
             FlightPage {
+                id: flightPage
                 onOpenSettings: utilityDrawer.openMode("settings")
                 onOpenHealth: utilityDrawer.openMode("health")
                 onOpenTelemetry: utilityDrawer.openMode("telemetry")
@@ -45,7 +56,7 @@ Item {
 
         BottomNavigation {
             Layout.fillWidth: true
-            Layout.preferredHeight: 52
+            Layout.preferredHeight: 68
             currentIndex: root.currentIndex
             onNavigate: index => root.currentIndex = index
         }
@@ -54,5 +65,12 @@ Item {
     UtilityDrawer {
         id: utilityDrawer
         onFlightRequested: root.currentIndex = 1
+    }
+
+    ToastHost {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 80
+        z: 20
     }
 }

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(FlightBench VERSION 0.8.0 LANGUAGES CXX)
+project(FlightBench VERSION 0.9.0 LANGUAGES CXX)
 
 include(CTest)
 
@@ -67,12 +67,20 @@ qt_add_qml_module(FlightBench
         qml/components/ActionButton.qml
         qml/components/AppToolTip.qml
         qml/components/CompactIconButton.qml
+        qml/components/DisclosureRow.qml
         qml/components/HealthCheckRow.qml
         qml/components/IconLink.qml
         qml/components/MissionCore.qml
         qml/components/MissionPlanner.qml
+        qml/components/MetricChip.qml
+        qml/components/NumericField.qml
+        qml/components/SegmentedControl.qml
+        qml/components/StatusRow.qml
+        qml/components/SurfaceCard.qml
+        qml/components/ToastHost.qml
         qml/components/TelemetryPanel.qml
         qml/components/FlightScene3D.qml
+        qml/components/WorldScene3D.qml
         qml/components/GroundPositionMarker3D.qml
         qml/components/DroneModel3D.qml
         qml/components/ThemedIcon.qml
@@ -143,6 +151,7 @@ target_link_libraries(FlightBench PRIVATE
 
 target_compile_definitions(FlightBench PRIVATE
     FLIGHTBENCH_VERSION="${PROJECT_VERSION}"
+    FLIGHTBENCH_MAVSDK_VERSION="3.17.1"
 )
 
 if(MSVC)
@@ -154,6 +163,13 @@ add_custom_command(TARGET FlightBench POST_BUILD
             $<TARGET_FILE:MAVSDK::mavsdk>
             $<TARGET_FILE_DIR:FlightBench>
     COMMENT "Copying MAVSDK runtime beside FlightBench"
+)
+
+add_custom_command(TARGET FlightBench POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/simulation"
+            "$<TARGET_FILE_DIR:FlightBench>/simulation"
+    COMMENT "Copying simulation worlds beside FlightBench"
 )
 
 install(TARGETS FlightBench

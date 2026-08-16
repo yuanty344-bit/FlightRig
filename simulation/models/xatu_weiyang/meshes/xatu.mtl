@@ -1,0 +1,24 @@
+# Restrained white-model palette shared by Gazebo and FlightBench preview.
+newmtl buildings
+Ka 0.72 0.75 0.78
+Kd 0.84 0.86 0.88
+Ks 0.05 0.05 0.05
+Ns 12
+
+newmtl roads
+Ka 0.32 0.35 0.38
+Kd 0.43 0.46 0.49
+Ks 0.02 0.02 0.02
+Ns 5
+
+newmtl green_areas
+Ka 0.26 0.40 0.29
+Kd 0.36 0.53 0.39
+Ks 0.01 0.01 0.01
+Ns 4
+
+newmtl water
+Ka 0.18 0.38 0.52
+Kd 0.28 0.56 0.71
+Ks 0.18 0.18 0.18
+Ns 28

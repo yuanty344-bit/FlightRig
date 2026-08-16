@@ -27,7 +27,10 @@ public:
     [[nodiscard]] QString problemCode() const { return m_problemCode; }
 
     Q_INVOKABLE void probe();
-    void startSimulation(const QString &modelId);
+    void startSimulation(const QString &modelId,
+                         const QString &worldId,
+                         const QString &worldAssetsDirectory,
+                         const QString &containerName);
     Q_INVOKABLE void stopSimulation();
 
 signals:
@@ -55,13 +58,14 @@ private:
     void handleInspectError(QProcess::ProcessError error);
     void shutdownSynchronously();
 
-    static constexpr auto ContainerName = "flightbench-px4";
+    static constexpr auto DefaultContainerName = "flightbench-px4";
     static constexpr auto ImageName = "px4io/px4-sitl-gazebo:latest";
 
     QProcess m_process;
     QProcess m_inspectProcess;
     QTimer m_monitorTimer;
     QString m_dockerPath;
+    QString m_containerName{QString::fromLatin1(DefaultContainerName)};
     Operation m_operation{Operation::None};
     quint64 m_stateGeneration{0};
     quint64 m_activeInspectGeneration{0};

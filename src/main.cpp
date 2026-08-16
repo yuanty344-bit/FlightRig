@@ -43,6 +43,10 @@ int main(int argc, char *argv[])
     if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {
         controller.setSelectedModelId(arguments.at(modelIndex + 1));
     }
+    const qsizetype worldIndex = arguments.indexOf(QStringLiteral("--world"));
+    if (worldIndex >= 0 && worldIndex + 1 < arguments.size()) {
+        controller.setSelectedWorldId(arguments.at(worldIndex + 1));
+    }
     const bool dynamicScenePreview = arguments.contains(QStringLiteral("--scene-preview-dynamic"));
     if (arguments.contains(QStringLiteral("--scene-preview")) && !dynamicScenePreview) {
         controller.prepareFlightScenePreview();
@@ -110,6 +114,18 @@ int main(int argc, char *argv[])
         const int requestedPage = arguments.at(pageIndex + 1).toInt(&validPage);
         if (validPage && requestedPage >= 0 && requestedPage <= 2) {
             engine.rootObjects().constFirst()->setProperty("currentPage", requestedPage);
+        }
+    }
+
+    // Visual regression and acceptance runs can open a specific flight view
+    // without synthesizing mouse input. 0 = instruments, 1 = 3D, 2 = mission.
+    const qsizetype flightViewIndex = arguments.indexOf(QStringLiteral("--flight-view"));
+    if (flightViewIndex >= 0 && flightViewIndex + 1 < arguments.size()
+        && !engine.rootObjects().isEmpty()) {
+        bool validFlightView = false;
+        const int requestedFlightView = arguments.at(flightViewIndex + 1).toInt(&validFlightView);
+        if (validFlightView && requestedFlightView >= 0 && requestedFlightView <= 2) {
+            engine.rootObjects().constFirst()->setProperty("flightViewIndex", requestedFlightView);
         }
     }
 

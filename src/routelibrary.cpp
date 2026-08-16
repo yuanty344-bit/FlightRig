@@ -165,6 +165,8 @@ QVariantMap RouteLibrary::saveRoute(const QString &routeId,
         const double altitude = point.value(QStringLiteral("altitudeMeters")).toDouble(&altitudeOk);
         const double speed = point.value(QStringLiteral("speedMetersPerSecond")).toDouble(&speedOk);
         const double yaw = point.value(QStringLiteral("yawDegrees"), 0.0).toDouble();
+        QString waypointName = point.value(QStringLiteral("name")).toString().trimmed();
+        if (waypointName.size() > 24) waypointName.truncate(24);
         if (!eastOk || !northOk || !altitudeOk || !speedOk
             || !std::isfinite(east) || !std::isfinite(north)
             || !std::isfinite(altitude) || !std::isfinite(speed)
@@ -172,6 +174,7 @@ QVariantMap RouteLibrary::saveRoute(const QString &routeId,
             return result(false, QStringLiteral("航点数据不完整"));
         }
         relativeWaypoints.append(QVariantMap{
+            {QStringLiteral("name"), waypointName},
             {QStringLiteral("eastMeters"), east - anchorEastMeters},
             {QStringLiteral("northMeters"), north - anchorNorthMeters},
             {QStringLiteral("altitudeMeters"), altitude},

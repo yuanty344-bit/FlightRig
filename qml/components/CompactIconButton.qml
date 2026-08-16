@@ -41,8 +41,9 @@ Button {
         }
     }
 
+    HoverHandler { id: toolTipHover }
     AppToolTip {
-        visible: root.hovered && root.toolTipText.length > 0
+        visible: toolTipHover.hovered && root.toolTipText.length > 0
         text: root.toolTipText
     }
 }

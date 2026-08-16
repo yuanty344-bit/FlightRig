@@ -8,6 +8,7 @@ Button {
     property url iconSource: ""
     property string kind: "primary"
     property bool compact: false
+    property string toolTipText: ""
     readonly property color fillColor: kind === "danger" ? Theme.dangerSoft : kind === "secondary" ? Theme.surfaceRaised : Theme.accent
     readonly property color foregroundColor: kind === "danger" ? Theme.danger : kind === "secondary" ? Theme.textPrimary : Theme.accentContent
 
@@ -45,5 +46,11 @@ Button {
             font.weight: Font.DemiBold
         }
         Item { Layout.fillWidth: true }
+    }
+
+    HoverHandler { id: toolTipHover }
+    AppToolTip {
+        visible: toolTipHover.hovered && root.toolTipText.length > 0
+        text: root.toolTipText
     }
 }

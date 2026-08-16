@@ -7,12 +7,15 @@ import "../components"
 Item {
     id: root
     focus: true
+
     readonly property bool keyboardControlAvailable: App.vehicleConnected
                                                      && App.vehicleReady
                                                      && App.telemetryAvailable
                                                      && App.armed
                                                      && App.inAir
                                                      && !App.busy
+    readonly property bool missionActive: App.missionRunning || App.missionPaused || App.missionUploaded
+    readonly property bool compactLayout: width < 820 || height < 470
     property bool forwardPressed: false
     property bool backwardPressed: false
     property bool leftPressed: false
@@ -22,21 +25,31 @@ Item {
     property bool yawLeftPressed: false
     property bool yawRightPressed: false
     property int viewIndex: 1
+    property real preciseTurnDegrees: 45.0
+
     signal openSettings()
     signal openHealth()
     signal openTelemetry()
 
     function displayFlightMode() {
-        if (!App.vehicleConnected)
-            return "等待连接"
-        if (!App.inAir && App.flightMode === "悬停")
-            return "保持模式"
+        if (!App.vehicleConnected) return "等待连接"
+        if (!App.inAir && App.flightMode === "悬停") return "保持模式"
         return App.flightMode
     }
 
+    function loadSavedRoute(routeId) {
+        viewIndex = 2
+        missionPlanner.loadLibraryRoute(routeId)
+    }
+
+    function openMissionPlanner(showLibrary) {
+        viewIndex = 2
+        if (showLibrary)
+            Qt.callLater(function() { missionPlanner.openRouteLibrary() })
+    }
+
     function pushKeyboardAxes() {
-        if (!App.keyboardControlActive || App.keyboardControlTransitioning)
-            return
+        if (!App.keyboardControlActive || App.keyboardControlTransitioning) return
         App.setKeyboardControlAxes((forwardPressed ? 1 : 0) - (backwardPressed ? 1 : 0),
                                    (rightPressed ? 1 : 0) - (leftPressed ? 1 : 0),
                                    (upPressed ? 1 : 0) - (downPressed ? 1 : 0),
@@ -52,8 +65,7 @@ Item {
         downPressed = false
         yawLeftPressed = false
         yawRightPressed = false
-        if (sendRelease)
-            App.releaseKeyboardControl()
+        if (sendRelease) App.releaseKeyboardControl()
     }
 
     function requestPreciseTurn(degrees) {
@@ -64,8 +76,7 @@ Item {
     }
 
     function handleFlightKey(key, pressed, autoRepeat) {
-        if (!App.keyboardControlActive || App.keyboardControlTransitioning)
-            return false
+        if (!App.keyboardControlActive || App.keyboardControlTransitioning) return false
         if (key === Qt.Key_Escape && pressed && !autoRepeat) {
             clearKeyboardState(true)
             App.stopKeyboardControl()
@@ -93,20 +104,48 @@ Item {
         return true
     }
 
-    Keys.onPressed: function(event) {
-        event.accepted = root.handleFlightKey(event.key, true, event.isAutoRepeat)
+    function controlTitle() {
+        if (viewIndex === 2) return "航线规划"
+        if (App.missionPaused) return "任务已暂停"
+        if (App.missionRunning) return "任务飞行中"
+        if (App.keyboardControlActive) return "键盘控制 · " + App.controlCommandText
+        if (App.inAir) return "飞行器悬停中"
+        return "飞行控制"
     }
-    Keys.onReleased: function(event) {
-        event.accepted = root.handleFlightKey(event.key, false, event.isAutoRepeat)
+
+    function controlSubtitle() {
+        if (viewIndex === 2) return "编辑、保存并上传一条航点路线"
+        if (App.missionRunning || App.missionPaused)
+            return "第 " + Math.min(App.missionCurrentItem + 1, App.missionTotalItems)
+                    + " / " + App.missionTotalItems + " 航点"
+        if (App.keyboardControlActive) return "WASD 移动 · Space/C 高度 · Q/E 转向 · Esc 退出"
+        if (!App.vehicleConnected) return "连接飞行器后可用"
+        if (!App.inAir) return "起飞后可使用任务或键盘控制"
+        return "飞行器已就绪，可以规划任务或启用键盘控制"
     }
-    onActiveFocusChanged: {
-        if (!activeFocus && App.keyboardControlActive)
-            clearKeyboardState(true)
+
+    function takeoffHint() {
+        if (App.busy) return "请等待当前操作完成"
+        if (!App.vehicleConnected) return "等待飞行器连接"
+        if (!App.vehicleReady) return "健康检查尚未通过"
+        if (!App.telemetryAvailable) return "等待完整遥测数据"
+        return "起飞至 " + App.takeoffAltitude.toFixed(1) + " 米"
     }
-    onVisibleChanged: {
-        if (!visible && App.keyboardControlActive)
-            clearKeyboardState(true)
+
+    function keyboardHint() {
+        if (App.keyboardControlTransitioning) return "正在切换控制模式"
+        if (App.keyboardControlActive) return "退出键盘飞行控制"
+        if (!App.vehicleConnected) return "等待飞行器连接"
+        if (!App.vehicleReady) return "健康检查尚未通过"
+        if (!App.telemetryAvailable) return "等待完整遥测数据"
+        if (!App.armed || !App.inAir) return "起飞后可以启用键盘控制"
+        return "启用 WASD 键盘飞行控制"
     }
+
+    Keys.onPressed: function(event) { event.accepted = root.handleFlightKey(event.key, true, event.isAutoRepeat) }
+    Keys.onReleased: function(event) { event.accepted = root.handleFlightKey(event.key, false, event.isAutoRepeat) }
+    onActiveFocusChanged: if (!activeFocus && App.keyboardControlActive) clearKeyboardState(true)
+    onVisibleChanged: if (!visible && App.keyboardControlActive) clearKeyboardState(true)
 
     Timer {
         interval: 100
@@ -132,95 +171,98 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.leftMargin: 26
-        anchors.rightMargin: 26
-        anchors.topMargin: 20
-        anchors.bottomMargin: 16
-        spacing: 10
+        anchors.leftMargin: root.compactLayout ? 20 : 28
+        anchors.rightMargin: root.compactLayout ? 20 : 28
+        anchors.topMargin: root.compactLayout ? 12 : 20
+        anchors.bottomMargin: root.compactLayout ? 10 : 18
+        spacing: root.compactLayout ? 8 : 12
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 50
+            Layout.preferredHeight: root.compactLayout ? 50 : 58
+            spacing: 8
+
             ColumnLayout {
-                spacing: 3
-                Text { text: "飞行"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 22; font.weight: Font.Medium }
-                Text { text: App.hasIssue ? App.issueMessage : App.vehicleConnected ? App.selectedModelName + " · UDP 14540 · " + root.displayFlightMode() : "等待 PX4 飞行器连接"; color: App.hasIssue ? Theme.warning : Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; elide: Text.ElideRight }
-            }
-            Item { Layout.fillWidth: true }
-
-            Rectangle {
-                Layout.preferredWidth: 168
-                Layout.preferredHeight: 32
-                radius: Theme.radiusMedium
-                color: Theme.surface
-                border.width: 1
-                border.color: Theme.line
-
-                Row {
-                    anchors.fill: parent
-                    Repeater {
-                        model: ["仪表", "三维", "任务"]
-                        delegate: Rectangle {
-                            required property int index
-                            required property string modelData
-                            width: 55
-                            height: 30
-                            anchors.verticalCenter: parent.verticalCenter
-                            radius: Theme.radiusSmall
-                            color: root.viewIndex === index
-                                   ? Theme.surfaceRaised : "transparent"
-                            border.width: activeFocus ? 1 : 0
-                            border.color: Theme.accent
-                            activeFocusOnTab: true
-                            Accessible.name: "切换到" + modelData
-                            Accessible.role: Accessible.Button
-                            Keys.onReturnPressed: activateView()
-                            Keys.onEnterPressed: activateView()
-                            Keys.onSpacePressed: activateView()
-
-                            function activateView() {
-                                if (index === 2 && App.keyboardControlActive) {
-                                    root.clearKeyboardState(true)
-                                    App.stopKeyboardControl()
-                                }
-                                root.viewIndex = index
-                                root.forceActiveFocus(Qt.OtherFocusReason)
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: root.viewIndex === index
-                                       ? Theme.textPrimary : Theme.textMuted
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.textTiny
-                                font.weight: root.viewIndex === index
-                                             ? Font.Medium : Font.Normal
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: parent.activateView()
-                            }
-                        }
-                    }
+                Layout.fillWidth: true
+                spacing: 2
+                Text {
+                    text: root.viewIndex === 2 ? "任务" : "飞行"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 24
+                    font.weight: Font.Medium
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: App.hasIssue ? App.issueMessage
+                                       : App.vehicleConnected
+                                         ? App.selectedModelName + " · UDP 14540 · " + root.displayFlightMode()
+                                         : "等待 PX4 飞行器连接"
+                    color: App.hasIssue ? Theme.warning : Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textSmall
+                    elide: Text.ElideRight
                 }
             }
 
-            IconLink {
-                text: "健康检查"
+            CompactIconButton {
+                visible: root.viewIndex !== 2
+                iconSource: "qrc:/icons/route.svg"
+                accessibleLabel: "打开航线规划"
+                toolTipText: "航线规划"
+                onClicked: root.openMissionPlanner(false)
+            }
+
+            CompactIconButton {
+                visible: root.viewIndex !== 2
+                iconSource: "qrc:/icons/gauge.svg"
+                accessibleLabel: "打开更多遥测"
+                toolTipText: "更多遥测"
+                onClicked: root.openTelemetry()
+            }
+
+            CompactIconButton {
+                visible: root.viewIndex !== 2
                 iconSource: "qrc:/icons/heart-pulse.svg"
-                foregroundColor: App.vehicleReady ? Theme.success : Theme.accentHover
-                sidePadding: 16
+                accessibleLabel: "打开健康检查"
+                toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
+                normalIconColor: App.vehicleReady ? Theme.success : Theme.textSecondary
                 onClicked: root.openHealth()
+            }
+
+            SegmentedControl {
+                visible: root.viewIndex !== 2
+                Layout.preferredWidth: 124
+                options: ["仪表", "三维"]
+                currentIndex: root.viewIndex
+                onSelected: index => {
+                    root.viewIndex = index
+                    root.forceActiveFocus(Qt.OtherFocusReason)
+                }
+            }
+
+            CompactIconButton {
+                visible: root.viewIndex === 2
+                iconSource: "qrc:/icons/folder-open.svg"
+                accessibleLabel: "打开航线库"
+                toolTipText: "航线库"
+                onClicked: missionPlanner.openRouteLibrary()
+            }
+
+            CompactIconButton {
+                visible: root.viewIndex === 2
+                outlined: true
+                iconSource: "qrc:/icons/x.svg"
+                accessibleLabel: "关闭任务规划"
+                toolTipText: "返回飞行"
+                onClicked: root.viewIndex = 1
             }
         }
 
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 350
+            Layout.minimumHeight: 220
 
             TelemetryPanel {
                 anchors.fill: parent
@@ -234,39 +276,41 @@ Item {
             }
 
             MissionPlanner {
+                id: missionPlanner
                 anchors.fill: parent
                 visible: root.viewIndex === 2
             }
         }
 
-        Rectangle {
+        SurfaceCard {
+            // MissionPlanner already owns its status and actions. Keeping this
+            // flight-control strip in mission view only duplicates information
+            // and steals the vertical space needed by its settings pane.
             visible: root.viewIndex !== 2
             Layout.fillWidth: true
-            Layout.preferredHeight: visible ? (App.keyboardControlActive ? 68 : 42) : 0
-            radius: Theme.radiusMedium
-            color: App.keyboardControlActive ? Theme.accentSoft : "transparent"
-            border.width: 1
-            border.color: App.keyboardControlActive ? Theme.accent : Theme.line
+            Layout.preferredHeight: root.compactLayout ? 62 : 70
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 12
-                anchors.rightMargin: 8
-                spacing: 10
+                anchors.leftMargin: 18
+                anchors.rightMargin: 14
+                spacing: 12
 
                 ThemedIcon {
                     Layout.preferredWidth: 18
                     Layout.preferredHeight: 18
-                    source: "qrc:/icons/keyboard.svg"
-                    iconColor: App.keyboardControlActive ? Theme.accentHover : Theme.textMuted
+                    source: root.viewIndex === 2 ? "qrc:/icons/route.svg"
+                                                 : App.keyboardControlActive ? "qrc:/icons/keyboard.svg"
+                                                                             : "qrc:/icons/plane.svg"
+                    iconColor: root.missionActive || App.keyboardControlActive ? Theme.accent : Theme.textMuted
                 }
 
                 ColumnLayout {
-                    Layout.preferredWidth: App.keyboardControlActive ? 134 : 250
+                    Layout.fillWidth: true
                     spacing: 2
                     Text {
                         Layout.fillWidth: true
-                        text: App.keyboardControlActive ? "键盘控制 · " + App.controlCommandText : "键盘飞行控制"
+                        text: root.controlTitle()
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
@@ -275,100 +319,84 @@ Item {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: App.keyboardControlActive
-                              ? "Esc 退出 · L 安全降落"
-                              : root.keyboardControlAvailable ? "飞行器已悬停，可以启用" : "完成起飞并悬停后可用"
+                        text: root.controlSubtitle()
                         color: Theme.textMuted
-                        font.family: Theme.fontFamily
+                        font.family: App.keyboardControlActive ? Theme.monoFontFamily : Theme.fontFamily
                         font.pixelSize: Theme.textTiny
                         elide: Text.ElideRight
                     }
                 }
 
-                Text {
-                    visible: App.keyboardControlActive
-                    Layout.fillWidth: true
-                    text: "WASD 移动  ·  Space/C 高度  ·  Q/E 转向  ·  松开悬停"
-                    color: Theme.textSecondary
-                    font.family: Theme.monoFontFamily
-                    font.pixelSize: 10
-                    horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
+                ColumnLayout {
+                    visible: root.viewIndex !== 2
+                    Layout.preferredWidth: 90
+                    spacing: 2
+                    Text { text: "目标高度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    Text { text: App.takeoffAltitude.toFixed(1) + " m"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
                 }
 
-                Row {
-                    visible: App.keyboardControlActive
-                    spacing: 3
-                    Repeater {
-                        model: ["慢", "标准", "快"]
-                        delegate: Rectangle {
-                            required property int index
-                            required property string modelData
-                            width: index === 1 ? 40 : 30
-                            height: 28
-                            radius: Theme.radiusSmall
-                            color: App.controlSpeedMode === index
-                                   ? Theme.accent
-                                   : speedMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
-                            border.width: activeFocus ? 1 : 0
-                            border.color: Theme.accent
-                            activeFocusOnTab: true
-                            Accessible.name: modelData + "控制速度"
-                            Accessible.role: Accessible.Button
-                            Keys.onReturnPressed: selectSpeed()
-                            Keys.onEnterPressed: selectSpeed()
-                            Keys.onSpacePressed: selectSpeed()
-
-                            function selectSpeed() {
-                                if (App.keyboardControlTransitioning) return
-                                App.controlSpeedMode = index
-                                root.forceActiveFocus(Qt.OtherFocusReason)
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: App.controlSpeedMode === index ? Theme.accentContent : Theme.textSecondary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.textTiny
-                            }
-                            MouseArea {
-                                id: speedMouse
-                                anchors.fill: parent
-                                enabled: !App.keyboardControlTransitioning
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: parent.selectSpeed()
-                            }
+                ColumnLayout {
+                    visible: App.keyboardControlActive && root.viewIndex !== 2
+                    Layout.preferredWidth: 116
+                    spacing: 2
+                    Text { text: "水平速度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    NumericField {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 30
+                        value: App.controlSpeedMetersPerSecond
+                        from: 0.5; to: 2.0; stepSize: 0.1; decimals: 1; unit: "m/s"
+                        accessibleName: "键盘控制水平速度"
+                        onValueEdited: value => {
+                            App.controlSpeedMetersPerSecond = value
+                            root.forceActiveFocus(Qt.OtherFocusReason)
                         }
                     }
                 }
 
-
-                ActionButton {
-                    id: angleButton
-                    visible: App.keyboardControlActive
-                    Layout.preferredWidth: 58
-                    compact: true
-                    text: "转向"
-                    kind: "secondary"
-                    enabled: App.keyboardControlActive
-                             && !App.preciseTurnActive
-                             && !App.keyboardControlTransitioning
+                CompactIconButton {
+                    visible: App.keyboardControlActive && root.viewIndex !== 2
+                    outlined: true
+                    iconSource: "qrc:/icons/rotate-ccw.svg"
+                    accessibleLabel: "精确转向"
+                    toolTipText: "精确转向"
+                    enabled: !App.preciseTurnActive && !App.keyboardControlTransitioning
                     onClicked: anglePopup.open()
                 }
 
                 ActionButton {
-                    Layout.preferredWidth: App.keyboardControlActive ? 72 : 84
+                    visible: root.viewIndex !== 2 && (App.missionRunning || App.missionPaused)
+                    Layout.preferredWidth: 86
                     compact: true
-                    text: App.keyboardControlTransitioning
-                          ? "处理中"
-                          : App.keyboardControlActive ? "退出" : "启用"
+                    text: App.missionPaused ? "继续" : "暂停"
+                    iconSource: App.missionPaused ? "qrc:/icons/play.svg" : "qrc:/icons/pause.svg"
                     kind: "secondary"
+                    enabled: !App.busy
+                    onClicked: App.missionPaused ? App.resumeMission() : App.pauseMission()
+                }
+
+                ActionButton {
+                    visible: root.viewIndex !== 2 && !root.missionActive && !App.inAir
+                    Layout.preferredWidth: 88
+                    compact: true
+                    text: "起飞"
+                    iconSource: "qrc:/icons/plane-takeoff.svg"
+                    toolTipText: root.takeoffHint()
+                    enabled: App.vehicleConnected && App.vehicleReady && App.telemetryAvailable && !App.busy
+                    onClicked: takeoffDialog.open()
+                }
+
+                ActionButton {
+                    visible: root.viewIndex !== 2 && !root.missionActive && App.inAir
+                    Layout.preferredWidth: App.keyboardControlActive ? 78 : 88
+                    compact: true
+                    text: App.keyboardControlTransitioning ? "处理中" : App.keyboardControlActive ? "退出" : "键盘"
+                    iconSource: "qrc:/icons/keyboard.svg"
+                    kind: "secondary"
+                    toolTipText: root.keyboardHint()
                     enabled: !App.keyboardControlTransitioning
                              && (App.keyboardControlActive || root.keyboardControlAvailable)
                     onClicked: {
-                        if (App.keyboardControlActive)
-                            App.stopKeyboardControl()
+                        if (App.keyboardControlActive) App.stopKeyboardControl()
                         else {
                             root.clearKeyboardState(false)
                             root.forceActiveFocus(Qt.OtherFocusReason)
@@ -376,82 +404,52 @@ Item {
                         }
                     }
                 }
-            }
-        }
 
-        RowLayout {
-            visible: root.viewIndex !== 2
-            Layout.fillWidth: true
-            Layout.preferredHeight: visible ? 44 : 0
-            spacing: 9
-
-            Rectangle {
-                Layout.preferredWidth: 150
-                Layout.preferredHeight: 40
-                radius: Theme.radiusMedium
-                color: targetMouse.containsMouse ? Theme.surfaceRaised : "transparent"
-                border.width: 1
-                border.color: targetMouse.containsMouse ? Theme.lineStrong : Theme.line
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 11
-                    anchors.rightMargin: 11
-                    spacing: 7
-                    Text { Layout.fillWidth: true; text: "目标高度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                    Text { text: App.takeoffAltitude.toFixed(0) + " m"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                ActionButton {
+                    visible: root.viewIndex !== 2 && App.inAir
+                    Layout.preferredWidth: 86
+                    compact: true
+                    text: "降落"
+                    iconSource: "qrc:/icons/plane-landing.svg"
+                    kind: "danger"
+                    enabled: App.vehicleConnected && (App.inAir || App.armed) && !App.busy
+                    onClicked: App.land()
                 }
-                MouseArea { id: targetMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.openSettings() }
             }
-
-            Item { Layout.fillWidth: true }
-            ActionButton { Layout.preferredWidth: 96; compact: true; text: "降落"; iconSource: "qrc:/icons/plane-landing.svg"; kind: "secondary"; enabled: App.vehicleConnected && (App.inAir || App.armed) && !App.busy; onClicked: App.land() }
-            ActionButton { Layout.preferredWidth: 112; compact: true; text: "起飞"; iconSource: "qrc:/icons/plane-takeoff.svg"; enabled: App.vehicleConnected && App.vehicleReady && App.telemetryAvailable && !App.inAir && !App.busy; onClicked: takeoffDialog.open() }
         }
     }
 
     Popup {
         id: anglePopup
-        x: root.width - width - 94
-        y: root.height - height - 98
-        width: 258
-        height: 126
+        anchors.centerIn: parent
+        width: 320
+        height: 132
         padding: 14
         modal: false
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        onClosed: {
-            if (App.keyboardControlActive)
-                root.forceActiveFocus(Qt.OtherFocusReason)
-        }
-        background: Rectangle {
-            radius: Theme.radiusLarge
-            color: Theme.surface
-            border.width: 1
-            border.color: Theme.lineStrong
-        }
+        onClosed: if (App.keyboardControlActive) root.forceActiveFocus(Qt.OtherFocusReason)
+        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 8
+            Text { text: "精确转向"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "精确转向"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                Item { Layout.fillWidth: true }
-                Text { text: "到达目标后自动悬停"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                spacing: 8
+                Text { text: "角度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                NumericField {
+                    Layout.fillWidth: true
+                    value: root.preciseTurnDegrees
+                    from: 1; to: 180; stepSize: 1; decimals: 0; unit: "°"
+                    accessibleName: "精确转向角度"
+                    onValueEdited: value => root.preciseTurnDegrees = value
+                }
             }
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 6
-                Text { Layout.preferredWidth: 32; text: "左转"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "15°"; kind: "secondary"; onClicked: root.requestPreciseTurn(-15) }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "45°"; kind: "secondary"; onClicked: root.requestPreciseTurn(-45) }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "90°"; kind: "secondary"; onClicked: root.requestPreciseTurn(-90) }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                Text { Layout.preferredWidth: 32; text: "右转"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "15°"; kind: "secondary"; onClicked: root.requestPreciseTurn(15) }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "45°"; kind: "secondary"; onClicked: root.requestPreciseTurn(45) }
-                ActionButton { Layout.fillWidth: true; compact: true; text: "90°"; kind: "secondary"; onClicked: root.requestPreciseTurn(90) }
+                spacing: 8
+                ActionButton { Layout.fillWidth: true; compact: true; text: "向左转"; kind: "secondary"; onClicked: root.requestPreciseTurn(-root.preciseTurnDegrees) }
+                ActionButton { Layout.fillWidth: true; compact: true; text: "向右转"; onClicked: root.requestPreciseTurn(root.preciseTurnDegrees) }
             }
         }
     }
@@ -462,11 +460,18 @@ Item {
         width: Math.min(410, root.width - 48)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "确认起飞"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
-            Text { Layout.fillWidth: true; text: "飞行器将解锁并上升至 " + App.takeoffAltitude.toFixed(1) + " 米悬停。此操作仅作用于当前 PX4 SITL。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; wrapMode: Text.WordWrap }
+            Text {
+                Layout.fillWidth: true
+                text: "飞行器将解锁并上升至 " + App.takeoffAltitude.toFixed(1) + " 米悬停。此操作仅作用于当前 PX4 SITL。"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textBody
+                wrapMode: Text.WordWrap
+            }
             RowLayout {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }

@@ -6,6 +6,7 @@ import "shell"
 ApplicationWindow {
     id: window
     property alias currentPage: shell.currentIndex
+    property alias flightViewIndex: shell.flightViewIndex
     property string drawerRequest: ""
     property string themeRequest: ""
     onDrawerRequestChanged: {
@@ -14,14 +15,14 @@ ApplicationWindow {
     }
     onThemeRequestChanged: {
         if (themeRequest === "light")
-            Theme.darkMode = false
+            Theme.mode = "light"
         else if (themeRequest === "dark")
-            Theme.darkMode = true
+            Theme.mode = "dark"
     }
-    width: 840
-    height: 700
+    width: 900
+    height: 650
     minimumWidth: 760
-    minimumHeight: 620
+    minimumHeight: 590
     visible: true
     title: "FlightBench · PX4 本地仿真"
     color: Theme.canvas
@@ -31,12 +32,7 @@ ApplicationWindow {
             App.releaseKeyboardControl()
     }
 
-    background: Rectangle {
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.canvasSoft }
-            GradientStop { position: 1.0; color: Theme.canvas }
-        }
-    }
+    background: Rectangle { color: Theme.canvasSoft }
 
     AppShell {
         id: shell

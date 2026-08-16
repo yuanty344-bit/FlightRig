@@ -64,16 +64,22 @@ class AppController final : public QObject
     Q_PROPERTY(bool gpsAvailable READ gpsAvailable NOTIFY gpsAvailableChanged)
     Q_PROPERTY(double takeoffAltitude READ takeoffAltitude WRITE setTakeoffAltitude NOTIFY takeoffAltitudeChanged)
     Q_PROPERTY(QVariantList simulationModels READ simulationModels CONSTANT)
+    Q_PROPERTY(QVariantList simulationWorlds READ simulationWorlds CONSTANT)
     Q_PROPERTY(QString selectedModelId READ selectedModelId WRITE setSelectedModelId NOTIFY selectedModelChanged)
     Q_PROPERTY(QString selectedModelName READ selectedModelName NOTIFY selectedModelChanged)
     Q_PROPERTY(QString selectedModelDescription READ selectedModelDescription NOTIFY selectedModelChanged)
+    Q_PROPERTY(QString selectedWorldId READ selectedWorldId WRITE setSelectedWorldId NOTIFY selectedWorldChanged)
+    Q_PROPERTY(QString selectedWorldName READ selectedWorldName NOTIFY selectedWorldChanged)
+    Q_PROPERTY(QString selectedWorldDescription READ selectedWorldDescription NOTIFY selectedWorldChanged)
+    Q_PROPERTY(QUrl selectedWorldPreviewDirectory READ selectedWorldPreviewDirectory NOTIFY selectedWorldChanged)
+    Q_PROPERTY(QString containerName READ containerName WRITE setContainerName NOTIFY containerNameChanged)
     Q_PROPERTY(QString flightMode READ flightMode NOTIFY flightModeChanged)
     Q_PROPERTY(bool keyboardControlActive READ keyboardControlActive NOTIFY keyboardControlActiveChanged)
     Q_PROPERTY(bool keyboardControlTransitioning READ keyboardControlTransitioning NOTIFY keyboardControlTransitioningChanged)
     Q_PROPERTY(bool landingAndStopping READ landingAndStopping NOTIFY landingAndStoppingChanged)
     Q_PROPERTY(bool preciseTurnActive READ preciseTurnActive NOTIFY preciseTurnChanged)
     Q_PROPERTY(double preciseTurnTargetDegrees READ preciseTurnTargetDegrees NOTIFY preciseTurnChanged)
-    Q_PROPERTY(int controlSpeedMode READ controlSpeedMode WRITE setControlSpeedMode NOTIFY controlSpeedModeChanged)
+    Q_PROPERTY(double controlSpeedMetersPerSecond READ controlSpeedMetersPerSecond WRITE setControlSpeedMetersPerSecond NOTIFY controlSpeedChanged)
     Q_PROPERTY(QString controlCommandText READ controlCommandText NOTIFY controlCommandChanged)
     Q_PROPERTY(bool globalPositionAvailable READ globalPositionAvailable NOTIFY globalPositionChanged)
     Q_PROPERTY(bool missionBusy READ missionBusy NOTIFY missionStateChanged)
@@ -102,6 +108,11 @@ class AppController final : public QObject
     Q_PROPERTY(QString sessionsDirectory READ sessionsDirectory CONSTANT)
     Q_PROPERTY(QVariantList savedRoutes READ savedRoutes NOTIFY savedRoutesChanged)
     Q_PROPERTY(QString routesDirectory READ routesDirectory CONSTANT)
+    Q_PROPERTY(QString applicationVersion READ applicationVersion CONSTANT)
+    Q_PROPERTY(QString qtRuntimeVersion READ qtRuntimeVersion CONSTANT)
+    Q_PROPERTY(QString mavsdkVersion READ mavsdkVersion CONSTANT)
+    Q_PROPERTY(QString buildDescription READ buildDescription CONSTANT)
+    Q_PROPERTY(QString platformDescription READ platformDescription CONSTANT)
 
 public:
     explicit AppController(QObject *parent = nullptr);
@@ -158,16 +169,25 @@ public:
     [[nodiscard]] bool gpsAvailable() const { return m_vehicle.gpsAvailable(); }
     [[nodiscard]] double takeoffAltitude() const { return m_vehicle.takeoffAltitude(); }
     [[nodiscard]] QVariantList simulationModels() const;
+    [[nodiscard]] QVariantList simulationWorlds() const;
     [[nodiscard]] QString selectedModelId() const { return m_selectedModelId; }
     [[nodiscard]] QString selectedModelName() const;
     [[nodiscard]] QString selectedModelDescription() const;
+    [[nodiscard]] QString selectedWorldId() const { return m_selectedWorldId; }
+    [[nodiscard]] QString selectedWorldName() const;
+    [[nodiscard]] QString selectedWorldDescription() const;
+    [[nodiscard]] QUrl selectedWorldPreviewDirectory() const;
+    [[nodiscard]] QString containerName() const { return m_containerName; }
     [[nodiscard]] QString flightMode() const { return m_vehicle.flightMode(); }
     [[nodiscard]] bool keyboardControlActive() const { return m_vehicle.keyboardControlActive(); }
     [[nodiscard]] bool keyboardControlTransitioning() const { return m_vehicle.keyboardControlTransitioning(); }
     [[nodiscard]] bool landingAndStopping() const { return m_landingAndStopping; }
     [[nodiscard]] bool preciseTurnActive() const { return m_vehicle.preciseTurnActive(); }
     [[nodiscard]] double preciseTurnTargetDegrees() const { return m_vehicle.preciseTurnTargetDegrees(); }
-    [[nodiscard]] int controlSpeedMode() const { return m_vehicle.controlSpeedMode(); }
+    [[nodiscard]] double controlSpeedMetersPerSecond() const
+    {
+        return m_vehicle.controlSpeedMetersPerSecond();
+    }
     [[nodiscard]] QString controlCommandText() const { return m_vehicle.controlCommandText(); }
     [[nodiscard]] bool globalPositionAvailable() const { return m_vehicle.globalPositionAvailable(); }
     [[nodiscard]] bool missionBusy() const { return m_vehicle.missionBusy(); }
@@ -196,6 +216,11 @@ public:
     [[nodiscard]] QString sessionsDirectory() const { return m_sessionRecorder.sessionsDirectory(); }
     [[nodiscard]] QVariantList savedRoutes() const { return m_routeLibrary.routes(); }
     [[nodiscard]] QString routesDirectory() const { return m_routeLibrary.directory(); }
+    [[nodiscard]] QString applicationVersion() const;
+    [[nodiscard]] QString qtRuntimeVersion() const;
+    [[nodiscard]] QString mavsdkVersion() const;
+    [[nodiscard]] QString buildDescription() const;
+    [[nodiscard]] QString platformDescription() const;
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void startSimulation();
@@ -245,8 +270,10 @@ public:
     Q_INVOKABLE QVariantMap deleteSavedRoute(const QString &routeId);
     Q_INVOKABLE bool openRoutesFolder();
     void setTakeoffAltitude(double value);
-    void setControlSpeedMode(int mode);
+    void setControlSpeedMetersPerSecond(double value);
     void setSelectedModelId(const QString &modelId);
+    void setSelectedWorldId(const QString &worldId);
+    void setContainerName(const QString &name);
     void setFlightPathVisible(bool visible);
     void setFlightPathWidthMeters(double value);
     void setFlightPathColorPreset(const QString &preset);
@@ -282,12 +309,14 @@ signals:
     void gpsAvailableChanged();
     void takeoffAltitudeChanged();
     void selectedModelChanged();
+    void selectedWorldChanged();
+    void containerNameChanged();
     void flightModeChanged();
     void keyboardControlActiveChanged();
     void keyboardControlTransitioningChanged();
     void landingAndStoppingChanged();
     void preciseTurnChanged();
-    void controlSpeedModeChanged();
+    void controlSpeedChanged();
     void controlCommandChanged();
     void globalPositionChanged();
     void missionStateChanged();
@@ -358,6 +387,8 @@ private:
     QString m_statusMessage{QStringLiteral("FlightBench 正在进行环境检查…")};
     QStringList m_diagnosticEntries;
     QString m_selectedModelId{QStringLiteral("gz_x500")};
+    QString m_selectedWorldId{QStringLiteral("default")};
+    QString m_containerName{QStringLiteral("flightbench-px4")};
     bool m_flightPathVisible{true};
     QString m_flightPathColorPreset{QStringLiteral("orange")};
     QString m_lastRecordedIssueCode;

@@ -1,5 +1,6 @@
 #include "appcontroller.h"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
@@ -7,6 +8,8 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QRegularExpression>
+#include <QSysInfo>
 #include <QTextStream>
 #include <QTimer>
 #include <QVariantMap>
@@ -22,6 +25,14 @@ struct SimulationModelDefinition
     QString name;
     QString description;
     bool recommended;
+};
+
+struct SimulationWorldDefinition
+{
+    QString id;
+    QString name;
+    QString description;
+    QString previewModelDirectory;
 };
 
 const QList<SimulationModelDefinition> &simulationModelDefinitions()
@@ -48,6 +59,36 @@ const SimulationModelDefinition *findSimulationModel(const QString &id)
         if (definition.id == id) return &definition;
     }
     return nullptr;
+}
+
+const QList<SimulationWorldDefinition> &simulationWorldDefinitions()
+{
+    // Keep world metadata in one place. Adding a future white-model city only
+    // requires another definition plus its packaged simulation assets.
+    static const QList<SimulationWorldDefinition> definitions{
+        {QStringLiteral("default"), QStringLiteral("默认场地"),
+         QStringLiteral("开阔地面，适合基础飞行与功能验证"), {}},
+        {QStringLiteral("xatu_weiyang"), QStringLiteral("西安工业大学未央校区"),
+         QStringLiteral("校园白模，包含建筑、道路、绿地和水面"),
+         QStringLiteral("xatu_weiyang/meshes")},
+    };
+    return definitions;
+}
+
+const SimulationWorldDefinition *findSimulationWorld(const QString &id)
+{
+    const auto &definitions = simulationWorldDefinitions();
+    for (const auto &definition : definitions) {
+        if (definition.id == id) return &definition;
+    }
+    return nullptr;
+}
+
+bool isValidContainerName(const QString &name)
+{
+    static const QRegularExpression expression(
+        QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"));
+    return expression.match(name).hasMatch();
 }
 
 bool isFlightPathColorPreset(const QString &preset)
@@ -171,8 +212,8 @@ AppController::AppController(QObject *parent)
             this, &AppController::keyboardControlTransitioningChanged);
     connect(&m_vehicle, &VehicleConnection::preciseTurnChanged,
             this, &AppController::preciseTurnChanged);
-    connect(&m_vehicle, &VehicleConnection::controlSpeedModeChanged,
-            this, &AppController::controlSpeedModeChanged);
+    connect(&m_vehicle, &VehicleConnection::controlSpeedChanged,
+            this, &AppController::controlSpeedChanged);
     connect(&m_vehicle, &VehicleConnection::controlCommandChanged, this, [this] {
         emit controlCommandChanged();
         if (m_sessionRecorder.active()) {
@@ -299,7 +340,19 @@ AppController::AppController(QObject *parent)
 
     QSettings settings;
     m_vehicle.setTakeoffAltitude(settings.value(QStringLiteral("flight/takeoffAltitude"), 5.0).toDouble());
-    m_vehicle.setControlSpeedMode(settings.value(QStringLiteral("flight/controlSpeedMode"), 1).toInt());
+    if (settings.contains(QStringLiteral("flight/controlSpeedMetersPerSecond"))) {
+        m_vehicle.setControlSpeedMetersPerSecond(
+            settings.value(QStringLiteral("flight/controlSpeedMetersPerSecond"), 1.0).toDouble());
+    } else {
+        // One-time migration from the former slow / standard / fast selector.
+        static constexpr double legacySpeeds[]{0.5, 1.0, 2.0};
+        const int legacyMode = std::clamp(
+            settings.value(QStringLiteral("flight/controlSpeedMode"), 1).toInt(), 0, 2);
+        m_vehicle.setControlSpeedMetersPerSecond(legacySpeeds[legacyMode]);
+        settings.setValue(QStringLiteral("flight/controlSpeedMetersPerSecond"),
+                          m_vehicle.controlSpeedMetersPerSecond());
+        settings.remove(QStringLiteral("flight/controlSpeedMode"));
+    }
     m_flightPathVisible = settings.value(QStringLiteral("flightPath/visible"), true).toBool();
     m_flightPathGeometry.setWidthMeters(
         settings.value(QStringLiteral("flightPath/widthMeters"), 0.06).toDouble());
@@ -313,6 +366,12 @@ AppController::AppController(QObject *parent)
     const QString savedModelId = settings.value(QStringLiteral("simulation/modelId"),
                                                 QStringLiteral("gz_x500")).toString();
     if (findSimulationModel(savedModelId)) m_selectedModelId = savedModelId;
+    const QString savedWorldId = settings.value(QStringLiteral("simulation/worldId"),
+                                                QStringLiteral("default")).toString();
+    if (findSimulationWorld(savedWorldId)) m_selectedWorldId = savedWorldId;
+    const QString savedContainerName = settings.value(
+        QStringLiteral("simulation/containerName"), QStringLiteral("flightbench-px4")).toString();
+    if (isValidContainerName(savedContainerName)) m_containerName = savedContainerName;
     appendDiagnostic(QStringLiteral("应用"), QStringLiteral("FlightBench 已启动，正在检查本机环境"));
 
     m_sessionSampleTimer.setInterval(200);
@@ -386,7 +445,12 @@ void AppController::startSimulation()
     m_commandIssueMessage.clear();
     updateIssueState();
     m_vehicle.start();
-    m_docker.startSimulation(m_selectedModelId);
+    const QString worldAssetsDirectory =
+        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("simulation"));
+    m_docker.startSimulation(m_selectedModelId,
+                             m_selectedWorldId,
+                             worldAssetsDirectory,
+                             m_containerName);
 }
 
 void AppController::stopSimulation()
@@ -936,17 +1000,17 @@ void AppController::setTakeoffAltitude(double value)
                          .arg(QString::number(m_vehicle.takeoffAltitude(), 'f', 1)));
 }
 
-void AppController::setControlSpeedMode(int mode)
+void AppController::setControlSpeedMetersPerSecond(double value)
 {
-    m_vehicle.setControlSpeedMode(mode);
+    const double previousValue = m_vehicle.controlSpeedMetersPerSecond();
+    m_vehicle.setControlSpeedMetersPerSecond(value);
+    if (qFuzzyCompare(previousValue, m_vehicle.controlSpeedMetersPerSecond())) return;
     QSettings settings;
-    settings.setValue(QStringLiteral("flight/controlSpeedMode"), m_vehicle.controlSpeedMode());
-    static const QStringList labels{QStringLiteral("慢速"),
-                                    QStringLiteral("标准"),
-                                    QStringLiteral("快速")};
+    settings.setValue(QStringLiteral("flight/controlSpeedMetersPerSecond"),
+                      m_vehicle.controlSpeedMetersPerSecond());
     appendDiagnostic(QStringLiteral("设置"),
-                     QStringLiteral("键盘控制速度设为%1")
-                         .arg(labels.value(m_vehicle.controlSpeedMode())));
+                     QStringLiteral("键盘水平速度设为 %1 m/s")
+                         .arg(QString::number(m_vehicle.controlSpeedMetersPerSecond(), 'f', 1)));
 }
 
 void AppController::setFlightPathVisible(bool visible)
@@ -1007,6 +1071,20 @@ QVariantList AppController::simulationModels() const
     return models;
 }
 
+QVariantList AppController::simulationWorlds() const
+{
+    QVariantList worlds;
+    for (const auto &definition : simulationWorldDefinitions()) {
+        QVariantMap world;
+        world.insert(QStringLiteral("id"), definition.id);
+        world.insert(QStringLiteral("name"), definition.name);
+        world.insert(QStringLiteral("description"), definition.description);
+        world.insert(QStringLiteral("hasPreview"), !definition.previewModelDirectory.isEmpty());
+        worlds.append(world);
+    }
+    return worlds;
+}
+
 QString AppController::selectedModelName() const
 {
     const auto *definition = findSimulationModel(m_selectedModelId);
@@ -1017,6 +1095,28 @@ QString AppController::selectedModelDescription() const
 {
     const auto *definition = findSimulationModel(m_selectedModelId);
     return definition ? definition->description : QString();
+}
+
+QString AppController::selectedWorldName() const
+{
+    const auto *definition = findSimulationWorld(m_selectedWorldId);
+    return definition ? definition->name : m_selectedWorldId;
+}
+
+QString AppController::selectedWorldDescription() const
+{
+    const auto *definition = findSimulationWorld(m_selectedWorldId);
+    return definition ? definition->description : QString();
+}
+
+QUrl AppController::selectedWorldPreviewDirectory() const
+{
+    const auto *definition = findSimulationWorld(m_selectedWorldId);
+    if (!definition || definition->previewModelDirectory.isEmpty()) return {};
+    const QString directory = QDir(QCoreApplication::applicationDirPath())
+                                  .filePath(QStringLiteral("simulation/models/%1")
+                                                .arg(definition->previewModelDirectory));
+    return QUrl::fromLocalFile(QDir::cleanPath(directory));
 }
 
 void AppController::setSelectedModelId(const QString &modelId)
@@ -1033,6 +1133,78 @@ void AppController::setSelectedModelId(const QString &modelId)
                      QStringLiteral("仿真机型已设为 %1（%2）")
                          .arg(definition->name, definition->id));
     useStatus(QStringLiteral("已选择 %1").arg(definition->name));
+}
+
+void AppController::setSelectedWorldId(const QString &worldId)
+{
+    if (worldId == m_selectedWorldId) return;
+    const auto *definition = findSimulationWorld(worldId);
+    if (!definition || simulationRunning() || busy()) return;
+
+    m_selectedWorldId = worldId;
+    QSettings().setValue(QStringLiteral("simulation/worldId"), m_selectedWorldId);
+    emit selectedWorldChanged();
+    appendDiagnostic(QStringLiteral("设置"),
+                     QStringLiteral("仿真世界已设为 %1（%2）")
+                         .arg(definition->name, definition->id));
+    useStatus(QStringLiteral("已选择 %1").arg(definition->name));
+}
+
+void AppController::setContainerName(const QString &name)
+{
+    const QString trimmedName = name.trimmed();
+    if (trimmedName == m_containerName) return;
+    if (simulationRunning() || busy()) {
+        useStatus(QStringLiteral("停止仿真后才能修改容器名称"));
+        return;
+    }
+    if (!isValidContainerName(trimmedName)) {
+        useStatus(QStringLiteral("容器名称需以字母或数字开头，只能包含字母、数字、点、短横线和下划线"));
+        return;
+    }
+    m_containerName = trimmedName;
+    QSettings().setValue(QStringLiteral("simulation/containerName"), m_containerName);
+    emit containerNameChanged();
+    appendDiagnostic(QStringLiteral("设置"),
+                     QStringLiteral("临时容器名称设为 %1").arg(m_containerName));
+}
+
+QString AppController::applicationVersion() const
+{
+    return QCoreApplication::applicationVersion();
+}
+
+QString AppController::qtRuntimeVersion() const
+{
+    return QString::fromLatin1(qVersion());
+}
+
+QString AppController::mavsdkVersion() const
+{
+#ifdef FLIGHTBENCH_MAVSDK_VERSION
+    return QStringLiteral(FLIGHTBENCH_MAVSDK_VERSION);
+#else
+    return QStringLiteral("3.17.1");
+#endif
+}
+
+QString AppController::buildDescription() const
+{
+#ifdef _MSC_VER
+#ifdef NDEBUG
+    return QStringLiteral("MSVC %1 · Release · 64 位").arg(_MSC_VER);
+#else
+    return QStringLiteral("MSVC %1 · Debug · 64 位").arg(_MSC_VER);
+#endif
+#else
+    return QStringLiteral("C++ · 64 位");
+#endif
+}
+
+QString AppController::platformDescription() const
+{
+    return QStringLiteral("%1 · %2")
+        .arg(QSysInfo::prettyProductName(), QSysInfo::currentCpuArchitecture());
 }
 
 QVariantMap AppController::sessionDetails(const QString &sessionId) const
@@ -1163,7 +1335,14 @@ QString AppController::exportDiagnosticReport()
     QTextStream stream(&file);
     stream << "FlightBench 诊断报告" << Qt::endl;
     stream << "生成时间：" << QDateTime::currentDateTime().toString(Qt::ISODate) << Qt::endl;
+    stream << "FlightBench：" << applicationVersion() << Qt::endl;
+    stream << "Qt：" << qtRuntimeVersion() << Qt::endl;
+    stream << "MAVSDK：" << mavsdkVersion() << Qt::endl;
+    stream << "构建：" << buildDescription() << Qt::endl;
+    stream << "系统：" << platformDescription() << Qt::endl;
     stream << "仿真机型：" << selectedModelName() << " (" << selectedModelId() << ")" << Qt::endl;
+    stream << "仿真世界：" << selectedWorldName() << " (" << selectedWorldId() << ")" << Qt::endl;
+    stream << "容器名称：" << containerName() << Qt::endl;
     stream << "Docker：" << (dockerAvailable() ? "可用" : "不可用") << Qt::endl;
     stream << "PX4 镜像：" << (imageAvailable() ? "已找到" : "未就绪") << Qt::endl;
     stream << "仿真：" << (simulationRunning() ? "运行中" : "未运行") << Qt::endl;
@@ -1173,6 +1352,7 @@ QString AppController::exportDiagnosticReport()
         stream << "当前问题：" << issueMessage() << Qt::endl;
     }
     stream << "默认起飞高度：" << takeoffAltitude() << " m" << Qt::endl << Qt::endl;
+    stream << "键盘水平速度：" << controlSpeedMetersPerSecond() << " m/s" << Qt::endl;
     stream << "遥测完整：" << (telemetryAvailable() ? "是" : "否") << Qt::endl;
     stream << "相对高度：" << altitudeMeters() << " m" << Qt::endl;
     stream << "水平速度：" << speedMetersPerSecond() << " m/s" << Qt::endl;

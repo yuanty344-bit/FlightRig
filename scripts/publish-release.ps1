@@ -9,7 +9,7 @@ $outputDirectory = Split-Path -Parent $sourceDirectory
 $buildDirectory = Join-Path $sourceDirectory 'build-msvc'
 $releaseDirectory = Join-Path $outputDirectory 'release'
 $stagingDirectory = Join-Path $outputDirectory 'release.new'
-$archivePath = Join-Path $outputDirectory 'FlightBench-0.8.0-win64.zip'
+$archivePath = Join-Path $outputDirectory 'FlightBench-0.9.0-win64.zip'
 
 function Read-CMakeCacheValue {
     param([string]$Name)
@@ -136,6 +136,7 @@ if (Test-Path -LiteralPath $stagingDirectory) { Remove-Item -LiteralPath $stagin
 New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'FlightBench.exe') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'mavsdk.dll') -Destination $stagingDirectory
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'simulation') -Destination $stagingDirectory -Recurse
 
 $windeployqt = Join-Path $qtBin 'windeployqt.exe'
 Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Join-Path $sourceDirectory 'qml'),
@@ -143,7 +144,7 @@ Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Jo
                               (Join-Path $stagingDirectory 'FlightBench.exe'))
 
 @(
-    'FlightBench 0.8.0',
+    'FlightBench 0.9.0',
     'Windows x64 / MSVC 2022',
     'Qt 6.11.x',
     'MAVSDK 3.17.x',

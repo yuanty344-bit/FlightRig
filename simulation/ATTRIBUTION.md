@@ -1,0 +1,13 @@
+# Simulation world attribution
+
+## `xatu_weiyang`
+
+The campus geometry was generated from OpenStreetMap data for the Xi'an
+Technological University Weiyang campus and is redistributed under the Open
+Database License (ODbL).
+
+© OpenStreetMap contributors — https://www.openstreetmap.org/copyright
+
+The FlightBench-specific SDF packaging and material treatment are part of this
+project. Keep this attribution file with every source and binary distribution
+that includes the world.

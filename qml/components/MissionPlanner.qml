@@ -7,6 +7,7 @@ import FlightBench
 
 Item {
     id: root
+    readonly property bool compactEditor: height < 400
     property int selectedIndex: 1
     property bool dirty: false
     property bool wasMissionRunning: false
@@ -63,37 +64,6 @@ Item {
     }
 
     ListModel { id: missionModel }
-
-    component MissionSlider: Slider {
-        id: control
-        implicitHeight: 24
-        leftPadding: 1
-        rightPadding: 1
-        background: Rectangle {
-            x: control.leftPadding
-            y: control.topPadding + control.availableHeight / 2 - height / 2
-            width: control.availableWidth
-            height: 4
-            radius: 2
-            color: Theme.line
-            Rectangle {
-                width: control.visualPosition * parent.width
-                height: parent.height
-                radius: parent.radius
-                color: control.enabled ? Theme.accent : Theme.textFaint
-            }
-        }
-        handle: Rectangle {
-            x: control.leftPadding + control.visualPosition * (control.availableWidth - width)
-            y: control.topPadding + control.availableHeight / 2 - height / 2
-            width: 18
-            height: 18
-            radius: 9
-            color: control.enabled ? Theme.surface : Theme.surfaceRaised
-            border.width: 2
-            border.color: control.enabled ? Theme.accentHover : Theme.lineStrong
-        }
-    }
 
     function clamp(value, minimum, maximum) {
         return Math.max(minimum, Math.min(maximum, value))
@@ -245,13 +215,13 @@ Item {
     }
 
     function appendDefaultMission() {
-        missionModel.append({ eastMeters: 20, northMeters: 18,
+        missionModel.append({ name: "入口", eastMeters: 20, northMeters: 18,
                               altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: 45 })
-        missionModel.append({ eastMeters: 46, northMeters: 36,
+        missionModel.append({ name: "教学楼", eastMeters: 46, northMeters: 36,
                               altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 45 })
-        missionModel.append({ eastMeters: 62, northMeters: 4,
+        missionModel.append({ name: "巡检点", eastMeters: 62, northMeters: 4,
                               altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 135 })
-        missionModel.append({ eastMeters: 30, northMeters: -24,
+        missionModel.append({ name: "返程点", eastMeters: 30, northMeters: -24,
                               altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: -135 })
         selectedIndex = 1
     }
@@ -262,8 +232,11 @@ Item {
             try {
                 var saved = JSON.parse(missionSettings.missionJson)
                 if (Array.isArray(saved) && saved.length >= 2 && saved.length <= 20) {
-                    for (var index = 0; index < saved.length; ++index)
-                        missionModel.append(saved[index])
+                    for (var index = 0; index < saved.length; ++index) {
+                        var savedPoint = saved[index]
+                        savedPoint.name = String(savedPoint.name || ("航点 " + (index + 1)))
+                        missionModel.append(savedPoint)
+                    }
                 }
             } catch (error) {
                 console.warn("Unable to restore mission draft:", error)
@@ -280,7 +253,8 @@ Item {
         var result = []
         for (var index = 0; index < missionModel.count; ++index) {
             var point = missionModel.get(index)
-            result.push({ northMeters: Number(point.northMeters),
+            result.push({ name: String(point.name || ("航点 " + (index + 1))),
+                          northMeters: Number(point.northMeters),
                           eastMeters: Number(point.eastMeters),
                           altitudeMeters: Number(point.altitudeMeters),
                           speedMetersPerSecond: Number(point.speedMetersPerSecond),
@@ -349,8 +323,11 @@ Item {
         if (!response.success)
             return
         missionModel.clear()
-        for (var index = 0; index < response.waypoints.length; ++index)
-            missionModel.append(response.waypoints[index])
+        for (var index = 0; index < response.waypoints.length; ++index) {
+            var loadedPoint = response.waypoints[index]
+            loadedPoint.name = String(loadedPoint.name || ("航点 " + (index + 1)))
+            missionModel.append(loadedPoint)
+        }
         currentRouteId = response.id
         currentRouteName = response.name
         currentRouteAnchorEast = targetEast
@@ -366,6 +343,13 @@ Item {
         centerOnVehicle()
         routeLibraryDialog.close()
         routeCanvas.requestPaint()
+    }
+
+    function openRouteLibrary() {
+        selectedLibraryRouteId = currentRouteId
+        selectedLibraryRouteName = currentRouteName
+        routeOperationMessage = ""
+        routeLibraryDialog.open()
     }
 
     function createNewRoute() {
@@ -396,8 +380,9 @@ Item {
     function addPoint(pixelX, pixelY) {
         if (editingLocked || missionModel.count >= 20)
             return
-        missionModel.append({ eastMeters: Math.round(eastAt(pixelX)),
-                              northMeters: Math.round(northAt(pixelY)),
+        missionModel.append({ name: "航点 " + (missionModel.count + 1),
+                              eastMeters: Math.round(eastAt(pixelX) * 10) / 10,
+                              northMeters: Math.round(northAt(pixelY) * 10) / 10,
                               altitudeMeters: 8,
                               speedMetersPerSecond: 4,
                               yawDegrees: 0 })
@@ -931,6 +916,7 @@ Item {
                     border.width: 1
                     border.color: Theme.line
                     visible: missionModel.count > 0
+                    z: 20
 
                     Row {
                         id: legendRow
@@ -978,6 +964,7 @@ Item {
                     anchors.top: parent.top
                     anchors.margins: 12
                     spacing: 6
+                    z: 20
                     Rectangle {
                         width: Math.min(174, routeNameRow.implicitWidth + 18)
                         height: 30
@@ -988,16 +975,9 @@ Item {
                         activeFocusOnTab: true
                         Accessible.name: "打开航线库，当前航线 " + root.currentRouteName
                         Accessible.role: Accessible.Button
-                        Keys.onReturnPressed: openRouteLibrary()
-                        Keys.onEnterPressed: openRouteLibrary()
-                        Keys.onSpacePressed: openRouteLibrary()
-
-                        function openRouteLibrary() {
-                            root.selectedLibraryRouteId = root.currentRouteId
-                            root.selectedLibraryRouteName = root.currentRouteName
-                            root.routeOperationMessage = ""
-                            routeLibraryDialog.open()
-                        }
+                        Keys.onReturnPressed: root.openRouteLibrary()
+                        Keys.onEnterPressed: root.openRouteLibrary()
+                        Keys.onSpacePressed: root.openRouteLibrary()
                         Row {
                             id: routeNameRow
                             anchors.centerIn: parent
@@ -1031,7 +1011,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: parent.openRouteLibrary()
+                            onClicked: root.openRouteLibrary()
                         }
                     }
                     Rectangle {
@@ -1212,34 +1192,40 @@ Item {
                         text: App.missionBusy ? "正在处理" : "上传并执行"
                         iconSource: "qrc:/icons/upload.svg"
                         enabled: root.canExecute
+                        toolTipText: root.executeBlockReason()
                         onClicked: root.executeMission()
-                        AppToolTip {
-                            visible: executeMissionButton.hovered && !executeMissionButton.enabled
-                            text: root.executeBlockReason()
-                        }
                     }
                 }
             }
         }
 
         Rectangle {
-            Layout.preferredWidth: 238
+            Layout.preferredWidth: 252
             Layout.fillHeight: true
             radius: Theme.radiusLarge
             color: Theme.surface
             border.width: 1
             border.color: Theme.line
 
-            ColumnLayout {
+            ScrollView {
                 anchors.fill: parent
-                anchors.margins: 16
-                spacing: 12
+                anchors.margins: root.compactEditor ? 12 : 14
+                clip: true
+                contentWidth: availableWidth
+
+                ColumnLayout {
+                width: parent.width
+                spacing: root.compactEditor ? 7 : 9
 
                 RowLayout {
                     Layout.fillWidth: true
                     ThemedIcon { Layout.preferredWidth: 18; Layout.preferredHeight: 18; source: "qrc:/icons/map-pin.svg"; iconColor: Theme.accentHover }
-                    Text { text: root.selectionValid ? "航点 " + String(root.selectedIndex + 1).padStart(2, "0") : "航点"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSubtitle; font.weight: Font.Medium }
-                    Item { Layout.fillWidth: true }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 1
+                        Text { Layout.fillWidth: true; text: root.selectionValid ? String(missionModel.get(root.selectedIndex).name || ("航点 " + (root.selectedIndex + 1))) : "航点"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSubtitle; font.weight: Font.Medium; elide: Text.ElideRight }
+                        Text { text: root.selectionValid ? "第 " + String(root.selectedIndex + 1).padStart(2, "0") + " 个航点" : "未选择"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    }
                     Rectangle {
                         Layout.preferredWidth: 50; Layout.preferredHeight: 24; radius: 12
                         color: root.editingLocked ? Theme.warningSoft : Theme.accentSoft
@@ -1248,6 +1234,7 @@ Item {
                 }
 
                 Text {
+                    visible: !root.compactEditor
                     Layout.fillWidth: true
                     text: root.editingLocked
                           ? (App.missionPaused
@@ -1261,74 +1248,73 @@ Item {
                 }
 
                 ColumnLayout {
-                    Layout.fillWidth: true; spacing: 5
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "高度"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                        Item { Layout.fillWidth: true }
-                        Text { text: root.selectionValid ? missionModel.get(root.selectedIndex).altitudeMeters.toFixed(0) + " m" : "—"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                    }
-                    MissionSlider {
-                        Layout.fillWidth: true
-                        from: 2; to: 30; stepSize: 1
-                        value: root.selectionValid ? missionModel.get(root.selectedIndex).altitudeMeters : 8
-                        enabled: !root.editingLocked && missionModel.count > 0
-                        onMoved: root.setPointValue("altitudeMeters", value)
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 5
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "速度"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                        Item { Layout.fillWidth: true }
-                        Text { text: root.selectionValid ? missionModel.get(root.selectedIndex).speedMetersPerSecond.toFixed(1) + " m/s" : "—"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                    }
-                    MissionSlider {
-                        Layout.fillWidth: true
-                        from: 1; to: 8; stepSize: 0.5
-                        value: root.selectionValid ? missionModel.get(root.selectedIndex).speedMetersPerSecond : 4
-                        enabled: !root.editingLocked && missionModel.count > 0
-                        onMoved: root.setPointValue("speedMetersPerSecond", value)
-                    }
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 5
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { text: "航向"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                        Item { Layout.fillWidth: true }
-                        Text { text: root.selectionValid ? missionModel.get(root.selectedIndex).yawDegrees.toFixed(0) + "°" : "—"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                    }
-                    MissionSlider {
-                        Layout.fillWidth: true
-                        from: -180; to: 180; stepSize: 5
-                        value: root.selectionValid ? missionModel.get(root.selectedIndex).yawDegrees : 0
-                        enabled: !root.editingLocked && missionModel.count > 0
-                        onMoved: root.setPointValue("yawDegrees", value)
-                    }
-                }
-
-                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
-
-                RowLayout {
                     Layout.fillWidth: true
-                    Text { text: "局部坐标"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
-                    Item { Layout.fillWidth: true }
-                    Text {
-                        text: root.selectionValid
-                              ? "东 " + (missionModel.get(root.selectedIndex).eastMeters >= 0 ? "+" : "")
-                                + missionModel.get(root.selectedIndex).eastMeters.toFixed(0)
-                                + "  北 " + (missionModel.get(root.selectedIndex).northMeters >= 0 ? "+" : "")
-                                + missionModel.get(root.selectedIndex).northMeters.toFixed(0)
-                              : "—"
-                        color: Theme.textMuted
-                        font.family: Theme.monoFontFamily
-                        font.pixelSize: Theme.textTiny
+                    spacing: 6
+                    Text { text: "航点名称"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    TextField {
+                        id: waypointNameField
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        enabled: root.selectionValid && !root.editingLocked
+                        maximumLength: 24
+                        selectByMouse: true
+                        color: Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSmall
+                        onEditingFinished: {
+                            var nextName = text.trim()
+                            if (!nextName.length) nextName = "航点 " + (root.selectedIndex + 1)
+                            text = nextName
+                            root.setPointValue("name", nextName)
+                        }
+                        background: Rectangle { radius: Theme.radiusMedium; color: Theme.surfaceRaised; border.width: 1; border.color: waypointNameField.activeFocus ? Theme.accent : Theme.line }
+
+                        Binding {
+                            target: waypointNameField
+                            property: "text"
+                            when: !waypointNameField.activeFocus
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: root.selectionValid
+                                   ? String(missionModel.get(root.selectedIndex).name
+                                            || ("航点 " + (root.selectedIndex + 1)))
+                                   : ""
+                        }
                     }
                 }
+
+                component WaypointNumberRow: RowLayout {
+                    id: waypointRow
+                    property string label: "参数"
+                    property string roleName: ""
+                    property real currentValue: 0
+                    property real minimum: 0
+                    property real maximum: 100
+                    property real step: 1
+                    property int decimalPlaces: 1
+                    property string unitText: ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    spacing: 8
+                    Text { Layout.preferredWidth: 58; text: waypointRow.label; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                    NumericField {
+                        Layout.fillWidth: true
+                        value: waypointRow.currentValue
+                        from: waypointRow.minimum; to: waypointRow.maximum
+                        stepSize: waypointRow.step; decimals: waypointRow.decimalPlaces
+                        unit: waypointRow.unitText
+                        enabled: root.selectionValid && !root.editingLocked
+                        accessibleName: waypointRow.label
+                        onValueEdited: value => root.setPointValue(waypointRow.roleName, value)
+                    }
+                }
+
+                WaypointNumberRow { label: "相对高度"; roleName: "altitudeMeters"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).altitudeMeters : 8; minimum: 1; maximum: 100; step: 0.1; decimalPlaces: 1; unitText: "m" }
+                WaypointNumberRow { label: "飞行速度"; roleName: "speedMetersPerSecond"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).speedMetersPerSecond : 4; minimum: 0.5; maximum: 10; step: 0.1; decimalPlaces: 1; unitText: "m/s" }
+                WaypointNumberRow { label: "航向角"; roleName: "yawDegrees"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).yawDegrees : 0; minimum: -180; maximum: 180; step: 1; decimalPlaces: 0; unitText: "°" }
+                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
+                Text { text: "位置（相对起飞点）"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                WaypointNumberRow { label: "向东"; roleName: "eastMeters"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).eastMeters : 0; minimum: -2000; maximum: 2000; step: 0.1; decimalPlaces: 1; unitText: "m" }
+                WaypointNumberRow { label: "向北"; roleName: "northMeters"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).northMeters : 0; minimum: -2000; maximum: 2000; step: 0.1; decimalPlaces: 1; unitText: "m" }
 
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 6
@@ -1400,10 +1386,11 @@ Item {
                     }
                 }
 
-                Item { Layout.fillHeight: true }
+                Item { Layout.preferredHeight: 4 }
 
                 ActionButton {
                     Layout.fillWidth: true
+                    compact: root.compactEditor
                     text: "删除此航点"
                     iconSource: "qrc:/icons/trash-2.svg"
                     kind: "danger"
@@ -1419,6 +1406,7 @@ Item {
                     kind: "secondary"
                     enabled: !App.missionBusy
                     onClicked: clearDialog.open()
+                }
                 }
             }
         }

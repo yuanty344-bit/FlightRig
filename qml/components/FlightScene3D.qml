@@ -38,7 +38,12 @@ Item {
     function resetView() {
         orbitYaw = -34
         orbitPitch = -24
-        cameraDistance = 18
+        cameraDistance = App.selectedWorldId === "xatu_weiyang" ? 72 : 18
+    }
+
+    Connections {
+        target: App
+        function onSelectedWorldChanged() { root.resetView() }
     }
 
     Rectangle {
@@ -83,7 +88,7 @@ Item {
                         id: camera
                         z: root.cameraDistance
                         clipNear: 0.05
-                        clipFar: 350
+                        clipFar: 2500
                         fieldOfView: 43
                     }
                 }
@@ -92,6 +97,7 @@ Item {
         camera: camera
 
         Model {
+            visible: App.selectedWorldId === "default"
             source: "#Cube"
             y: -0.08
             scale: Qt.vector3d(0.4, 0.001, 0.4)
@@ -102,6 +108,7 @@ Item {
         }
 
         Repeater3D {
+            visible: App.selectedWorldId === "default"
             model: 41
             delegate: Model {
                 required property int index
@@ -118,6 +125,7 @@ Item {
             }
         }
         Repeater3D {
+            visible: App.selectedWorldId === "default"
             model: 41
             delegate: Model {
                 required property int index
@@ -135,6 +143,7 @@ Item {
         }
 
         Model {
+            visible: App.selectedWorldId === "default"
             source: "#Cylinder"
             y: 0.015
             scale: Qt.vector3d(0.0015, 0.0003, 0.0015)
@@ -143,6 +152,8 @@ Item {
                 lighting: DefaultMaterial.NoLighting
             } ]
         }
+
+        WorldScene3D { }
 
         Model {
             visible: App.flightPathVisible && App.flightPathPointCount > 1
@@ -189,7 +200,8 @@ Item {
             root.pressedY = mouse.y
         }
         onWheel: wheel => {
-            root.cameraDistance = Math.max(5, Math.min(70,
+            root.cameraDistance = Math.max(5, Math.min(
+                                        App.selectedWorldId === "xatu_weiyang" ? 700 : 70,
                                         root.cameraDistance - wheel.angleDelta.y / 80))
             wheel.accepted = true
         }

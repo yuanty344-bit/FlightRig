@@ -1,5 +1,7 @@
 #include "dockercontroller.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
@@ -48,7 +50,10 @@ void DockerController::probe()
         {QStringLiteral("version"), QStringLiteral("--format"), QStringLiteral("{{.Server.Version}}")});
 }
 
-void DockerController::startSimulation(const QString &modelId)
+void DockerController::startSimulation(const QString &modelId,
+                                       const QString &worldId,
+                                       const QString &worldAssetsDirectory,
+                                       const QString &containerName)
 {
     if (m_busy || m_simulationRunning) {
         return;
@@ -65,20 +70,62 @@ void DockerController::startSimulation(const QString &modelId)
 
     setStatusMessage(QStringLiteral("正在启动 PX4 + Gazebo 仿真容器…"));
     static const QRegularExpression validModelId(QStringLiteral("^[A-Za-z0-9_-]+$"));
+    static const QRegularExpression validWorldId(QStringLiteral("^[A-Za-z0-9_-]+$"));
+    static const QRegularExpression validContainerName(
+        QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"));
     if (!validModelId.match(modelId).hasMatch()) {
         setProblemCode(QStringLiteral("model-invalid"));
         setStatusMessage(QStringLiteral("选择的仿真机型无效"));
         return;
     }
+    if (!validWorldId.match(worldId).hasMatch()) {
+        setProblemCode(QStringLiteral("world-invalid"));
+        setStatusMessage(QStringLiteral("选择的仿真世界无效"));
+        return;
+    }
+    if (!validContainerName.match(containerName).hasMatch()) {
+        setProblemCode(QStringLiteral("container-name-invalid"));
+        setStatusMessage(QStringLiteral("临时容器名称无效"));
+        return;
+    }
 
-    setStatusMessage(QStringLiteral("正在启动 %1 仿真环境…").arg(modelId));
+    QStringList arguments{
+        QStringLiteral("run"), QStringLiteral("--rm"), QStringLiteral("-d"),
+        QStringLiteral("--name"), containerName,
+        QStringLiteral("-e"), QStringLiteral("HEADLESS=1"),
+        QStringLiteral("-e"), QStringLiteral("PX4_SIM_MODEL=%1").arg(modelId),
+        QStringLiteral("-e"), QStringLiteral("PX4_GZ_WORLD=%1").arg(worldId),
+    };
+
+    if (worldId != QStringLiteral("default")) {
+        const QDir assets(worldAssetsDirectory);
+        const QString worldFile = assets.filePath(
+            QStringLiteral("worlds/%1.sdf").arg(worldId));
+        if (!assets.exists() || !QFileInfo::exists(worldFile)) {
+            setProblemCode(QStringLiteral("world-assets-missing"));
+            setStatusMessage(QStringLiteral("找不到 %1 世界资源，请重新构建软件")
+                                 .arg(worldId));
+            return;
+        }
+        const QString mountSource = QDir::toNativeSeparators(assets.absolutePath());
+        arguments.append({
+            QStringLiteral("--mount"),
+            QStringLiteral("type=bind,source=%1,target=/opt/flightbench-simulation,readonly")
+                .arg(mountSource),
+            QStringLiteral("-e"),
+            QStringLiteral("PX4_GZ_WORLDS=/opt/flightbench-simulation/worlds"),
+            QStringLiteral("-e"),
+            QStringLiteral("GZ_SIM_RESOURCE_PATH=/opt/flightbench-simulation/models:"
+                           "/opt/px4-gazebo/share/gz/models:"
+                           "/opt/px4-gazebo/share/gz/worlds"),
+        });
+    }
+    arguments.append(QString::fromLatin1(ImageName));
+
+    m_containerName = containerName;
+    setStatusMessage(QStringLiteral("正在启动 %1 · %2…").arg(modelId, worldId));
     ++m_stateGeneration;
-    run(Operation::Start,
-        {QStringLiteral("run"), QStringLiteral("--rm"), QStringLiteral("-d"),
-         QStringLiteral("--name"), QString::fromLatin1(ContainerName),
-         QStringLiteral("-e"), QStringLiteral("HEADLESS=1"),
-         QStringLiteral("-e"), QStringLiteral("PX4_SIM_MODEL=%1").arg(modelId),
-         QString::fromLatin1(ImageName)});
+    run(Operation::Start, arguments);
 }
 
 void DockerController::stopSimulation()
@@ -90,8 +137,8 @@ void DockerController::stopSimulation()
     setStatusMessage(QStringLiteral("正在安全停止仿真容器…"));
     ++m_stateGeneration;
     run(Operation::Stop,
-        {QStringLiteral("stop"), QStringLiteral("-t"), QStringLiteral("10"),
-         QString::fromLatin1(ContainerName)});
+         {QStringLiteral("stop"), QStringLiteral("-t"), QStringLiteral("10"),
+         m_containerName});
 }
 
 void DockerController::run(Operation operation, const QStringList &arguments)
@@ -152,7 +199,8 @@ void DockerController::handleFinished(int exitCode, QProcess::ExitStatus exitSta
             if (lowerError.contains(QStringLiteral("conflict"))
                 || lowerError.contains(QStringLiteral("already in use"))) {
                 setProblemCode(QStringLiteral("container-conflict"));
-                setStatusMessage(QStringLiteral("同名仿真容器已存在，请在 Docker Desktop 中删除 flightbench-px4 后重试"));
+                setStatusMessage(QStringLiteral("容器 %1 已存在，请在 Docker Desktop 中删除后重试")
+                                     .arg(m_containerName));
             } else if (lowerError.contains(QStringLiteral("no such image"))) {
                 setImageAvailable(false);
                 setProblemCode(QStringLiteral("image-missing"));
@@ -204,7 +252,7 @@ void DockerController::inspectContainer()
     m_inspectProcess.setProgram(m_dockerPath);
     m_inspectProcess.setArguments({QStringLiteral("inspect"), QStringLiteral("--format"),
                                    QStringLiteral("{{.State.Running}}"),
-                                   QString::fromLatin1(ContainerName)});
+                                   m_containerName});
     m_inspectProcess.start();
 }
 
@@ -264,7 +312,7 @@ void DockerController::shutdownSynchronously()
     }
     QProcess::execute(m_dockerPath,
                       {QStringLiteral("stop"), QStringLiteral("-t"), QStringLiteral("10"),
-                       QString::fromLatin1(ContainerName)});
+                       m_containerName});
     m_startedByUs = false;
 }
 

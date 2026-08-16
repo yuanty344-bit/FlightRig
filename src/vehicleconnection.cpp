@@ -29,9 +29,8 @@ constexpr quint8 HeadingTelemetryFlag = 1U << 3U;
 constexpr quint8 CompleteCoreTelemetryMask = PositionTelemetryFlag | VelocityTelemetryFlag
                                               | AttitudeTelemetryFlag | HeadingTelemetryFlag;
 constexpr double RadiansToDegrees = 180.0 / std::numbers::pi_v<double>;
-constexpr double ControlHorizontalSpeeds[]{0.5, 1.0, 2.0};
-constexpr double ControlVerticalSpeeds[]{0.3, 0.5, 0.8};
-constexpr double ControlYawSpeeds[]{15.0, 30.0, 60.0};
+constexpr double MinimumControlSpeed = 0.5;
+constexpr double MaximumControlSpeed = 2.0;
 constexpr qint64 CoreTelemetryTimeoutMs = 1500;
 constexpr qint64 AuxiliaryTelemetryTimeoutMs = 3500;
 
@@ -67,6 +66,22 @@ double signedHeadingError(double target, double current)
     double error = std::fmod(target - current + 540.0, 360.0) - 180.0;
     if (error <= -180.0) error += 360.0;
     return error;
+}
+
+double controlSpeedRatio(double horizontalSpeed)
+{
+    return (horizontalSpeed - MinimumControlSpeed)
+           / (MaximumControlSpeed - MinimumControlSpeed);
+}
+
+double verticalControlSpeed(double horizontalSpeed)
+{
+    return 0.3 + std::clamp(controlSpeedRatio(horizontalSpeed), 0.0, 1.0) * 0.5;
+}
+
+double yawControlSpeed(double horizontalSpeed)
+{
+    return 15.0 + std::clamp(controlSpeedRatio(horizontalSpeed), 0.0, 1.0) * 45.0;
 }
 
 QString actionResultText(Action::Result result)
@@ -444,7 +459,7 @@ VehicleConnection::VehicleConnection(QObject *parent)
             } else {
                 const double speed = qBound(5.0,
                                             std::abs(error) * 1.2,
-                                            ControlYawSpeeds[m_controlSpeedMode]);
+                                            yawControlSpeed(m_controlSpeedMetersPerSecond));
                 m_controlYawDegreesPerSecond = std::copysign(speed, error);
             }
         }
@@ -858,24 +873,26 @@ void VehicleConnection::setKeyboardControlAxes(double forward,
     m_controlRightAxis = boundedRight;
     m_controlUpAxis = boundedUp;
     m_controlYawAxis = boundedYaw;
-    m_controlForwardMetersPerSecond = boundedForward * ControlHorizontalSpeeds[m_controlSpeedMode];
-    m_controlRightMetersPerSecond = boundedRight * ControlHorizontalSpeeds[m_controlSpeedMode];
-    m_controlUpMetersPerSecond = boundedUp * ControlVerticalSpeeds[m_controlSpeedMode];
-    m_controlYawDegreesPerSecond = boundedYaw * ControlYawSpeeds[m_controlSpeedMode];
+    m_controlForwardMetersPerSecond = boundedForward * m_controlSpeedMetersPerSecond;
+    m_controlRightMetersPerSecond = boundedRight * m_controlSpeedMetersPerSecond;
+    m_controlUpMetersPerSecond = boundedUp * verticalControlSpeed(m_controlSpeedMetersPerSecond);
+    m_controlYawDegreesPerSecond = boundedYaw * yawControlSpeed(m_controlSpeedMetersPerSecond);
     emit controlCommandChanged();
 }
 
-void VehicleConnection::setControlSpeedMode(int mode)
+void VehicleConnection::setControlSpeedMetersPerSecond(double value)
 {
-    const int bounded = qBound(0, mode, 2);
-    if (m_controlSpeedMode == bounded) return;
-    m_controlSpeedMode = bounded;
-    emit controlSpeedModeChanged();
+    const double bounded = qBound(MinimumControlSpeed, value, MaximumControlSpeed);
+    const double rounded = std::round(bounded * 10.0) / 10.0;
+    if (qFuzzyCompare(m_controlSpeedMetersPerSecond, rounded)) return;
+    m_controlSpeedMetersPerSecond = rounded;
+    emit controlSpeedChanged();
     if (m_keyboardControlActive) {
-        m_controlForwardMetersPerSecond = m_controlForwardAxis * ControlHorizontalSpeeds[bounded];
-        m_controlRightMetersPerSecond = m_controlRightAxis * ControlHorizontalSpeeds[bounded];
-        m_controlUpMetersPerSecond = m_controlUpAxis * ControlVerticalSpeeds[bounded];
-        m_controlYawDegreesPerSecond = m_controlYawAxis * ControlYawSpeeds[bounded];
+        m_controlForwardMetersPerSecond = m_controlForwardAxis * rounded;
+        m_controlRightMetersPerSecond = m_controlRightAxis * rounded;
+        m_controlUpMetersPerSecond = m_controlUpAxis * verticalControlSpeed(rounded);
+        m_controlYawDegreesPerSecond = m_controlYawAxis * yawControlSpeed(rounded);
+        emit controlCommandChanged();
     }
 }
 
@@ -943,9 +960,9 @@ void VehicleConnection::uploadAndStartMission(const QVariantList &waypoints,
         if (!northOk || !eastOk || !altitudeOk || !speedOk || !yawOk
             || !std::isfinite(north) || !std::isfinite(east)
             || !std::isfinite(altitude) || !std::isfinite(speed) || !std::isfinite(yaw)
-            || std::hypot(north, east) > 250.0
-            || altitude < 2.0 || altitude > 30.0
-            || speed < 1.0 || speed > 8.0
+            || std::abs(north) > 2000.0 || std::abs(east) > 2000.0
+            || altitude < 1.0 || altitude > 100.0
+            || speed < 0.5 || speed > 10.0
             || yaw < -180.0 || yaw > 180.0) {
             setMissionState(false, m_missionUploaded, false, false,
                             QStringLiteral("航点 %1 的位置或飞行参数超出安全范围")
@@ -1369,9 +1386,10 @@ void VehicleConnection::setHealth(bool gyrometerOk,
 
 void VehicleConnection::setTakeoffAltitude(double value)
 {
-    const double bounded = qBound(1.0, value, 20.0);
-    if (qFuzzyCompare(m_takeoffAltitude, bounded)) return;
-    m_takeoffAltitude = bounded;
+    const double bounded = qBound(1.0, value, 100.0);
+    const double rounded = std::round(bounded * 10.0) / 10.0;
+    if (qFuzzyCompare(m_takeoffAltitude, rounded)) return;
+    m_takeoffAltitude = rounded;
     emit takeoffAltitudeChanged();
 }
 
