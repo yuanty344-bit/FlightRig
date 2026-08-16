@@ -40,34 +40,31 @@ QtObject {
     readonly property color warningSoft: darkMode ? "#3D2E1B" : "#FBF0DB"
     readonly property color danger: darkMode ? "#EF7777" : "#C44242"
     readonly property color dangerSoft: darkMode ? "#28191D" : "#FBE9EA"
-    readonly property color disabled: darkMode ? "#1B293B" : "#E5E9EE"
     readonly property color accentContent: "#FFFFFF"
 
     readonly property color instrumentSky: darkMode ? "#316CA8" : "#79AEDC"
     readonly property color instrumentGround: darkMode ? "#72543D" : "#B4957D"
     readonly property color instrumentMark: darkMode ? "#F8CC55" : "#7C6111"
-    readonly property color sourceApp: darkMode ? "#6FA8FF" : "#1769D2"
-    readonly property color sourceDocker: darkMode ? "#43D5A4" : "#16815F"
-    readonly property color sourceMavsdk: darkMode ? "#A78BFA" : "#6D4CC2"
-    readonly property color sourcePx4: darkMode ? "#F0AA45" : "#A66812"
+
+    // Single source of truth for flight path preset colors, shared by the 3D
+    // scene, the mission map and the settings swatches.
+    function flightPathColor(preset) {
+        if (preset === "blue") return darkMode ? "#72A7F5" : "#1769D2"
+        if (preset === "teal") return darkMode ? "#43D5A4" : "#16815F"
+        if (preset === "violet") return darkMode ? "#A78BFA" : "#6D4CC2"
+        return darkMode ? "#FFB454" : "#C85D00"
+    }
 
     readonly property int radiusSmall: 6
     readonly property int radiusMedium: 8
     readonly property int radiusLarge: 12
-    readonly property int radiusXLarge: 14
 
-    readonly property int space4: 4
     readonly property int space8: 8
     readonly property int space12: 12
-    readonly property int space16: 16
-    readonly property int space20: 20
-    readonly property int space24: 24
-    readonly property int space32: 32
 
     readonly property int textTiny: 11
     readonly property int textSmall: 12
     readonly property int textBody: 14
     readonly property int textSubtitle: 16
     readonly property int textTitle: 19
-    readonly property int textDisplay: 52
 }

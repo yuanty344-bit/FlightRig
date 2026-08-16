@@ -44,6 +44,7 @@ Rectangle {
             onClicked: root.navigate(pageIndex)
 
             background: Rectangle {
+                radius: Theme.radiusMedium
                 color: nav.hovered ? Theme.surfaceRaised : "transparent"
                 border.width: nav.activeFocus ? 1 : 0
                 border.color: Theme.accent

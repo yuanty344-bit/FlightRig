@@ -175,12 +175,7 @@ Item {
     }
 
     function pathColor() {
-        switch (App.flightPathColorPreset) {
-        case "blue": return Theme.darkMode ? "#67A5FF" : "#1769C2"
-        case "teal": return Theme.darkMode ? "#42C7B1" : "#087F70"
-        case "violet": return Theme.darkMode ? "#B99AFF" : "#7651C7"
-        default: return Theme.darkMode ? "#FFB454" : "#B65A08"
-        }
+        return Theme.flightPathColor(App.flightPathColorPreset)
     }
 
     function pathLineWidth() {
@@ -307,10 +302,11 @@ Item {
         return result
     }
 
-    function saveDraft() {
+    function saveDraft(notify) {
         missionSettings.missionJson = JSON.stringify(missionData())
         dirty = false
-        savedNotice.restart()
+        if (notify)
+            savedNotice.restart()
     }
 
     function rememberCurrentRoute() {
@@ -342,7 +338,7 @@ Item {
         currentRouteName = response.name
         dirty = false
         rememberCurrentRoute()
-        saveDraft()
+        saveDraft(true)
         return true
     }
 
@@ -1910,9 +1906,11 @@ Item {
                 wrapMode: Text.WordWrap
             }
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 42; radius: Theme.radiusMedium
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(42, executeWarningText.implicitHeight + 20)
+                radius: Theme.radiusMedium
                 color: Theme.warningSoft
-                Text { anchors.fill: parent; anchors.margins: 10; text: "执行前请确认仿真画面无遮挡，并保持急停方式可用。"; color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
+                Text { id: executeWarningText; anchors.fill: parent; anchors.margins: 10; text: "执行前请确认仿真画面无遮挡，并保持急停方式可用。"; color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
             }
             RowLayout {
                 Layout.fillWidth: true

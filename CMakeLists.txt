@@ -70,9 +70,7 @@ qt_add_qml_module(FlightBench
         qml/components/DisclosureRow.qml
         qml/components/HealthCheckRow.qml
         qml/components/IconLink.qml
-        qml/components/MissionCore.qml
         qml/components/MissionPlanner.qml
-        qml/components/MetricChip.qml
         qml/components/NumericField.qml
         qml/components/SegmentedControl.qml
         qml/components/StatusRow.qml
@@ -97,14 +95,9 @@ qt_add_resources(FlightBench "flightbench_assets"
     PREFIX "/"
     BASE "resources"
     FILES
-        resources/icons/activity.svg
-        resources/icons/battery.svg
         resources/icons/circle-check.svg
-        resources/icons/circle-stop.svg
         resources/icons/chevron-down.svg
-        resources/icons/container.svg
         resources/icons/copy.svg
-        resources/icons/drone-outline.svg
         resources/icons/flightbench-app.svg
         resources/icons/file-down.svg
         resources/icons/folder-open.svg
@@ -112,24 +105,18 @@ qt_add_resources(FlightBench "flightbench_assets"
         resources/icons/heart-pulse.svg
         resources/icons/keyboard.svg
         resources/icons/map-pin.svg
-        resources/icons/house.svg
         resources/icons/plane-landing.svg
         resources/icons/plane-takeoff.svg
         resources/icons/plane.svg
         resources/icons/pencil.svg
         resources/icons/panel-right-open.svg
         resources/icons/play.svg
-        resources/icons/plug.svg
-        resources/icons/radio.svg
-        resources/icons/radar.svg
         resources/icons/refresh-cw.svg
         resources/icons/route.svg
         resources/icons/save.svg
         resources/icons/scroll-text.svg
-        resources/icons/settings.svg
         resources/icons/sliders-horizontal.svg
         resources/icons/square.svg
-        resources/icons/triangle-alert.svg
         resources/icons/trash-2.svg
         resources/icons/upload.svg
         resources/icons/zoom-in.svg

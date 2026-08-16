@@ -33,6 +33,7 @@ Button {
             anchors.centerIn: parent
             spacing: 7
             ThemedIcon {
+                visible: root.iconSource.toString().length > 0
                 width: 16
                 height: 16
                 anchors.verticalCenter: parent.verticalCenter

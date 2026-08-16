@@ -172,15 +172,14 @@ Item {
                         Text { id: headingLabel; anchors.centerIn: parent; text: root.headingText(); color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
                     }
 
-                    Text {
+                    IconLink {
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: attitude.bottom
-                        anchors.topMargin: 10
+                        anchors.topMargin: 4
                         text: "更多遥测"
-                        color: Theme.accentHover
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textSmall
-                        MouseArea { anchors.fill: parent; anchors.margins: -10; cursorShape: Qt.PointingHandCursor; onClicked: root.moreTelemetryRequested() }
+                        iconSource: "qrc:/icons/gauge.svg"
+                        sidePadding: 12
+                        onClicked: root.moreTelemetryRequested()
                     }
                 }
             }

@@ -23,7 +23,7 @@ Button {
         radius: Theme.radiusMedium
         color: !root.enabled ? Theme.surfaceRaised : root.down ? Qt.darker(root.fillColor, 1.15) : root.hovered ? Qt.lighter(root.fillColor, 1.08) : root.fillColor
         border.width: 1
-        border.color: !root.enabled ? Theme.lineStrong : root.activeFocus ? Theme.accentHover : root.kind === "danger" ? "#6B3A3B" : root.kind === "secondary" ? Theme.lineStrong : Theme.accent
+        border.color: !root.enabled ? Theme.lineStrong : root.activeFocus ? Theme.accentHover : root.kind === "danger" ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b, 0.45) : root.kind === "secondary" ? Theme.lineStrong : Theme.accent
         Behavior on color { ColorAnimation { duration: 100 } }
     }
 

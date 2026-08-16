@@ -156,9 +156,10 @@ Item {
                                 anchors.left: parent.left
                                 anchors.leftMargin: configCell.divider ? 16 : 0
                                 anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - (configCell.divider ? 16 : 0)
                                 spacing: 6
                                 Text { text: configCell.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                                Text { text: configCell.value; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                                Text { width: parent.width; text: configCell.value; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium; elide: Text.ElideRight }
                             }
                             Rectangle { visible: configCell.divider; anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 1; color: Theme.line }
                         }

@@ -25,6 +25,7 @@ Item {
     property bool yawLeftPressed: false
     property bool yawRightPressed: false
     property int viewIndex: 1
+    property int previousViewIndex: 1
     property real preciseTurnDegrees: 45.0
 
     signal openSettings()
@@ -38,11 +39,15 @@ Item {
     }
 
     function loadSavedRoute(routeId) {
+        if (viewIndex !== 2)
+            previousViewIndex = viewIndex
         viewIndex = 2
         missionPlanner.loadLibraryRoute(routeId)
     }
 
     function openMissionPlanner(showLibrary) {
+        if (viewIndex !== 2)
+            previousViewIndex = viewIndex
         viewIndex = 2
         if (showLibrary)
             Qt.callLater(function() { missionPlanner.openRouteLibrary() })
@@ -255,7 +260,7 @@ Item {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭任务规划"
                 toolTipText: "返回飞行"
-                onClicked: root.viewIndex = 1
+                onClicked: root.viewIndex = root.previousViewIndex
             }
         }
 

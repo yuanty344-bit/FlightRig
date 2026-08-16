@@ -18,6 +18,8 @@ ApplicationWindow {
             Theme.mode = "light"
         else if (themeRequest === "dark")
             Theme.mode = "dark"
+        else if (themeRequest === "system")
+            Theme.mode = "system"
     }
     width: 900
     height: 650

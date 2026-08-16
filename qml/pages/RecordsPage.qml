@@ -174,6 +174,14 @@ Item {
                                     color: root.selectedSessionId === String(sessionRow.modelData.id || "")
                                            ? Theme.accentSoft : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent"
                                 }
+                                Rectangle {
+                                    visible: sessionRow.activeFocus
+                                    anchors.fill: parent
+                                    radius: Theme.radiusSmall
+                                    color: "transparent"
+                                    border.width: 1
+                                    border.color: Theme.accent
+                                }
                                 ColumnLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 16

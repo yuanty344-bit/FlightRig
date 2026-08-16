@@ -56,13 +56,6 @@ Drawer {
         return Number(Math.abs(value) < 0.05 ? 0 : value).toFixed(1)
     }
 
-    function flightPathSwatch(preset) {
-        if (preset === "blue") return Theme.darkMode ? "#72A7F5" : "#1769D2"
-        if (preset === "teal") return Theme.darkMode ? "#43D5A4" : "#16815F"
-        if (preset === "violet") return Theme.darkMode ? "#A78BFA" : "#6D4CC2"
-        return Theme.darkMode ? "#FFB454" : "#C85D00"
-    }
-
     function flightPathSettingsAreDefault() {
         return App.flightPathVisible
                 && Math.abs(App.flightPathWidthMeters - 0.06) < 0.001
@@ -207,27 +200,6 @@ Drawer {
         MouseArea { id: choiceMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: themeChoice.chosen() }
     }
 
-    component StepButton: Rectangle {
-        id: stepButton
-        property string label: "+"
-        signal clicked()
-        Layout.preferredWidth: 38
-        Layout.preferredHeight: 38
-        radius: Theme.radiusMedium
-        color: !enabled ? Theme.surfaceRaised : stepMouse.containsMouse ? Theme.surfaceInteractive : Theme.surfaceRaised
-        border.width: 1
-        border.color: activeFocus ? Theme.accent : Theme.line
-        opacity: enabled ? 1.0 : 0.45
-        activeFocusOnTab: enabled
-        Accessible.name: label
-        Accessible.role: Accessible.Button
-        Keys.onReturnPressed: if (enabled) stepButton.clicked()
-        Keys.onEnterPressed: if (enabled) stepButton.clicked()
-        Keys.onSpacePressed: if (enabled) stepButton.clicked()
-        Text { anchors.centerIn: parent; text: stepButton.label; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSubtitle; font.weight: Font.Medium }
-        MouseArea { id: stepMouse; anchors.fill: parent; enabled: stepButton.enabled; hoverEnabled: true; cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor; onClicked: stepButton.clicked() }
-    }
-
     component ToggleSwitch: Rectangle {
         id: toggleSwitch
         property bool checked: false
@@ -284,7 +256,7 @@ Drawer {
             width: 20
             height: 20
             radius: 10
-            color: root.flightPathSwatch(pathColorChoice.preset)
+            color: Theme.flightPathColor(pathColorChoice.preset)
         }
         MouseArea {
             anchors.fill: parent
@@ -609,7 +581,7 @@ Drawer {
                         Layout.fillWidth: true
                         label: "连接详情"
                         expanded: root.technicalDetailsOpen
-                        onToggled: root.technicalDetailsOpen = !root.technicalDetailsOpen
+                        onActivated: root.technicalDetailsOpen = !root.technicalDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.technicalDetailsOpen
@@ -749,12 +721,11 @@ Drawer {
                         visible: Math.abs(App.takeoffAltitude - 5) > 0.1
                         Layout.fillWidth: true
                         Item { Layout.fillWidth: true }
-                        Text {
+                        IconLink {
                             text: "恢复为 5 m"
-                            color: Theme.accent
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.textTiny
-                            MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: App.takeoffAltitude = 5 }
+                            iconSource: "qrc:/icons/refresh-cw.svg"
+                            sidePadding: 10
+                            onClicked: App.takeoffAltitude = 5
                         }
                     }
                     Text { Layout.fillWidth: true; Layout.topMargin: 9; text: "修改后会用于下一次起飞，不影响正在执行的飞行操作。"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
@@ -861,12 +832,11 @@ Drawer {
                         Layout.fillWidth: true
                         Layout.topMargin: 8
                         Item { Layout.fillWidth: true }
-                        Text {
+                        IconLink {
                             text: "恢复轨迹默认设置"
-                            color: Theme.accent
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.textTiny
-                            MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: App.resetFlightPathDisplaySettings() }
+                            iconSource: "qrc:/icons/refresh-cw.svg"
+                            sidePadding: 10
+                            onClicked: App.resetFlightPathDisplaySettings()
                         }
                     }
 
@@ -876,7 +846,7 @@ Drawer {
                         label: "软件信息"
                         expanded: root.softwareDetailsOpen
                         topDivider: true
-                        onToggled: root.softwareDetailsOpen = !root.softwareDetailsOpen
+                        onActivated: root.softwareDetailsOpen = !root.softwareDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.softwareDetailsOpen
@@ -935,7 +905,7 @@ Drawer {
                         label: "技术详情"
                         expanded: root.healthDetailsOpen
                         topDivider: true
-                        onToggled: root.healthDetailsOpen = !root.healthDetailsOpen
+                        onActivated: root.healthDetailsOpen = !root.healthDetailsOpen
                     }
 
                     ColumnLayout {
@@ -1043,7 +1013,7 @@ Drawer {
                         label: "技术详情"
                         expanded: root.telemetryDetailsOpen
                         topDivider: true
-                        onToggled: root.telemetryDetailsOpen = !root.telemetryDetailsOpen
+                        onActivated: root.telemetryDetailsOpen = !root.telemetryDetailsOpen
                     }
                     ColumnLayout {
                         visible: root.telemetryDetailsOpen

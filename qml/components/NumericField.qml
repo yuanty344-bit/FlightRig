@@ -20,7 +20,7 @@ Rectangle {
     implicitHeight: 34
     radius: Theme.radiusMedium
     color: field.activeFocus ? Theme.surface : Theme.surfaceRaised
-    border.width: field.activeFocus ? 1.5 : 1
+    border.width: field.activeFocus ? 2 : 1
     border.color: field.activeFocus ? Theme.accent : Theme.line
     opacity: enabled ? 1 : 0.55
 

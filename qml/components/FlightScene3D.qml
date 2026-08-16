@@ -26,13 +26,7 @@ Item {
     }
 
     function flightPathColor() {
-        if (App.flightPathColorPreset === "blue")
-            return Theme.darkMode ? "#72A7F5" : "#1769D2"
-        if (App.flightPathColorPreset === "teal")
-            return Theme.darkMode ? "#43D5A4" : "#16815F"
-        if (App.flightPathColorPreset === "violet")
-            return Theme.darkMode ? "#A78BFA" : "#6D4CC2"
-        return Theme.darkMode ? "#FFB454" : "#C85D00"
+        return Theme.flightPathColor(App.flightPathColorPreset)
     }
 
     function resetView() {
@@ -235,7 +229,7 @@ Item {
                     anchors.centerIn: parent
                     text: modelData.label + "  " + modelData.value
                     color: modelData.path && App.flightPathPointCount > 1
-                           ? (Theme.darkMode ? "#FFB454" : "#A94D00")
+                           ? root.flightPathColor()
                            : Theme.textSecondary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textTiny

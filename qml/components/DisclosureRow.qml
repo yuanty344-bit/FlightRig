@@ -8,7 +8,7 @@ Button {
     property string label: "详情"
     property bool expanded: false
     property bool topDivider: false
-    signal toggled()
+    signal activated()
 
     implicitHeight: topDivider ? 48 : 42
     padding: 0
@@ -16,7 +16,7 @@ Button {
     focusPolicy: Qt.StrongFocus
     Accessible.name: (expanded ? "收起" : "展开") + label
     Accessible.role: Accessible.Button
-    onClicked: toggled()
+    onClicked: activated()
 
     background: Item {
         Rectangle {
