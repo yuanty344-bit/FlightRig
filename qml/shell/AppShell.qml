@@ -14,6 +14,7 @@ Item {
     }
 
     ColumnLayout {
+        id: column
         anchors.fill: parent
         spacing: 0
 
@@ -25,12 +26,17 @@ Item {
             onRefreshRequested: App.refresh()
         }
 
-        StackLayout {
+        // Plain Item + anchored pages instead of StackLayout: Qt 6.11 sizes a
+        // nested StackLayout from its children's implicit widths, which made
+        // the pages collapse instead of filling the window.
+        Item {
+            id: pageHost
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: root.currentIndex
 
             WorkbenchPage {
+                anchors.fill: parent
+                visible: root.currentIndex === 0
                 onOpenEnvironment: utilityDrawer.openMode("environment")
                 onOpenFlight: root.currentIndex = 1
                 onOpenMission: showLibrary => {
@@ -45,11 +51,15 @@ Item {
             }
             FlightPage {
                 id: flightPage
+                anchors.fill: parent
+                visible: root.currentIndex === 1
                 onOpenSettings: utilityDrawer.openMode("settings")
                 onOpenHealth: utilityDrawer.openMode("health")
                 onOpenTelemetry: utilityDrawer.openMode("telemetry")
             }
             RecordsPage {
+                anchors.fill: parent
+                visible: root.currentIndex === 2
                 onOpenHealth: utilityDrawer.openMode("health")
             }
         }

@@ -144,6 +144,7 @@ Item {
                     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
 
                     Item {
+                        id: configItem
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.compactLayout ? 62 : 72
 
@@ -171,25 +172,27 @@ Item {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            anchors.right: configWorldCell.left
+                            width: parent.width / 3
                         }
                         ConfigCell {
                             id: configWorldCell
                             label: "场景"
                             value: App.selectedWorldName
                             divider: true
+                            anchors.left: configModelCell.right
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            anchors.right: configLinkCell.left
+                            width: parent.width / 3
                         }
                         ConfigCell {
                             id: configLinkCell
                             label: "连接"
                             value: "UDP 14540"
                             divider: true
+                            anchors.left: configWorldCell.right
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            anchors.right: parent.right
+                            width: parent.width / 3
                         }
                     }
 
