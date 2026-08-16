@@ -272,6 +272,8 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 78
+                            Layout.minimumHeight: 78
+                            Layout.maximumHeight: 78
                             spacing: 0
 
                             component SummaryValue: Item {

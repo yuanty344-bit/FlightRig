@@ -1,6 +1,6 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Layouts
 import FlightBench
 
 Rectangle {
@@ -106,18 +106,19 @@ Rectangle {
         Repeater {
             model: [1, -1]
             delegate: Rectangle {
+                id: stepButton
                 required property int modelData
                 width: stepperColumn.width
                 height: root.height / 2
                 color: stepMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
 
-                Text {
+                ThemedIcon {
                     anchors.centerIn: parent
-                    anchors.verticalCenterOffset: modelData > 0 ? 1 : -1
-                    text: modelData > 0 ? "⌃" : "⌄"
-                    color: root.enabled ? Theme.textMuted : Theme.textFaint
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
+                    width: 11
+                    height: 11
+                    source: "qrc:/icons/chevron-down.svg"
+                    rotation: stepButton.modelData > 0 ? 180 : 0
+                    iconColor: root.enabled ? Theme.textMuted : Theme.textFaint
                 }
 
                 MouseArea {
@@ -125,9 +126,28 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     enabled: root.enabled
-                    onClicked: root.commit(root.value + modelData * root.stepSize)
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.commit(root.value + stepButton.modelData * root.stepSize)
                 }
             }
         }
+    }
+
+    Rectangle {
+        visible: stepperColumn.visible
+        anchors.left: stepperColumn.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: 1
+        color: Theme.line
+    }
+
+    Rectangle {
+        visible: stepperColumn.visible
+        anchors.left: stepperColumn.left
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        height: 1
+        color: Theme.line
     }
 }

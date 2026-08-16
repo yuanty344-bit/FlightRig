@@ -30,6 +30,7 @@ Item {
     property real viewCenterEast: 0
     property real viewCenterNorth: 0
     property bool viewInitialized: false
+    property bool viewManuallyAdjusted: false
     readonly property bool editingLocked: App.missionBusy || App.missionRunning || App.missionPaused
     readonly property real mapScale: pixelsPerMeter
     readonly property real vehicleEast: App.vehicleScenePosition.x
@@ -105,6 +106,7 @@ Item {
         viewCenterEast = anchorEast - (pixelX - mapArea.width / 2) / mapScale
         viewCenterNorth = anchorNorth - (mapArea.height / 2 - pixelY) / mapScale
         viewInitialized = true
+        viewManuallyAdjusted = true
         routeCanvas.requestPaint()
     }
 
@@ -127,6 +129,48 @@ Item {
         }
         pixelsPerMeter = 2.2
         viewInitialized = App.localPositionAvailable
+        viewManuallyAdjusted = true
+        routeCanvas.requestPaint()
+    }
+
+    function fitMissionToView() {
+        if (mapArea.width < 120 || mapArea.height < 120 || missionModel.count === 0) {
+            centerOnVehicle()
+            viewManuallyAdjusted = false
+            return
+        }
+
+        var startEast = App.localPositionAvailable ? vehicleEast
+                                                   : missionModel.get(0).eastMeters
+        var startNorth = App.localPositionAvailable ? vehicleNorth
+                                                    : missionModel.get(0).northMeters
+        var minimumEast = startEast
+        var maximumEast = startEast
+        var minimumNorth = startNorth
+        var maximumNorth = startNorth
+        for (var index = 0; index < missionModel.count; ++index) {
+            var point = missionModel.get(index)
+            minimumEast = Math.min(minimumEast, point.eastMeters)
+            maximumEast = Math.max(maximumEast, point.eastMeters)
+            minimumNorth = Math.min(minimumNorth, point.northMeters)
+            maximumNorth = Math.max(maximumNorth, point.northMeters)
+        }
+
+        // The asymmetric vertical padding accounts for the pin-shaped marker
+        // extending farther above its coordinate than below it.
+        var horizontalPadding = 96
+        var topPadding = 62
+        var bottomPadding = 30
+        var eastSpan = Math.max(10, maximumEast - minimumEast)
+        var northSpan = Math.max(10, maximumNorth - minimumNorth)
+        var fittedScale = Math.min((mapArea.width - horizontalPadding) / eastSpan,
+                                   (mapArea.height - topPadding - bottomPadding) / northSpan)
+        pixelsPerMeter = clamp(fittedScale, 0.25, 16)
+        viewCenterEast = (minimumEast + maximumEast) / 2
+        viewCenterNorth = (minimumNorth + maximumNorth) / 2
+                          + (topPadding - bottomPadding) / (2 * pixelsPerMeter)
+        viewInitialized = App.localPositionAvailable
+        viewManuallyAdjusted = false
         routeCanvas.requestPaint()
     }
 
@@ -340,7 +384,8 @@ Item {
         dirty = false
         rememberCurrentRoute()
         saveDraft()
-        centerOnVehicle()
+        viewManuallyAdjusted = false
+        Qt.callLater(root.fitMissionToView)
         routeLibraryDialog.close()
         routeCanvas.requestPaint()
     }
@@ -363,8 +408,11 @@ Item {
         plannedStartValid = false
         actualPoints = []
         dirty = false
+        viewManuallyAdjusted = false
         rememberCurrentRoute()
         saveDraft()
+        centerOnVehicle()
+        viewManuallyAdjusted = false
         routeLibraryDialog.close()
         routeCanvas.requestPaint()
     }
@@ -448,16 +496,14 @@ Item {
         currentRouteAnchorEast = missionSettings.currentRouteAnchorEast
         currentRouteAnchorNorth = missionSettings.currentRouteAnchorNorth
         currentRouteAnchorValid = missionSettings.currentRouteAnchorValid
-        Qt.callLater(centerOnVehicle)
+        Qt.callLater(fitMissionToView)
     }
 
     Connections {
         target: App
         function onVehicleScenePositionChanged() {
             if (!root.viewInitialized && App.localPositionAvailable) {
-                root.viewCenterEast = root.vehicleEast
-                root.viewCenterNorth = root.vehicleNorth
-                root.viewInitialized = true
+                Qt.callLater(root.fitMissionToView)
             }
             routeCanvas.requestPaint()
             if (!root.missionTrackActive || !App.inAir)
@@ -539,6 +585,14 @@ Item {
                 id: mapArea
                 anchors.fill: parent
                 anchors.bottomMargin: 70
+                onWidthChanged: {
+                    if (!root.viewManuallyAdjusted)
+                        Qt.callLater(root.fitMissionToView)
+                }
+                onHeightChanged: {
+                    if (!root.viewManuallyAdjusted)
+                        Qt.callLater(root.fitMissionToView)
+                }
 
                 Canvas {
                     id: routeCanvas
@@ -708,6 +762,7 @@ Item {
                             root.viewCenterEast -= deltaX / root.mapScale
                             root.viewCenterNorth += deltaY / root.mapScale
                             root.viewInitialized = true
+                            root.viewManuallyAdjusted = true
                         }
                         previousX = mouse.x
                         previousY = mouse.y

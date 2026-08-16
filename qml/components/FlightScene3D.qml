@@ -38,7 +38,7 @@ Item {
     function resetView() {
         orbitYaw = -34
         orbitPitch = -24
-        cameraDistance = App.selectedWorldId === "xatu_weiyang" ? 72 : 18
+        cameraDistance = App.selectedWorldId !== "default" ? 72 : 18
     }
 
     Connections {
@@ -87,7 +87,10 @@ Item {
                     PerspectiveCamera {
                         id: camera
                         z: root.cameraDistance
-                        clipNear: 0.05
+                        // City meshes span kilometres.  A larger near plane
+                        // preserves enough depth precision for roads, water and
+                        // green areas without affecting the tactical view.
+                        clipNear: App.selectedWorldId === "default" ? 0.05 : 0.5
                         clipFar: 2500
                         fieldOfView: 43
                     }
@@ -201,7 +204,7 @@ Item {
         }
         onWheel: wheel => {
             root.cameraDistance = Math.max(5, Math.min(
-                                        App.selectedWorldId === "xatu_weiyang" ? 700 : 70,
+                                        App.selectedWorldId !== "default" ? 700 : 70,
                                         root.cameraDistance - wheel.angleDelta.y / 80))
             wheel.accepted = true
         }

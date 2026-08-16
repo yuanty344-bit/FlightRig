@@ -11,14 +11,17 @@
         <geometry><mesh><uri>model://xatu_weiyang/meshes/buildings.obj</uri></mesh></geometry>
       </collision>
       <visual name="roads_visual">
+        <pose>0 0 0.060 0 0 0</pose>
         <geometry><mesh><uri>model://xatu_weiyang/meshes/roads.obj</uri></mesh></geometry>
         <material><ambient>0.42 0.45 0.47 1</ambient><diffuse>0.50 0.53 0.55 1</diffuse></material>
       </visual>
       <visual name="green_areas_visual">
+        <pose>0 0 0.065 0 0 0</pose>
         <geometry><mesh><uri>model://xatu_weiyang/meshes/green_areas.obj</uri></mesh></geometry>
         <material><ambient>0.34 0.48 0.36 1</ambient><diffuse>0.42 0.58 0.44 1</diffuse></material>
       </visual>
       <visual name="water_visual">
+        <pose>0 0 0.040 0 0 0</pose>
         <geometry><mesh><uri>model://xatu_weiyang/meshes/water.obj</uri></mesh></geometry>
         <material><ambient>0.25 0.48 0.63 1</ambient><diffuse>0.34 0.61 0.76 1</diffuse></material>
       </visual>

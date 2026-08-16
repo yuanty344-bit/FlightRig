@@ -38,14 +38,20 @@ Node {
         RuntimeLoader {
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/roads.obj" : ""
+            // Keep coplanar map layers physically separated.  The source OBJ
+            // uses centimetre-scale offsets which lose depth precision when a
+            // city is viewed from far away and causes visible z-fighting.
+            z: 0.060
         }
         RuntimeLoader {
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/green_areas.obj" : ""
+            z: 0.065
         }
         RuntimeLoader {
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/water.obj" : ""
+            z: 0.040
         }
     }
 }
