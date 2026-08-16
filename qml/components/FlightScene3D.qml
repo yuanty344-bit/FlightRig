@@ -168,7 +168,9 @@ Item {
         GroundPositionMarker3D {
             visible: App.localPositionAvailable
             x: App.vehicleScenePosition.x
-            y: 0
+            // Keep the depth-tested copy above the city road layer so the
+            // footprint is never hidden by the road mesh itself.
+            y: 0.070
             z: App.vehicleScenePosition.z
         }
 
@@ -178,6 +180,47 @@ Item {
                                   App.vehicleScenePosition.y + root.vehicleVisualHeight,
                                   App.vehicleScenePosition.z)
             rotation: App.vehicleSceneRotation
+        }
+    }
+
+    // HUD overlay: the ground footprint is projected with the same camera
+    // path but rendered after the main scene, so roads, buildings and any
+    // other mesh can never cover it.
+    View3D {
+        id: markerOverlay
+        anchors.fill: parent
+        anchors.margins: 1
+        renderMode: View3D.Overlay
+
+        environment: SceneEnvironment {
+            backgroundMode: SceneEnvironment.Transparent
+            antialiasingMode: SceneEnvironment.MSAA
+            antialiasingQuality: SceneEnvironment.High
+        }
+
+        Node {
+            position: cameraFocus.position
+            Node {
+                eulerRotation.y: root.orbitYaw
+                Node {
+                    eulerRotation.x: root.orbitPitch
+                    PerspectiveCamera {
+                        id: overlayCamera
+                        z: root.cameraDistance
+                        clipNear: camera.clipNear
+                        clipFar: camera.clipFar
+                        fieldOfView: 43
+                    }
+                }
+            }
+        }
+        camera: overlayCamera
+
+        GroundPositionMarker3D {
+            visible: App.localPositionAvailable
+            x: App.vehicleScenePosition.x
+            y: 0
+            z: App.vehicleScenePosition.z
         }
     }
 

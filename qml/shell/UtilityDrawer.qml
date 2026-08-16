@@ -373,7 +373,7 @@ Drawer {
                                 spacing: 3
                                 RowLayout {
                                     spacing: 8
-                                    Text { text: App.selectedModelName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
+                                    Text { Layout.fillWidth: true; text: App.selectedModelName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
                                     Text { visible: App.selectedModelId === "gz_x500"; text: "推荐"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; font.weight: Font.Medium }
                                 }
                                 Text { Layout.fillWidth: true; text: App.selectedModelDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
@@ -493,7 +493,7 @@ Drawer {
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 3
-                                Text { text: App.selectedWorldName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
+                                Text { Layout.fillWidth: true; text: App.selectedWorldName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
                                 Text { Layout.fillWidth: true; text: App.selectedWorldDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
                             }
                             Text { visible: App.simulationRunning; text: "运行中"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
@@ -579,8 +579,8 @@ Drawer {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { Layout.fillWidth: true; text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                            Text { Layout.fillWidth: true; text: "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                         }
                         TextField {
                             id: containerNameField
@@ -740,8 +740,8 @@ Drawer {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: "默认起飞高度"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: "范围 1.0–100.0 米"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { Layout.fillWidth: true; text: "默认起飞高度"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                            Text { Layout.fillWidth: true; text: "范围 1.0–100.0 米"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                         }
                         NumericField {
                             Layout.preferredWidth: 138
@@ -772,8 +772,8 @@ Drawer {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: "显示飞行轨迹"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: "关闭后仍会继续记录"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { Layout.fillWidth: true; text: "显示飞行轨迹"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                            Text { Layout.fillWidth: true; text: "关闭后仍会继续记录"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                         }
                         ToggleSwitch {
                             checked: App.flightPathVisible
@@ -1014,7 +1014,7 @@ Drawer {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 4
-                            Text { text: root.telemetryTitle(); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSubtitle; font.weight: Font.Medium }
+                            Text { Layout.fillWidth: true; text: root.telemetryTitle(); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSubtitle; font.weight: Font.Medium }
                             Text { Layout.fillWidth: true; text: root.telemetrySummary(); color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
                         }
                         ActionButton {

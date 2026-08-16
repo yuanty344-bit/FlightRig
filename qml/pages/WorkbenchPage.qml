@@ -84,15 +84,17 @@ Item {
             }
         }
 
-        RowLayout {
+        Item {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compactLayout ? 236 : 260
-            spacing: root.compactLayout ? 12 : 16
 
             SurfaceCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 430
+                id: launchCard
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: conditionCard.left
+                anchors.rightMargin: root.compactLayout ? 12 : 16
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -120,6 +122,7 @@ Item {
                             Layout.fillWidth: true
                             spacing: 3
                             Text {
+                                Layout.fillWidth: true
                                 text: root.launchTitle()
                                 color: Theme.textPrimary
                                 font.family: Theme.fontFamily
@@ -140,18 +143,15 @@ Item {
                     Item { Layout.preferredHeight: root.compactLayout ? 10 : 18 }
                     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
 
-                    RowLayout {
+                    Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.compactLayout ? 62 : 72
-                        spacing: 0
 
                         component ConfigCell: Item {
                             id: configCell
                             property string label: "项目"
                             property string value: "—"
                             property bool divider: false
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
                             Column {
                                 anchors.left: parent.left
                                 anchors.leftMargin: configCell.divider ? 16 : 0
@@ -164,9 +164,33 @@ Item {
                             Rectangle { visible: configCell.divider; anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 1; color: Theme.line }
                         }
 
-                        ConfigCell { label: "飞行器"; value: App.selectedModelName }
-                        ConfigCell { label: "场景"; value: App.selectedWorldName; divider: true }
-                        ConfigCell { label: "连接"; value: "UDP 14540"; divider: true }
+                        ConfigCell {
+                            id: configModelCell
+                            label: "飞行器"
+                            value: App.selectedModelName
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.right: configWorldCell.left
+                        }
+                        ConfigCell {
+                            id: configWorldCell
+                            label: "场景"
+                            value: App.selectedWorldName
+                            divider: true
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.right: configLinkCell.left
+                        }
+                        ConfigCell {
+                            id: configLinkCell
+                            label: "连接"
+                            value: "UDP 14540"
+                            divider: true
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.right: parent.right
+                        }
                     }
 
                     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
@@ -201,8 +225,11 @@ Item {
             }
 
             SurfaceCard {
-                Layout.preferredWidth: 266
-                Layout.fillHeight: true
+                id: conditionCard
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 266
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -246,8 +273,10 @@ Item {
                     iconColor: App.savedRoutes.length > 0 ? Theme.accent : Theme.textFaint
                 }
                 ColumnLayout {
+                    Layout.fillWidth: true
                     spacing: 2
                     Text {
+                        Layout.fillWidth: true
                         Layout.maximumWidth: 480
                         text: App.savedRoutes.length > 0 ? "继续最近航线" : "还没有保存的航线"
                         color: Theme.textPrimary
@@ -257,6 +286,7 @@ Item {
                         elide: Text.ElideRight
                     }
                     Text {
+                        Layout.fillWidth: true
                         Layout.maximumWidth: 480
                         text: App.savedRoutes.length > 0
                               ? String(root.recentRoute.name || "未命名航线") + " · "
@@ -269,25 +299,29 @@ Item {
                         elide: Text.ElideRight
                     }
                 }
-                CompactIconButton {
-                    iconSource: "qrc:/icons/folder-open.svg"
-                    accessibleLabel: "打开航线库"
-                    toolTipText: "航线库"
-                    onClicked: root.openMission(true)
-                }
-                ActionButton {
-                    Layout.preferredWidth: 72
-                    compact: true
-                    text: App.savedRoutes.length > 0 ? "载入" : "规划"
-                    kind: "secondary"
-                    onClicked: {
-                        if (App.savedRoutes.length > 0)
-                            root.loadRoute(String(root.recentRoute.id || ""))
-                        else
-                            root.openMission(false)
+                Row {
+                    spacing: 8
+                    CompactIconButton {
+                        outlined: true
+                        iconSource: "qrc:/icons/folder-open.svg"
+                        accessibleLabel: "打开航线库"
+                        toolTipText: "航线库"
+                        onClicked: root.openMission(true)
+                    }
+                    ActionButton {
+                        width: 72
+                        implicitWidth: 72
+                        compact: true
+                        text: App.savedRoutes.length > 0 ? "载入" : "规划"
+                        kind: "secondary"
+                        onClicked: {
+                            if (App.savedRoutes.length > 0)
+                                root.loadRoute(String(root.recentRoute.id || ""))
+                            else
+                                root.openMission(false)
+                        }
                     }
                 }
-                Item { Layout.fillWidth: true }
             }
         }
 

@@ -76,6 +76,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 2
                 Text {
+                    Layout.fillWidth: true
                     text: "记录"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
@@ -83,6 +84,7 @@ Item {
                     font.weight: Font.Medium
                 }
                 Text {
+                    Layout.fillWidth: true
                     text: "每次仿真自动保存为一个会话"
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
@@ -169,6 +171,7 @@ Item {
                             id: sessionList
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            visible: App.flightSessions.length > 0
                             clip: true
                             model: App.flightSessions
                             boundsBehavior: Flickable.StopAtBounds

@@ -182,15 +182,18 @@ Item {
         anchors.bottomMargin: root.compactLayout ? 10 : 18
         spacing: root.compactLayout ? 8 : 12
 
-        RowLayout {
+        Item {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compactLayout ? 50 : 58
-            spacing: 8
 
             ColumnLayout {
-                Layout.fillWidth: true
+                anchors.left: parent.left
+                anchors.right: headerActions.left
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Text {
+                    Layout.fillWidth: true
                     text: root.viewIndex === 2 ? "任务" : "飞行"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
@@ -210,57 +213,64 @@ Item {
                 }
             }
 
-            CompactIconButton {
-                visible: root.viewIndex !== 2
-                iconSource: "qrc:/icons/route.svg"
-                accessibleLabel: "打开航线规划"
-                toolTipText: "航线规划"
-                onClicked: root.openMissionPlanner(false)
-            }
+            Row {
+                id: headerActions
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
 
-            CompactIconButton {
-                visible: root.viewIndex !== 2
-                iconSource: "qrc:/icons/gauge.svg"
-                accessibleLabel: "打开更多遥测"
-                toolTipText: "更多遥测"
-                onClicked: root.openTelemetry()
-            }
-
-            CompactIconButton {
-                visible: root.viewIndex !== 2
-                iconSource: "qrc:/icons/heart-pulse.svg"
-                accessibleLabel: "打开健康检查"
-                toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
-                normalIconColor: App.vehicleReady ? Theme.success : Theme.textSecondary
-                onClicked: root.openHealth()
-            }
-
-            SegmentedControl {
-                visible: root.viewIndex !== 2
-                Layout.preferredWidth: 124
-                options: ["仪表", "三维"]
-                currentIndex: root.viewIndex
-                onSelected: index => {
-                    root.viewIndex = index
-                    root.forceActiveFocus(Qt.OtherFocusReason)
+                CompactIconButton {
+                    visible: root.viewIndex !== 2
+                    iconSource: "qrc:/icons/route.svg"
+                    accessibleLabel: "打开航线规划"
+                    toolTipText: "航线规划"
+                    onClicked: root.openMissionPlanner(false)
                 }
-            }
 
-            CompactIconButton {
-                visible: root.viewIndex === 2
-                iconSource: "qrc:/icons/folder-open.svg"
-                accessibleLabel: "打开航线库"
-                toolTipText: "航线库"
-                onClicked: missionPlanner.openRouteLibrary()
-            }
+                CompactIconButton {
+                    visible: root.viewIndex !== 2
+                    iconSource: "qrc:/icons/gauge.svg"
+                    accessibleLabel: "打开更多遥测"
+                    toolTipText: "更多遥测"
+                    onClicked: root.openTelemetry()
+                }
 
-            CompactIconButton {
-                visible: root.viewIndex === 2
-                outlined: true
-                iconSource: "qrc:/icons/x.svg"
-                accessibleLabel: "关闭任务规划"
-                toolTipText: "返回飞行"
-                onClicked: root.viewIndex = root.previousViewIndex
+                CompactIconButton {
+                    visible: root.viewIndex !== 2
+                    iconSource: "qrc:/icons/heart-pulse.svg"
+                    accessibleLabel: "打开健康检查"
+                    toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
+                    normalIconColor: App.vehicleReady ? Theme.success : Theme.textSecondary
+                    onClicked: root.openHealth()
+                }
+
+                SegmentedControl {
+                    visible: root.viewIndex !== 2
+                    width: 124
+                    options: ["仪表", "三维"]
+                    currentIndex: root.viewIndex
+                    onSelected: index => {
+                        root.viewIndex = index
+                        root.forceActiveFocus(Qt.OtherFocusReason)
+                    }
+                }
+
+                CompactIconButton {
+                    visible: root.viewIndex === 2
+                    iconSource: "qrc:/icons/folder-open.svg"
+                    accessibleLabel: "打开航线库"
+                    toolTipText: "航线库"
+                    onClicked: missionPlanner.openRouteLibrary()
+                }
+
+                CompactIconButton {
+                    visible: root.viewIndex === 2
+                    outlined: true
+                    iconSource: "qrc:/icons/x.svg"
+                    accessibleLabel: "关闭任务规划"
+                    toolTipText: "返回飞行"
+                    onClicked: root.viewIndex = root.previousViewIndex
+                }
             }
         }
 
@@ -334,10 +344,19 @@ Item {
 
                 ColumnLayout {
                     visible: root.viewIndex !== 2
+                             && !App.keyboardControlActive
+                             && !App.keyboardControlTransitioning
                     Layout.preferredWidth: 90
                     spacing: 2
                     Text { text: "目标高度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                     Text { text: App.takeoffAltitude.toFixed(1) + " m"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+                }
+
+                Rectangle {
+                    visible: App.keyboardControlActive && root.viewIndex !== 2
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight: 28
+                    color: Theme.line
                 }
 
                 ColumnLayout {

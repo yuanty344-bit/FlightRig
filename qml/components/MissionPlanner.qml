@@ -1262,7 +1262,10 @@ Item {
             ScrollView {
                 id: waypointScroll
                 anchors.fill: parent
-                anchors.margins: root.compactEditor ? 12 : 14
+                anchors.leftMargin: root.compactEditor ? 12 : 14
+                anchors.topMargin: root.compactEditor ? 12 : 14
+                anchors.bottomMargin: root.compactEditor ? 12 : 14
+                anchors.rightMargin: 2
                 clip: true
                 rightPadding: 12
                 contentWidth: availableWidth

@@ -132,7 +132,34 @@ Rectangle {
                     hoverEnabled: true
                     enabled: root.enabled
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.commit(root.value + stepButton.modelData * root.stepSize)
+                    property bool repeating: false
+                    onPressed: {
+                        repeating = false
+                        holdTimer.restart()
+                    }
+                    onClicked: {
+                        if (!repeating)
+                            root.commit(root.currentEntry() + stepButton.modelData * root.stepSize)
+                    }
+                    onReleased: { holdTimer.stop(); repeatTimer.stop() }
+                    onCanceled: { holdTimer.stop(); repeatTimer.stop() }
+                }
+
+                Timer {
+                    id: holdTimer
+                    interval: 350
+                    onTriggered: {
+                        stepMouse.repeating = true
+                        root.commit(root.currentEntry() + stepButton.modelData * root.stepSize)
+                        repeatTimer.restart()
+                    }
+                }
+
+                Timer {
+                    id: repeatTimer
+                    interval: 80
+                    repeat: true
+                    onTriggered: root.commit(root.currentEntry() + stepButton.modelData * root.stepSize)
                 }
             }
         }
