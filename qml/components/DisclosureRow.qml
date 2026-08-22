@@ -59,7 +59,7 @@ Button {
             source: "qrc:/icons/chevron-down.svg"
             iconColor: root.hovered ? Theme.textPrimary : Theme.textSecondary
             rotation: root.expanded ? 180 : 0
-            Behavior on rotation { NumberAnimation { duration: 120 } }
+            Behavior on rotation { NumberAnimation { duration: Theme.animationDuration(120) } }
         }
     }
 }

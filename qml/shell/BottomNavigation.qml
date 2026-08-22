@@ -78,11 +78,11 @@ Rectangle {
                 width: nav.selected ? 64 : 0
                 height: 2
                 color: Theme.accent
-                Behavior on width { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Theme.animationDuration(130); easing.type: Easing.OutCubic } }
             }
         }
 
-        NavButton { pageIndex: 0; label: "准备"; iconSource: "qrc:/icons/play.svg" }
+        NavButton { pageIndex: 0; label: "准备"; iconSource: "qrc:/icons/clipboard-check.svg" }
         NavButton { pageIndex: 1; label: "飞行"; iconSource: "qrc:/icons/plane.svg" }
         NavButton { pageIndex: 2; label: "记录"; iconSource: "qrc:/icons/scroll-text.svg" }
     }

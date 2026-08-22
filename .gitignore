@@ -5,6 +5,8 @@
 /.qt/
 /.qtcreator/
 /CMakeUserPresets.json
+__pycache__/
+*.pyc
 *.user
 *.user.*
 *.autosave

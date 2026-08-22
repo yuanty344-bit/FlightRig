@@ -81,6 +81,15 @@ int main(int argc, char *argv[])
     });
     QCoreApplication application(argc, argv);
     AppController controller;
+    const QStringList arguments = application.arguments();
+    const qsizetype modelIndex = arguments.indexOf(QStringLiteral("--model"));
+    if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {
+        controller.setSelectedModelId(arguments.at(modelIndex + 1));
+    }
+    const qsizetype worldIndex = arguments.indexOf(QStringLiteral("--world"));
+    if (worldIndex >= 0 && worldIndex + 1 < arguments.size()) {
+        controller.setSelectedWorldId(arguments.at(worldIndex + 1));
+    }
 
     Phase phase = Phase::WaitDocker;
     QElapsedTimer phaseClock;
@@ -211,7 +220,7 @@ int main(int argc, char *argv[])
 
         case Phase::WaitAltitude:
             if (controller.inAir() && controller.altitudeMeters() >= 4.0 && !controller.busy()) {
-                controller.setControlSpeedMode(1);
+                controller.setControlSpeedMetersPerSecond(1.0);
                 controller.startKeyboardControl();
                 phase = Phase::WaitKeyboardActive;
                 phaseClock.restart();

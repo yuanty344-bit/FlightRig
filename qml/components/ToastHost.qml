@@ -47,7 +47,7 @@ Item {
         onTriggered: root.opacity = 0
     }
 
-    Behavior on opacity { NumberAnimation { duration: 140 } }
+    Behavior on opacity { NumberAnimation { duration: Theme.animationDuration(140) } }
 
     Rectangle {
         id: toastCard

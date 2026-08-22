@@ -5,15 +5,14 @@ import FlightBench
 
 Node {
     id: root
+    property string worldId: App.selectedWorldId
+    property string meshDirectory: String(App.selectedWorldPreviewDirectory)
 
     // Every packaged non-default city world follows the same lightweight
     // preview contract: buildings.obj, roads.obj, green_areas.obj and water.obj.
     // This keeps future white-model cities data-driven instead of adding a new
     // QML scene for every world.
-    readonly property bool isCityWorld: App.selectedWorldId !== "default"
-                                        && meshDirectory.length > 0
-    readonly property string meshDirectory: String(App.selectedWorldPreviewDirectory)
-
+    readonly property bool isCityWorld: worldId !== "default" && meshDirectory.length > 0
     visible: isCityWorld
 
     Model {
@@ -34,24 +33,28 @@ Node {
         RuntimeLoader {
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/buildings.obj" : ""
+            opacity: App.cityBuildingOpacity
         }
         RuntimeLoader {
+            visible: App.worldRoadsVisible
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/roads.obj" : ""
-            // Keep coplanar map layers physically separated.  The source OBJ
-            // uses centimetre-scale offsets which lose depth precision when a
-            // city is viewed from far away and causes visible z-fighting.
-            z: 0.060
+            // Keep the map overlays in an explicit vertical order. The city
+            // meshes can overlap (a park polygon often contains its ponds),
+            // so this must remain ground -> green -> water -> roads.
+            z: 0.100
         }
         RuntimeLoader {
+            visible: App.worldGreenAreasVisible
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/green_areas.obj" : ""
-            z: 0.065
+            z: 0.045
         }
         RuntimeLoader {
+            visible: App.worldWaterVisible
             source: root.meshDirectory.length > 0
                     ? root.meshDirectory + "/water.obj" : ""
-            z: 0.040
+            z: 0.070
         }
     }
 }

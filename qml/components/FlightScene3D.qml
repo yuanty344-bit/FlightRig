@@ -4,7 +4,8 @@ import FlightBench
 
 Item {
     id: root
-    property bool followVehicle: true
+    signal replayAnalysisRequested()
+    property bool followVehicle: App.defaultCameraMode !== "free"
     property real orbitYaw: -34
     property real orbitPitch: -24
     property real cameraDistance: 18
@@ -12,11 +13,35 @@ Item {
     property real pressedY: 0
     property vector3d panOffset: Qt.vector3d(0, 0, 0)
     readonly property real vehicleVisualHeight: 0.32
+    readonly property bool replayMode: App.replayActive
+    readonly property bool positionAvailable: replayMode || App.localPositionAvailable
+    readonly property vector3d scenePosition: replayMode ? App.replayPosition : App.vehicleScenePosition
+    readonly property quaternion sceneRotation: replayMode ? App.replayRotation : App.vehicleSceneRotation
+    readonly property real sceneHeading: replayMode ? App.replayHeadingDegrees : App.headingDegrees
+    readonly property string activeWorldId: replayMode ? App.replayWorldId : App.selectedWorldId
+    readonly property string activeWorldPreviewDirectory: String(replayMode
+                                                                  ? App.replayWorldPreviewDirectory
+                                                                  : App.selectedWorldPreviewDirectory)
+    readonly property int activePathPointCount: replayMode ? App.replayPathPointCount : App.flightPathPointCount
+    readonly property real activePathLengthMeters: replayMode ? App.replayPathLengthMeters : App.flightPathLengthMeters
+    readonly property real groundMarkerSizeFactor:
+        App.groundMarkerSizeMode === "small" ? 0.78
+        : App.groundMarkerSizeMode === "large" ? 1.35
+        : App.groundMarkerSizeMode === "medium" ? 1.0
+        : Math.max(0.85, Math.min(1.4, cameraDistance / 18.0))
+    readonly property real groundMarkerScale: groundMarkerSizeFactor
+    // Generated city surfaces top out at 0.14 m (road mesh + layer offset).
+    // Keeping the decal 1 cm above that stack is visually indistinguishable
+    // from the ground, but prevents flicker and terrain-layer occlusion.
+    readonly property real groundMarkerSurfaceY:
+        activeWorldId === "default" ? 0.01 : 0.15
     readonly property string flightPathStatus: {
         if (!App.flightPathVisible)
             return "已隐藏"
-        if (App.flightPathPointCount > 1)
-            return App.flightPathLengthMeters.toFixed(1) + " m"
+        if (root.activePathPointCount > 1)
+            return root.activePathLengthMeters.toFixed(1) + " m"
+        if (root.replayMode)
+            return "等待播放"
         if (!App.simulationRunning)
             return "未开始"
         if (!App.vehicleConnected)
@@ -33,13 +58,21 @@ Item {
     function resetView() {
         orbitYaw = -34
         orbitPitch = -24
-        cameraDistance = App.selectedWorldId !== "default" ? 72 : 18
+        cameraDistance = root.activeWorldId !== "default" ? 72 : 18
         panOffset = Qt.vector3d(0, 0, 0)
+        followVehicle = App.defaultCameraMode !== "free"
+    }
+
+    function setFollowVehicle(value) {
+        if (!value && followVehicle)
+            panOffset = cameraFocus.position
+        followVehicle = value
     }
 
     Connections {
         target: App
         function onSelectedWorldChanged() { root.resetView() }
+        function onReplayStateChanged() { root.followVehicle = true; root.resetView() }
     }
 
     Rectangle {
@@ -74,8 +107,13 @@ Item {
 
         Node {
             id: cameraFocus
-            position: root.followVehicle && App.localPositionAvailable
-                      ? App.vehicleScenePosition : root.panOffset
+            position: root.followVehicle && root.positionAvailable
+                      ? Qt.vector3d(root.scenePosition.x,
+                                    App.defaultCameraMode === "follow-both"
+                                    ? root.scenePosition.y * 0.5
+                                    : root.scenePosition.y,
+                                    root.scenePosition.z)
+                      : root.panOffset
             Node {
                 eulerRotation.y: root.orbitYaw
                 Node {
@@ -86,7 +124,7 @@ Item {
                         // City meshes span kilometres.  A larger near plane
                         // preserves enough depth precision for roads, water and
                         // green areas without affecting the tactical view.
-                        clipNear: App.selectedWorldId === "default" ? 0.05 : 0.5
+                        clipNear: root.activeWorldId === "default" ? 0.05 : 0.5
                         clipFar: 2500
                         fieldOfView: 43
                     }
@@ -96,7 +134,7 @@ Item {
         camera: camera
 
         Model {
-            visible: App.selectedWorldId === "default"
+            visible: root.activeWorldId === "default" && App.defaultGridVisible
             source: "#Cube"
             y: -0.08
             scale: Qt.vector3d(0.4, 0.001, 0.4)
@@ -107,7 +145,7 @@ Item {
         }
 
         Repeater3D {
-            visible: App.selectedWorldId === "default"
+            visible: root.activeWorldId === "default" && App.defaultGridVisible
             model: 41
             delegate: Model {
                 required property int index
@@ -124,7 +162,7 @@ Item {
             }
         }
         Repeater3D {
-            visible: App.selectedWorldId === "default"
+            visible: root.activeWorldId === "default" && App.defaultGridVisible
             model: 41
             delegate: Model {
                 required property int index
@@ -142,7 +180,7 @@ Item {
         }
 
         Model {
-            visible: App.selectedWorldId === "default"
+            visible: root.activeWorldId === "default"
             source: "#Cylinder"
             y: 0.015
             scale: Qt.vector3d(0.0015, 0.0003, 0.0015)
@@ -152,12 +190,24 @@ Item {
             } ]
         }
 
-        WorldScene3D { }
+        WorldScene3D {
+            worldId: root.activeWorldId
+            meshDirectory: root.activeWorldPreviewDirectory
+        }
+
+        GroundPositionMarker3D {
+            visible: App.groundMarkerVisible && root.positionAvailable
+            x: root.scenePosition.x
+            y: root.groundMarkerSurfaceY
+            z: root.scenePosition.z
+            headingDegrees: root.sceneHeading
+            visualScale: root.groundMarkerScale
+        }
 
         Model {
-            visible: App.flightPathVisible && App.flightPathPointCount > 1
+            visible: App.flightPathVisible && root.activePathPointCount > 1
             y: root.vehicleVisualHeight
-            geometry: App.flightPathGeometry
+            geometry: root.replayMode ? App.replayPathGeometry : App.flightPathGeometry
             materials: [ DefaultMaterial {
                 diffuseColor: root.flightPathColor()
                 lighting: DefaultMaterial.NoLighting
@@ -165,62 +215,24 @@ Item {
             } ]
         }
 
-        GroundPositionMarker3D {
-            visible: App.localPositionAvailable
-            x: App.vehicleScenePosition.x
-            // Keep the depth-tested copy above the city road layer so the
-            // footprint is never hidden by the road mesh itself.
-            y: 0.070
-            z: App.vehicleScenePosition.z
+        Model {
+            visible: root.replayMode && App.replayPlannedPathPointCount > 1
+            y: root.vehicleVisualHeight
+            geometry: App.replayPlannedPathGeometry
+            materials: [ DefaultMaterial {
+                diffuseColor: Theme.textMuted
+                opacity: 0.72
+                lighting: DefaultMaterial.NoLighting
+                cullMode: Material.NoCulling
+            } ]
         }
 
         DroneModel3D {
-            visible: App.localPositionAvailable
-            position: Qt.vector3d(App.vehicleScenePosition.x,
-                                  App.vehicleScenePosition.y + root.vehicleVisualHeight,
-                                  App.vehicleScenePosition.z)
-            rotation: App.vehicleSceneRotation
-        }
-    }
-
-    // HUD overlay: the ground footprint is projected with the same camera
-    // path but rendered after the main scene, so roads, buildings and any
-    // other mesh can never cover it.
-    View3D {
-        id: markerOverlay
-        anchors.fill: parent
-        anchors.margins: 1
-        renderMode: View3D.Overlay
-
-        environment: SceneEnvironment {
-            backgroundMode: SceneEnvironment.Transparent
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
-        }
-
-        Node {
-            position: cameraFocus.position
-            Node {
-                eulerRotation.y: root.orbitYaw
-                Node {
-                    eulerRotation.x: root.orbitPitch
-                    PerspectiveCamera {
-                        id: overlayCamera
-                        z: root.cameraDistance
-                        clipNear: camera.clipNear
-                        clipFar: camera.clipFar
-                        fieldOfView: 43
-                    }
-                }
-            }
-        }
-        camera: overlayCamera
-
-        GroundPositionMarker3D {
-            visible: App.localPositionAvailable
-            x: App.vehicleScenePosition.x
-            y: 0
-            z: App.vehicleScenePosition.z
+            visible: root.positionAvailable
+            position: Qt.vector3d(root.scenePosition.x,
+                                  root.scenePosition.y + root.vehicleVisualHeight,
+                                  root.scenePosition.z)
+            rotation: root.sceneRotation
         }
     }
 
@@ -234,8 +246,7 @@ Item {
             root.pressedY = mouse.y
             if (mouse.button === Qt.RightButton) {
                 panning = true
-                root.followVehicle = false
-                root.panOffset = cameraFocus.position
+                root.setFollowVehicle(false)
             }
             if (!App.keyboardControlActive)
                 root.forceActiveFocus(Qt.MouseFocusReason)
@@ -268,15 +279,22 @@ Item {
                 return
             }
             root.orbitYaw -= (mouse.x - root.pressedX) * 0.32
+                             * App.cameraRotationSensitivity
+            const verticalDirection = App.invertCameraVertical ? -1 : 1
             root.orbitPitch = Math.max(-78, Math.min(-8,
-                                      root.orbitPitch - (mouse.y - root.pressedY) * 0.24))
+                                      root.orbitPitch
+                                      - (mouse.y - root.pressedY) * 0.24
+                                        * App.cameraRotationSensitivity
+                                        * verticalDirection))
             root.pressedX = mouse.x
             root.pressedY = mouse.y
         }
         onWheel: wheel => {
             root.cameraDistance = Math.max(5, Math.min(
-                                        App.selectedWorldId !== "default" ? 700 : 70,
-                                        root.cameraDistance - wheel.angleDelta.y / 80))
+                                        root.activeWorldId !== "default" ? 700 : 70,
+                                        root.cameraDistance
+                                        - wheel.angleDelta.y / 80
+                                          * App.cameraZoomSensitivity))
             wheel.accepted = true
         }
     }
@@ -289,8 +307,8 @@ Item {
 
         Repeater {
             model: [
-                { label: "高度", value: App.telemetryAvailable ? App.altitudeMeters.toFixed(1) + " m" : "—" },
-                { label: "速度", value: App.telemetryAvailable ? App.speedMetersPerSecond.toFixed(1) + " m/s" : "—" },
+                { label: "高度", value: root.replayMode ? App.replayAltitudeMeters.toFixed(1) + " m" : App.telemetryAvailable ? App.altitudeMeters.toFixed(1) + " m" : "—" },
+                { label: "速度", value: root.replayMode ? App.replaySpeedMetersPerSecond.toFixed(1) + " m/s" : App.telemetryAvailable ? App.speedMetersPerSecond.toFixed(1) + " m/s" : "—" },
                 { label: "轨迹", value: root.flightPathStatus, path: true }
             ]
             delegate: Rectangle {
@@ -301,12 +319,12 @@ Item {
                 color: Theme.darkMode ? "#D90E1928" : "#EFFFFFFF"
                 border.width: 1
                 border.color: Theme.line
-                Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Theme.animationDuration(140); easing.type: Easing.OutCubic } }
                 Text {
                     id: metricText
                     anchors.centerIn: parent
                     text: modelData.label + "  " + modelData.value
-                    color: modelData.path && App.flightPathPointCount > 1
+                    color: modelData.path && root.activePathPointCount > 1
                            ? root.flightPathColor()
                            : Theme.textSecondary
                     font.family: Theme.fontFamily
@@ -330,7 +348,7 @@ Item {
             border.width: 1
             border.color: root.followVehicle ? Theme.accent : Theme.line
             Text { anchors.centerIn: parent; text: root.followVehicle ? "跟随" : "自由"; color: root.followVehicle ? Theme.accentHover : Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-            MouseArea { id: followMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.followVehicle = !root.followVehicle; if (!App.keyboardControlActive) root.forceActiveFocus(Qt.MouseFocusReason) } }
+            MouseArea { id: followMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.setFollowVehicle(!root.followVehicle); if (!App.keyboardControlActive) root.forceActiveFocus(Qt.MouseFocusReason) } }
         }
         Rectangle {
             width: 58
@@ -344,11 +362,69 @@ Item {
         }
     }
 
+    Rectangle {
+        visible: root.replayMode && root.activePathPointCount > 1
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 12
+        anchors.topMargin: 48
+        width: App.replayPlannedPathPointCount > 1 ? 174 : 86
+        height: 26
+        radius: Theme.radiusSmall
+        color: Theme.darkMode ? "#D90E1928" : "#EFFFFFFF"
+        border.width: 1
+        border.color: Theme.line
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 7
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 18
+                height: 2
+                radius: 1
+                color: root.flightPathColor()
+            }
+            Text {
+                text: "实际"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textTiny
+            }
+            Item { width: 4; height: 1; visible: App.replayPlannedPathPointCount > 1 }
+            Row {
+                visible: App.replayPlannedPathPointCount > 1
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+                Repeater {
+                    model: 3
+                    Rectangle { width: 4; height: 2; radius: 1; color: Theme.textMuted }
+                }
+            }
+            Text {
+                visible: App.replayPlannedPathPointCount > 1
+                text: "计划"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textTiny
+            }
+        }
+    }
+
+    ReplayTelemetryChart {
+        visible: root.replayMode && root.width >= 720
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 12
+        z: 4
+        onExpandRequested: root.replayAnalysisRequested()
+    }
+
     Text {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 12
-        text: App.localPositionAvailable ? "X 东 / Y 上 / Z 南  ·  左键旋转  ·  右键平移  ·  滚轮缩放" : "等待本地位置遥测"
+        text: root.positionAvailable ? "X 东 / Y 上 / Z 南  ·  左键旋转  ·  右键平移  ·  滚轮缩放" : "等待本地位置遥测"
         color: Theme.textFaint
         font.family: Theme.fontFamily
         font.pixelSize: Theme.textTiny

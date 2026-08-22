@@ -1,0 +1,14 @@
+[out:json][timeout:120];
+way(293805615);
+map_to_area -> .campus;
+(
+  way(293805615);
+  nwr["building"](area.campus);
+  way["highway"](area.campus);
+  nwr["leisure"](area.campus);
+  nwr["natural"](area.campus);
+  nwr["landuse"](area.campus);
+  nwr["amenity"](area.campus);
+  nwr["man_made"](area.campus);
+);
+out body geom;

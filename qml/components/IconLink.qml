@@ -22,7 +22,7 @@ Button {
                          : root.hovered ? Theme.surfaceRaised : "transparent"
         border.width: root.visualFocus ? 1 : 0
         border.color: Theme.accent
-        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on color { ColorAnimation { duration: Theme.animationDuration(100) } }
     }
 
     contentItem: Item {

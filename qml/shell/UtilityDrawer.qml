@@ -8,19 +8,16 @@ import "../components"
 Drawer {
     id: root
     property string mode: "environment"
-    property bool modelListOpen: false
-    property bool worldListOpen: false
-    property bool technicalDetailsOpen: false
     property bool healthDetailsOpen: false
-    property bool softwareDetailsOpen: false
     property bool telemetryDetailsOpen: false
     property bool telemetryFrozen: false
     property var telemetrySnapshot: ({})
     property double telemetryLastUpdateMs: 0
     property double telemetryClockMs: Date.now()
     signal flightRequested()
-    readonly property string panelTitle: mode === "settings" ? "设置" : mode === "health" ? "健康检查" : mode === "telemetry" ? "更多遥测" : "仿真环境"
-    readonly property int panelIndex: mode === "settings" ? 1 : mode === "health" ? 2 : mode === "telemetry" ? 3 : 0
+    signal planEditRequested()
+    readonly property string panelTitle: mode === "settings" ? "设置" : mode === "health" ? "健康检查" : mode === "telemetry" ? "更多遥测" : "运行环境"
+    readonly property int panelIndex: mode === "settings" ? 0 : mode === "health" ? 2 : mode === "telemetry" ? 3 : 1
     readonly property bool sensorsReady: App.gyrometerOk && App.accelerometerOk && App.magnetometerOk
     readonly property bool positionReady: App.localPositionOk
     readonly property bool globalReady: App.globalPositionOk
@@ -29,32 +26,15 @@ Drawer {
                                                   + (positionReady ? 1 : 0)
                                                   + (globalReady ? 1 : 0)
                                                   + (homeAndArmReady ? 1 : 0)
-    readonly property bool dockerIssue: App.issueCode === "docker-missing"
-                                                || App.issueCode === "docker-offline"
-                                                || App.issueCode === "image-missing"
-                                                || App.issueCode === "container-conflict"
-                                                || App.issueCode === "start-failed"
-                                                || App.issueCode === "stop-failed"
-                                                || App.issueCode === "model-invalid"
-                                                || App.issueCode === "world-invalid"
-                                                || App.issueCode === "world-assets-missing"
-                                                || App.issueCode === "container-name-invalid"
-
     function openMode(requestedMode) {
         if (requestedMode === "telemetry") telemetryFrozen = false
+        if (requestedMode === "settings") settingsCenter.returnHome()
         mode = requestedMode
         open()
     }
 
     function oneDecimal(value) {
         return Number(Math.abs(value) < 0.05 ? 0 : value).toFixed(1)
-    }
-
-    function flightPathSettingsAreDefault() {
-        return App.flightPathVisible
-                && Math.abs(App.flightPathWidthMeters - 0.06) < 0.001
-                && App.flightPathColorPreset === "orange"
-                && App.flightPathMaxVisibleLengthMeters === 100
     }
 
     function sensorSummary() {
@@ -175,106 +155,6 @@ Drawer {
         }
     }
 
-    component ThemeChoice: Rectangle {
-        id: themeChoice
-        property string label: "主题"
-        property bool selected: false
-        signal chosen()
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        radius: Theme.radiusSmall
-        color: selected ? Theme.surface : choiceMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
-        border.width: selected || activeFocus ? 1 : 0
-        border.color: activeFocus ? Theme.accent : Theme.lineStrong
-        activeFocusOnTab: true
-        Accessible.name: label
-        Accessible.role: Accessible.Button
-        Keys.onReturnPressed: themeChoice.chosen()
-        Keys.onEnterPressed: themeChoice.chosen()
-        Keys.onSpacePressed: themeChoice.chosen()
-        Text {
-            anchors.centerIn: parent
-            text: themeChoice.label
-            color: themeChoice.selected ? Theme.textPrimary : Theme.textMuted
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.textSmall
-            font.weight: themeChoice.selected ? Font.Medium : Font.Normal
-        }
-        MouseArea { id: choiceMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { themeChoice.chosen(); root.contentItem.forceActiveFocus(Qt.MouseFocusReason) } }
-    }
-
-    component ToggleSwitch: Rectangle {
-        id: toggleSwitch
-        property bool checked: false
-        signal toggled()
-        Layout.preferredWidth: 42
-        Layout.preferredHeight: 24
-        radius: 12
-        color: checked ? Theme.accent : Theme.surfaceInteractive
-        border.width: checked ? 0 : 1
-        border.color: activeFocus ? Theme.accent : Theme.lineStrong
-        activeFocusOnTab: true
-        Accessible.name: "显示飞行轨迹"
-        Accessible.role: Accessible.CheckBox
-        Accessible.checked: checked
-        Keys.onReturnPressed: toggleSwitch.toggled()
-        Keys.onEnterPressed: toggleSwitch.toggled()
-        Keys.onSpacePressed: toggleSwitch.toggled()
-        Rectangle {
-            width: 18
-            height: 18
-            radius: 9
-            y: 3
-            x: toggleSwitch.checked ? 21 : 3
-            color: toggleSwitch.checked ? Theme.accentContent : Theme.textMuted
-            Behavior on x { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-        }
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                toggleSwitch.toggled()
-                root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
-            }
-        }
-    }
-
-    component PathColorChoice: Rectangle {
-        id: pathColorChoice
-        required property string preset
-        property bool selected: false
-        signal chosen()
-        Layout.preferredWidth: 30
-        Layout.preferredHeight: 30
-        radius: 15
-        color: "transparent"
-        border.width: selected ? 2 : 1
-        border.color: activeFocus ? Theme.accent : selected ? Theme.textPrimary : Theme.lineStrong
-        activeFocusOnTab: true
-        Accessible.name: "轨迹颜色 " + preset
-        Accessible.role: Accessible.Button
-        Keys.onReturnPressed: pathColorChoice.chosen()
-        Keys.onEnterPressed: pathColorChoice.chosen()
-        Keys.onSpacePressed: pathColorChoice.chosen()
-        Rectangle {
-            anchors.centerIn: parent
-            width: 20
-            height: 20
-            radius: 10
-            color: Theme.flightPathColor(pathColorChoice.preset)
-        }
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                pathColorChoice.chosen()
-                root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
-            }
-        }
-    }
-
     edge: Qt.RightEdge
     modal: true
     interactive: true
@@ -315,587 +195,17 @@ Drawer {
             Layout.fillHeight: true
             currentIndex: root.panelIndex
 
-            ScrollView {
-                clip: true
-                leftPadding: 20
-                rightPadding: 20
-                topPadding: 18
-                bottomPadding: 18
-                contentWidth: availableWidth
-                ColumnLayout {
-                    width: parent.width
-                    spacing: 0
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 52
-                        spacing: 12
-                        Rectangle {
-                            Layout.preferredWidth: 9
-                            Layout.preferredHeight: 9
-                            radius: 5
-                            color: root.dockerIssue ? Theme.warning : App.dockerAvailable && App.imageAvailable ? Theme.success : Theme.textFaint
-                        }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 3
-                            Text {
-                                text: root.dockerIssue ? "环境需要处理" : App.vehicleConnected ? "仿真已连接" : App.simulationRunning ? "正在等待飞行器" : App.dockerAvailable && App.imageAvailable ? "环境已就绪" : "正在检查环境"
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.textBody
-                                font.weight: Font.Medium
-                            }
-                            Text {
-                                text: App.dockerAvailable && App.imageAvailable ? "Docker Desktop · PX4 SITL" : "检查 Docker Desktop 与本机镜像"
-                                color: Theme.textMuted
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.textTiny
-                            }
-                        }
-                    }
-
-                    SectionTitle { Layout.topMargin: 8; text: "飞行器" }
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 68
-                        radius: Theme.radiusMedium
-                        color: modelPickerMouse.containsMouse && modelPickerMouse.enabled ? Theme.surfaceInteractive : Theme.surfaceRaised
-                        border.width: 1
-                        border.color: root.modelListOpen ? Theme.accent : Theme.line
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-                            spacing: 10
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 3
-                                RowLayout {
-                                    spacing: 8
-                                    Text { Layout.fillWidth: true; text: App.selectedModelName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
-                                    Text { visible: App.selectedModelId === "gz_x500"; text: "推荐"; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; font.weight: Font.Medium }
-                                }
-                                Text { Layout.fillWidth: true; text: App.selectedModelDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
-                            }
-                            Text {
-                                visible: App.simulationRunning
-                                text: "运行中"
-                                color: Theme.textFaint
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.textTiny
-                            }
-                            ThemedIcon {
-                                visible: !App.simulationRunning
-                                Layout.preferredWidth: 16
-                                Layout.preferredHeight: 16
-                                source: "qrc:/icons/chevron-down.svg"
-                                iconColor: Theme.textSecondary
-                                rotation: root.modelListOpen ? 180 : 0
-                                Behavior on rotation { NumberAnimation { duration: 120 } }
-                            }
-                        }
-                        MouseArea {
-                            id: modelPickerMouse
-                            anchors.fill: parent
-                            enabled: !App.simulationRunning && !App.busy
-                            hoverEnabled: true
-                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            onClicked: root.modelListOpen = !root.modelListOpen
-                        }
-                    }
-
-                    ColumnLayout {
-                        visible: root.modelListOpen
-                        Layout.fillWidth: true
-                        Layout.topMargin: 6
-                        spacing: 2
-                        Repeater {
-                            model: App.simulationModels
-                            delegate: Rectangle {
-                                id: modelOption
-                                required property var modelData
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 54
-                                radius: Theme.radiusSmall
-                                color: optionMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
-                                border.width: activeFocus ? 1 : 0
-                                border.color: Theme.accent
-                                activeFocusOnTab: true
-                                Accessible.name: modelOption.modelData.name
-                                Accessible.role: Accessible.Button
-                                Keys.onReturnPressed: modelOption.selectOption()
-                                Keys.onEnterPressed: modelOption.selectOption()
-                                Keys.onSpacePressed: modelOption.selectOption()
-
-                                function selectOption() {
-                                    App.selectedModelId = modelOption.modelData.id
-                                    root.modelListOpen = false
-                                }
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 12
-                                    anchors.rightMargin: 10
-                                    spacing: 10
-                                    Rectangle {
-                                        Layout.preferredWidth: 16
-                                        Layout.preferredHeight: 16
-                                        radius: 8
-                                        color: "transparent"
-                                        border.width: 1
-                                        border.color: modelOption.modelData.id === App.selectedModelId ? Theme.accent : Theme.lineStrong
-                                        Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.accent; visible: modelOption.modelData.id === App.selectedModelId }
-                                    }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 2
-                                        Text { text: modelOption.modelData.name; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: modelOption.modelData.id === App.selectedModelId ? Font.Medium : Font.Normal }
-                                        Text { Layout.fillWidth: true; text: modelOption.modelData.description; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
-                                    }
-                                }
-                                MouseArea {
-                                    id: optionMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        modelOption.selectOption()
-                                        root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Text {
-                        visible: App.simulationRunning
-                        Layout.fillWidth: true
-                        Layout.topMargin: 8
-                        text: "停止仿真后可更换机型。"
-                        color: Theme.textFaint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textTiny
-                    }
-
-                    SectionTitle { Layout.topMargin: 8; text: "仿真世界" }
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 68
-                        radius: Theme.radiusMedium
-                        color: worldPickerMouse.containsMouse && worldPickerMouse.enabled
-                               ? Theme.surfaceInteractive : Theme.surfaceRaised
-                        border.width: 1
-                        border.color: root.worldListOpen ? Theme.accent : Theme.line
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-                            spacing: 10
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 3
-                                Text { Layout.fillWidth: true; text: App.selectedWorldName; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
-                                Text { Layout.fillWidth: true; text: App.selectedWorldDescription; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
-                            }
-                            Text { visible: App.simulationRunning; text: "运行中"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                            ThemedIcon {
-                                visible: !App.simulationRunning
-                                Layout.preferredWidth: 16
-                                Layout.preferredHeight: 16
-                                source: "qrc:/icons/chevron-down.svg"
-                                iconColor: Theme.textSecondary
-                                rotation: root.worldListOpen ? 180 : 0
-                                Behavior on rotation { NumberAnimation { duration: 120 } }
-                            }
-                        }
-                        MouseArea {
-                            id: worldPickerMouse
-                            anchors.fill: parent
-                            enabled: !App.simulationRunning && !App.busy
-                            hoverEnabled: true
-                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            onClicked: root.worldListOpen = !root.worldListOpen
-                        }
-                    }
-                    ColumnLayout {
-                        visible: root.worldListOpen
-                        Layout.fillWidth: true
-                        Layout.topMargin: 6
-                        spacing: 2
-                        Repeater {
-                            model: App.simulationWorlds
-                            delegate: Rectangle {
-                                id: worldOption
-                                required property var modelData
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 54
-                                radius: Theme.radiusSmall
-                                color: worldOptionMouse.containsMouse ? Theme.surfaceInteractive : "transparent"
-                                border.width: activeFocus ? 1 : 0
-                                border.color: Theme.accent
-                                activeFocusOnTab: true
-                                Accessible.name: worldOption.modelData.name
-                                Accessible.role: Accessible.Button
-                                Keys.onReturnPressed: worldOption.selectOption()
-                                Keys.onEnterPressed: worldOption.selectOption()
-                                Keys.onSpacePressed: worldOption.selectOption()
-
-                                function selectOption() {
-                                    App.selectedWorldId = worldOption.modelData.id
-                                    root.worldListOpen = false
-                                }
-                                RowLayout {
-                                    anchors.fill: parent; spacing: 10
-                                    anchors.leftMargin: 12
-                                    anchors.rightMargin: 10
-                                    Rectangle {
-                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16; radius: 8
-                                        color: "transparent"; border.width: 1
-                                        border.color: worldOption.modelData.id === App.selectedWorldId ? Theme.accent : Theme.lineStrong
-                                        Rectangle { anchors.centerIn: parent; width: 8; height: 8; radius: 4; color: Theme.accent; visible: worldOption.modelData.id === App.selectedWorldId }
-                                    }
-                                    ColumnLayout {
-                                        Layout.fillWidth: true; spacing: 2
-                                        Text { text: worldOption.modelData.name; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: worldOption.modelData.id === App.selectedWorldId ? Font.Medium : Font.Normal }
-                                        Text { Layout.fillWidth: true; text: worldOption.modelData.description; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
-                                    }
-                                }
-                                MouseArea {
-                                    id: worldOptionMouse
-                                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        worldOption.selectOption()
-                                        root.contentItem.forceActiveFocus(Qt.MouseFocusReason)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    SectionTitle { Layout.topMargin: 8; text: "临时容器" }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 46
-                        spacing: 12
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            Text { Layout.fillWidth: true; text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { Layout.fillWidth: true; text: "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        TextField {
-                            id: containerNameField
-                            Layout.preferredWidth: 176
-                            Layout.preferredHeight: 34
-                            text: App.containerName
-                            enabled: !App.simulationRunning && !App.busy
-                            maximumLength: 63
-                            selectByMouse: true
-                            color: Theme.textPrimary
-                            font.family: Theme.monoFontFamily
-                            font.pixelSize: Theme.textTiny
-                            validator: RegularExpressionValidator { regularExpression: /^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$/ }
-                            onEditingFinished: {
-                                if (acceptableInput) App.containerName = text
-                                else text = App.containerName
-                            }
-                            background: Rectangle {
-                                radius: Theme.radiusMedium
-                                color: Theme.surfaceRaised
-                                border.width: 1
-                                border.color: containerNameField.activeFocus ? Theme.accent : Theme.line
-                            }
-                        }
-                    }
-
-                    SectionTitle { Layout.topMargin: 8; text: "运行连接" }
-                    ValueRow { label: "PX4 SITL"; value: App.simulationRunning ? "运行中" : "未启动"; valueColor: App.simulationRunning ? Theme.success : Theme.textMuted }
-                    ValueRow { label: "MAVSDK"; value: App.vehicleConnected ? "已连接" : App.simulationRunning ? "等待连接" : "未连接"; valueColor: App.vehicleConnected ? Theme.success : Theme.textMuted }
-
-                    DisclosureRow {
-                        Layout.fillWidth: true
-                        label: "连接详情"
-                        expanded: root.technicalDetailsOpen
-                        onActivated: root.technicalDetailsOpen = !root.technicalDetailsOpen
-                    }
-                    ColumnLayout {
-                        visible: root.technicalDetailsOpen
-                        Layout.fillWidth: true
-                        spacing: 0
-                        ValueRow { label: "镜像"; value: "px4io/px4-sitl-gazebo:latest" }
-                        ValueRow { label: "世界"; value: App.selectedWorldName }
-                        ValueRow { label: "容器"; value: App.containerName }
-                        ValueRow { label: "MAVLink"; value: "UDP 14540" }
-                        ValueRow { label: "图形输出"; value: "无界面（HEADLESS）" }
-                    }
-
-                    Text { visible: root.dockerIssue; Layout.fillWidth: true; Layout.topMargin: 10; text: App.issueMessage; color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
-
-                    ActionButton {
-                        visible: root.dockerIssue
-                        Layout.fillWidth: true
-                        Layout.topMargin: 16
-                        text: "重新检测"
-                        iconSource: "qrc:/icons/refresh-cw.svg"
-                        kind: "secondary"
-                        enabled: !App.busy
-                        onClicked: App.recover()
-                    }
-                    ActionButton {
-                        visible: !root.dockerIssue && App.simulationRunning
-                        Layout.fillWidth: true
-                        Layout.topMargin: 16
-                        text: App.landingAndStopping
-                              ? "正在降落…"
-                              : (App.inAir || App.armed) ? "降落并停止" : "停止仿真"
-                        iconSource: (App.inAir || App.armed)
-                                    ? "qrc:/icons/plane-landing.svg"
-                                    : "qrc:/icons/square.svg"
-                        kind: "secondary"
-                        enabled: !App.busy && !App.landingAndStopping
-                        onClicked: {
-                            if (App.inAir || App.armed)
-                                App.landAndStopSimulation()
-                            else
-                                App.stopSimulation()
-                        }
-                    }
-                    ActionButton {
-                        visible: !root.dockerIssue && !App.simulationRunning
-                        Layout.fillWidth: true
-                        Layout.topMargin: 16
-                        text: "启动 " + App.selectedModelName
-                        iconSource: "qrc:/icons/play.svg"
-                        enabled: App.dockerAvailable && App.imageAvailable && !App.busy
-                        onClicked: App.startSimulation()
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        Layout.topMargin: 14
-                        text: App.landingAndStopping
-                              ? "正在等待飞行器落地并自动锁定，请保持仿真运行。"
-                              : "机型、世界与容器名称将在下次启动时生效。"
-                        color: App.landingAndStopping ? Theme.textMuted : Theme.textFaint
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textTiny
-                        wrapMode: Text.WordWrap
-                    }
-                }
+            SettingsCenter {
+                id: settingsCenter
+                Layout.fillWidth: true
+                Layout.fillHeight: true
             }
 
-            ScrollView {
-                clip: true
-                leftPadding: 20
-                rightPadding: 20
-                topPadding: 18
-                bottomPadding: 18
-                contentWidth: availableWidth
-                ColumnLayout {
-                    width: parent.width
-                    spacing: 0
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 58
-                        spacing: 12
-                        Rectangle { Layout.preferredWidth: 9; Layout.preferredHeight: 9; radius: 5; color: Theme.success }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 3
-                            Text { text: "设置会自动保存"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; font.weight: Font.Medium }
-                            Text { text: "只保留适合日常调整的安全选项"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                    }
-
-                    SectionTitle { Layout.topMargin: 6; text: "外观" }
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 82
-                        spacing: 8
-                        Text { text: "界面主题"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                        Text { text: "切换后立即应用并保存"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 34
-                            radius: Theme.radiusMedium
-                            color: Theme.surfaceRaised
-                            border.width: 1
-                            border.color: Theme.line
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                spacing: 2
-                                ThemeChoice { label: "浅色"; selected: Theme.mode === "light"; onChosen: Theme.mode = "light" }
-                                ThemeChoice { label: "深色"; selected: Theme.mode === "dark"; onChosen: Theme.mode = "dark" }
-                                ThemeChoice { label: "跟随系统"; selected: Theme.mode === "system"; onChosen: Theme.mode = "system" }
-                            }
-                        }
-                    }
-
-                    SectionTitle { Layout.topMargin: 14; text: "飞行控制" }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 58
-                        spacing: 10
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            Text { Layout.fillWidth: true; text: "默认起飞高度"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { Layout.fillWidth: true; text: "范围 1.0–100.0 米"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        NumericField {
-                            Layout.preferredWidth: 138
-                            value: App.takeoffAltitude
-                            from: 1.0; to: 100.0; stepSize: 0.1; decimals: 1; unit: "m"
-                            accessibleName: "默认起飞高度"
-                            onValueEdited: value => App.takeoffAltitude = value
-                        }
-                    }
-                    RowLayout {
-                        visible: Math.abs(App.takeoffAltitude - 5) > 0.1
-                        Layout.fillWidth: true
-                        Item { Layout.fillWidth: true }
-                        IconLink {
-                            text: "恢复为 5 m"
-                            iconSource: "qrc:/icons/refresh-cw.svg"
-                            sidePadding: 10
-                            onClicked: App.takeoffAltitude = 5
-                        }
-                    }
-                    Text { Layout.fillWidth: true; Layout.topMargin: 9; text: "修改后会用于下一次起飞，不影响正在执行的飞行操作。"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
-
-                    SectionTitle { Layout.topMargin: 16; text: "轨迹显示" }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 52
-                        spacing: 12
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
-                            Text { Layout.fillWidth: true; text: "显示飞行轨迹"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { Layout.fillWidth: true; text: "关闭后仍会继续记录"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                        }
-                        ToggleSwitch {
-                            checked: App.flightPathVisible
-                            onToggled: App.flightPathVisible = !App.flightPathVisible
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.topMargin: 5
-                        spacing: 2
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text { Layout.fillWidth: true; text: "轨迹粗细"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: Math.round(App.flightPathWidthMeters * 100) + " cm"; color: Theme.textSecondary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall }
-                        }
-                        Slider {
-                            id: pathWidthSlider
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 30
-                            from: 0.02
-                            to: 0.12
-                            stepSize: 0.01
-                            value: App.flightPathWidthMeters
-                            onMoved: App.flightPathWidthMeters = value
-                            background: Rectangle {
-                                x: pathWidthSlider.leftPadding
-                                y: pathWidthSlider.topPadding + pathWidthSlider.availableHeight / 2 - height / 2
-                                width: pathWidthSlider.availableWidth
-                                height: 3
-                                radius: 2
-                                color: Theme.lineStrong
-                                Rectangle {
-                                    width: pathWidthSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: Theme.accent
-                                }
-                            }
-                            handle: Rectangle {
-                                x: pathWidthSlider.leftPadding + pathWidthSlider.visualPosition * (pathWidthSlider.availableWidth - width)
-                                y: pathWidthSlider.topPadding + pathWidthSlider.availableHeight / 2 - height / 2
-                                width: 15
-                                height: 15
-                                radius: 8
-                                color: Theme.surface
-                                border.width: 2
-                                border.color: Theme.accent
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 46
-                        spacing: 8
-                        Text { Layout.fillWidth: true; text: "轨迹颜色"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                        PathColorChoice { preset: "orange"; selected: App.flightPathColorPreset === preset; onChosen: App.flightPathColorPreset = preset }
-                        PathColorChoice { preset: "blue"; selected: App.flightPathColorPreset === preset; onChosen: App.flightPathColorPreset = preset }
-                        PathColorChoice { preset: "teal"; selected: App.flightPathColorPreset === preset; onChosen: App.flightPathColorPreset = preset }
-                        PathColorChoice { preset: "violet"; selected: App.flightPathColorPreset === preset; onChosen: App.flightPathColorPreset = preset }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 48
-                        spacing: 10
-                        Text { Layout.fillWidth: true; text: "可见长度"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                        Rectangle {
-                            Layout.preferredWidth: 210
-                            Layout.preferredHeight: 34
-                            radius: Theme.radiusMedium
-                            color: Theme.surfaceRaised
-                            border.width: 1
-                            border.color: Theme.line
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                spacing: 2
-                                ThemeChoice { label: "25"; selected: App.flightPathMaxVisibleLengthMeters === 25; onChosen: App.flightPathMaxVisibleLengthMeters = 25 }
-                                ThemeChoice { label: "50"; selected: App.flightPathMaxVisibleLengthMeters === 50; onChosen: App.flightPathMaxVisibleLengthMeters = 50 }
-                                ThemeChoice { label: "100"; selected: App.flightPathMaxVisibleLengthMeters === 100; onChosen: App.flightPathMaxVisibleLengthMeters = 100 }
-                                ThemeChoice { label: "全部"; selected: App.flightPathMaxVisibleLengthMeters === 0; onChosen: App.flightPathMaxVisibleLengthMeters = 0 }
-                            }
-                        }
-                    }
-                    Text { Layout.fillWidth: true; text: "显示、粗细、颜色和可见长度同时用于三维画面与任务地图；完整数据仍会保存在会话记录中。"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
-                    RowLayout {
-                        visible: !root.flightPathSettingsAreDefault()
-                        Layout.fillWidth: true
-                        Layout.topMargin: 8
-                        Item { Layout.fillWidth: true }
-                        IconLink {
-                            text: "恢复轨迹默认设置"
-                            iconSource: "qrc:/icons/refresh-cw.svg"
-                            sidePadding: 10
-                            onClicked: App.resetFlightPathDisplaySettings()
-                        }
-                    }
-
-                    DisclosureRow {
-                        Layout.fillWidth: true
-                        Layout.topMargin: 12
-                        label: "软件信息"
-                        expanded: root.softwareDetailsOpen
-                        topDivider: true
-                        onActivated: root.softwareDetailsOpen = !root.softwareDetailsOpen
-                    }
-                    ColumnLayout {
-                        visible: root.softwareDetailsOpen
-                        Layout.fillWidth: true
-                        spacing: 0
-                        ValueRow { label: "FlightBench"; value: App.applicationVersion }
-                        ValueRow { label: "Qt 运行库"; value: App.qtRuntimeVersion }
-                        ValueRow { label: "MAVSDK"; value: App.mavsdkVersion }
-                        ValueRow { label: "构建"; value: App.buildDescription }
-                        ValueRow { label: "系统"; value: App.platformDescription }
-                        ValueRow { label: "PX4 镜像"; value: "px4io/px4-sitl-gazebo:latest" }
-                    }
-
-                    Text { Layout.fillWidth: true; Layout.topMargin: 14; text: "仅控制本机软件仿真，不连接真实无人机。镜像和通信地址只读；临时容器名称可在仿真启动前修改。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
-                }
+            RuntimeEnvironmentCenter {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                onFlightRequested: root.flightRequested()
+                onPlanEditRequested: root.planEditRequested()
             }
 
             ScrollView {
@@ -932,6 +242,44 @@ Drawer {
                     HealthCheckRow { Layout.fillWidth: true; label: "本地定位"; description: complete ? "局部位置估计已经建立" : "等待局部坐标估计"; complete: root.positionReady }
                     HealthCheckRow { Layout.fillWidth: true; label: "GPS 与全局位置"; description: complete ? (App.gpsAvailable ? App.gpsFixType + " · " + App.gpsSatellites + " 星" : "全局位置估计已经建立") : "等待 GPS 与全局坐标"; complete: root.globalReady }
                     HealthCheckRow { Layout.fillWidth: true; label: "Home 与解锁许可"; description: complete ? "返航参考点和解锁许可均正常" : !App.homePositionOk ? "等待 Home 返航参考点" : "等待 PX4 允许解锁"; complete: root.homeAndArmReady; dividerVisible: false }
+
+                    Rectangle {
+                        visible: App.hasIssue && Boolean(App.currentIssueExplanation.title)
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: visible ? issueExplanation.implicitHeight + 24 : 0
+                        Layout.topMargin: visible ? 12 : 0
+                        radius: Theme.radiusMedium
+                        color: Theme.warningSoft
+                        border.width: 1
+                        border.color: Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.28)
+                        ColumnLayout {
+                            id: issueExplanation
+                            anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12; anchors.rightMargin: 12
+                            spacing: 5
+                            Text { Layout.fillWidth: true; text: String(App.currentIssueExplanation.title || "当前问题"); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                            Text { Layout.fillWidth: true; text: String(App.currentIssueExplanation.what || ""); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                            Text { Layout.fillWidth: true; text: "建议：" + String(App.currentIssueExplanation.action || "查看健康检查详情"); color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                        }
+                    }
+
+                    RowLayout {
+                        visible: App.selectedWorldId !== "default" && Boolean(App.selectedWorldMap.available)
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: visible ? 42 : 0
+                        spacing: 10
+                        ThemedIcon { Layout.preferredWidth: 16; Layout.preferredHeight: 16; source: "qrc:/icons/map-pinned.svg"; iconColor: Theme.accent }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+                            Text { text: String(App.selectedWorldMap.recommendedTakeoffName || "世界原点起飞区"); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text {
+                                text: "局部坐标 东 0.0 m / 北 0.0 m · 最近建筑约 "
+                                      + Number(App.selectedWorldMap.recommendedTakeoffClearanceMeters || 0).toFixed(1) + " m"
+                                color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny
+                            }
+                        }
+                    }
 
                     DisclosureRow {
                         Layout.fillWidth: true

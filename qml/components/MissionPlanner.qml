@@ -31,6 +31,17 @@ Item {
     property real viewCenterNorth: 0
     property bool viewInitialized: false
     property bool viewManuallyAdjusted: false
+    property var missionSafety: ({ available: false, safe: true,
+                                   riskyWaypointIndices: [], riskySegmentIndices: [] })
+    readonly property var worldMap: App.selectedWorldMap || ({ available: false })
+    readonly property bool worldMapAvailable: Boolean(worldMap.available)
+    readonly property url worldMapSource: worldMapAvailable
+                                                  ? (Theme.darkMode
+                                                     ? worldMap.darkSource
+                                                     : worldMap.lightSource)
+                                                  : ""
+    readonly property bool missionRouteSafe: !missionSafety.available
+                                               || Boolean(missionSafety.safe)
     readonly property bool editingLocked: App.missionBusy || App.missionRunning || App.missionPaused
     readonly property real mapScale: pixelsPerMeter
     readonly property real vehicleEast: App.vehicleScenePosition.x
@@ -50,6 +61,7 @@ Item {
                                                && App.localPositionAvailable
                                                && App.globalPositionAvailable
                                                && !App.keyboardControlActive
+                                               && missionRouteSafe
                                                && !editingLocked
 
     Settings {
@@ -99,6 +111,40 @@ Item {
         return 10 * magnitude
     }
 
+    function listContains(values, target) {
+        if (!values)
+            return false
+        for (var index = 0; index < values.length; ++index) {
+            if (Number(values[index]) === target)
+                return true
+        }
+        return false
+    }
+
+    function segmentHasRisk(index) {
+        return listContains(missionSafety.riskySegmentIndices, index)
+    }
+
+    function waypointHasRisk(index) {
+        return listContains(missionSafety.riskyWaypointIndices, index)
+    }
+
+    function scheduleSafetyAnalysis() {
+        safetyAnalysisTimer.restart()
+    }
+
+    function refreshSafetyAnalysis() {
+        var startEast = plannedStartValid ? plannedStartEast : vehicleEast
+        var startNorth = plannedStartValid ? plannedStartNorth : vehicleNorth
+        var startAltitude = plannedStartValid ? App.vehicleScenePosition.y
+                                              : (App.localPositionAvailable
+                                                 ? App.vehicleScenePosition.y : 0)
+        missionSafety = App.analyzeMissionRouteSafety(missionData(),
+                                                      startEast, startNorth,
+                                                      startAltitude)
+        routeCanvas.requestPaint()
+    }
+
     function zoomAt(pixelX, pixelY, factor) {
         var anchorEast = eastAt(pixelX)
         var anchorNorth = northAt(pixelY)
@@ -107,7 +153,13 @@ Item {
         viewCenterNorth = anchorNorth - (mapArea.height / 2 - pixelY) / mapScale
         viewInitialized = true
         viewManuallyAdjusted = true
-        routeCanvas.requestPaint()
+    }
+
+    function scheduleMapPaint() {
+        // Scale and center normally change together. Coalesce their repaint
+        // requests so a wheel burst renders the Canvas at most once per frame.
+        if (!mapPaintTimer.running)
+            mapPaintTimer.start()
     }
 
     function centerOnVehicle() {
@@ -129,6 +181,29 @@ Item {
         }
         pixelsPerMeter = 2.2
         viewInitialized = App.localPositionAvailable
+        viewManuallyAdjusted = true
+        routeCanvas.requestPaint()
+    }
+
+    function fitWorldToView() {
+        if (!worldMapAvailable || mapArea.width < 120 || mapArea.height < 120) {
+            fitMissionToView()
+            return
+        }
+        var minimumEast = Number(worldMap.minEastMeters)
+        var maximumEast = Number(worldMap.maxEastMeters)
+        var minimumNorth = Number(worldMap.minNorthMeters)
+        var maximumNorth = Number(worldMap.maxNorthMeters)
+        var horizontalPadding = 56
+        var verticalPadding = 56
+        pixelsPerMeter = clamp(Math.min((mapArea.width - horizontalPadding)
+                                         / (maximumEast - minimumEast),
+                                        (mapArea.height - verticalPadding)
+                                         / (maximumNorth - minimumNorth)),
+                               0.25, 16)
+        viewCenterEast = (minimumEast + maximumEast) / 2
+        viewCenterNorth = (minimumNorth + maximumNorth) / 2
+        viewInitialized = true
         viewManuallyAdjusted = true
         routeCanvas.requestPaint()
     }
@@ -263,6 +338,7 @@ Item {
         missionModel.append({ name: "返程点", eastMeters: 30, northMeters: -24,
                               altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: -135 })
         selectedIndex = 1
+        scheduleSafetyAnalysis()
     }
 
     function restoreMission() {
@@ -285,6 +361,7 @@ Item {
             appendDefaultMission()
         selectedIndex = Math.min(Math.max(0, selectedIndex), missionModel.count - 1)
         dirty = false
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -355,7 +432,7 @@ Item {
         routeNameField.forceActiveFocus()
     }
 
-    function loadLibraryRoute(routeId) {
+    function loadLibraryRoute(routeId, endActionOverride) {
         var targetEast = App.localPositionAvailable ? vehicleEast : 0
         var targetNorth = App.localPositionAvailable ? vehicleNorth : 0
         var response = App.loadSavedRoute(routeId, targetEast, targetNorth)
@@ -373,7 +450,11 @@ Item {
         currentRouteAnchorEast = targetEast
         currentRouteAnchorNorth = targetNorth
         currentRouteAnchorValid = true
-        missionSettings.endAction = response.endAction
+        var requestedEndAction = String(endActionOverride || "")
+        missionSettings.endAction = requestedEndAction === "land"
+                                    || requestedEndAction === "rtl"
+                                    || requestedEndAction === "hold"
+                                    ? requestedEndAction : response.endAction
         selectedIndex = missionModel.count > 0 ? 0 : -1
         plannedStartValid = false
         actualPoints = []
@@ -383,6 +464,7 @@ Item {
         viewManuallyAdjusted = false
         Qt.callLater(root.fitMissionToView)
         routeLibraryDialog.close()
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -410,6 +492,7 @@ Item {
         centerOnVehicle()
         viewManuallyAdjusted = false
         routeLibraryDialog.close()
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -418,6 +501,7 @@ Item {
             return
         missionModel.setProperty(selectedIndex, role, value)
         dirty = true
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -432,6 +516,7 @@ Item {
                               yawDegrees: 0 })
         selectedIndex = missionModel.count - 1
         dirty = true
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -443,6 +528,7 @@ Item {
         missionModel.remove(removedIndex)
         selectedIndex = Math.min(removedIndex, missionModel.count - 1)
         dirty = true
+        scheduleSafetyAnalysis()
         routeCanvas.requestPaint()
     }
 
@@ -469,6 +555,8 @@ Item {
             return "等待 GPS 全局定位"
         if (App.keyboardControlActive)
             return "请先退出键盘飞行控制"
+        if (!missionRouteSafe)
+            return String(missionSafety.message || "航线可能穿过建筑")
         if (editingLocked)
             return "当前任务正在处理"
         return "可以上传并执行"
@@ -480,9 +568,9 @@ Item {
         return minutes + ":" + (remaining < 10 ? "0" : "") + remaining
     }
 
-    onPixelsPerMeterChanged: routeCanvas.requestPaint()
-    onViewCenterEastChanged: routeCanvas.requestPaint()
-    onViewCenterNorthChanged: routeCanvas.requestPaint()
+    onPixelsPerMeterChanged: scheduleMapPaint()
+    onViewCenterEastChanged: scheduleMapPaint()
+    onViewCenterNorthChanged: scheduleMapPaint()
 
     Component.onCompleted: {
         restoreMission()
@@ -492,7 +580,10 @@ Item {
         currentRouteAnchorEast = missionSettings.currentRouteAnchorEast
         currentRouteAnchorNorth = missionSettings.currentRouteAnchorNorth
         currentRouteAnchorValid = missionSettings.currentRouteAnchorValid
+        // Open around the planned route so nearby buildings are readable.
+        // The explicit scene-fit action remains available for the full campus.
         Qt.callLater(fitMissionToView)
+        Qt.callLater(refreshSafetyAnalysis)
     }
 
     Connections {
@@ -501,6 +592,8 @@ Item {
             if (!root.viewInitialized && App.localPositionAvailable) {
                 Qt.callLater(root.fitMissionToView)
             }
+            if (!root.editingLocked)
+                root.scheduleSafetyAnalysis()
             routeCanvas.requestPaint()
             if (!root.missionTrackActive || !App.inAir)
                 return
@@ -549,6 +642,11 @@ Item {
         function onFlightPathDisplaySettingsChanged() {
             routeCanvas.requestPaint()
         }
+        function onSelectedWorldChanged() {
+            root.scheduleSafetyAnalysis()
+            root.viewManuallyAdjusted = false
+            Qt.callLater(root.fitMissionToView)
+        }
     }
 
     Connections {
@@ -561,6 +659,19 @@ Item {
     Timer {
         id: savedNotice
         interval: 1800
+    }
+
+    Timer {
+        id: safetyAnalysisTimer
+        interval: 40
+        onTriggered: root.refreshSafetyAnalysis()
+    }
+
+    Timer {
+        id: mapPaintTimer
+        interval: 16
+        repeat: false
+        onTriggered: routeCanvas.requestPaint()
     }
 
     RowLayout {
@@ -590,17 +701,43 @@ Item {
                         Qt.callLater(root.fitMissionToView)
                 }
 
+                Image {
+                    id: worldMapImage
+                    visible: root.worldMapAvailable
+                    x: root.worldMapAvailable ? root.mapX(Number(root.worldMap.minEastMeters)) : 0
+                    y: root.worldMapAvailable ? root.mapY(Number(root.worldMap.maxNorthMeters)) : 0
+                    width: root.worldMapAvailable
+                           ? (Number(root.worldMap.maxEastMeters)
+                              - Number(root.worldMap.minEastMeters)) * root.mapScale : 0
+                    height: root.worldMapAvailable
+                            ? (Number(root.worldMap.maxNorthMeters)
+                               - Number(root.worldMap.minNorthMeters)) * root.mapScale : 0
+                    source: root.worldMapSource
+                    fillMode: Image.Stretch
+                    smooth: true
+                    mipmap: true
+                    // The source changes with the theme. Loading this packaged
+                    // SVG synchronously avoids a cancelled async request leaving
+                    // the map blank during startup/theme switching.
+                    asynchronous: false
+                    cache: true
+                    // Rasterize the SVG once. Binding sourceSize to visual size
+                    // forced a complete decode for every wheel step.
+                    sourceSize.width: 2048
+                    sourceSize.height: 0
+                }
+
                 Canvas {
                     id: routeCanvas
                     anchors.fill: parent
+                    z: 1
                     antialiasing: true
                     onWidthChanged: requestPaint()
                     onHeightChanged: requestPaint()
                     onPaint: {
                         var context = getContext("2d")
                         context.reset()
-                        context.fillStyle = Theme.darkMode ? "#0B1522" : "#F5F8FB"
-                        context.fillRect(0, 0, width, height)
+                        context.clearRect(0, 0, width, height)
 
                         var gridMeters = root.gridStepMeters()
                         var eastMinimum = root.eastAt(0)
@@ -609,6 +746,7 @@ Item {
                         var northMaximum = root.northAt(0)
                         context.lineWidth = 1
                         context.strokeStyle = Theme.line
+                        context.globalAlpha = root.worldMapAvailable ? 0.46 : 1
                         var firstEast = Math.floor(eastMinimum / gridMeters) * gridMeters
                         for (var east = firstEast; east <= eastMaximum; east += gridMeters) {
                             var x = root.mapX(east)
@@ -619,6 +757,7 @@ Item {
                             var y = root.mapY(north)
                             context.beginPath(); context.moveTo(0, y); context.lineTo(width, y); context.stroke()
                         }
+                        context.globalAlpha = 1
 
                         // The mission plan is always visible. It is not the recorded flight
                         // path, so the global "show flight path" option must not hide it.
@@ -635,10 +774,13 @@ Item {
                                                   && index < App.missionCurrentItem
                                 var isCurrent = (App.missionRunning || App.missionPaused)
                                                 && index === App.missionCurrentItem
-                                context.strokeStyle = isCurrent ? Theme.accent : Theme.textSecondary
+                                var hasBuildingRisk = root.segmentHasRisk(index)
+                                context.strokeStyle = hasBuildingRisk ? Theme.danger
+                                                    : isCurrent ? Theme.accent : Theme.textSecondary
                                 context.globalAlpha = isCompleted ? 0.35 : isCurrent ? 0.95 : 0.62
-                                context.lineWidth = isCurrent ? 1.8 : 1.25
-                                context.setLineDash(isCurrent ? [9, 5] : [6, 6])
+                                context.lineWidth = hasBuildingRisk ? 2.2 : isCurrent ? 1.8 : 1.25
+                                context.setLineDash(hasBuildingRisk ? [4, 3]
+                                                    : isCurrent ? [9, 5] : [6, 6])
                                 context.beginPath()
                                 context.moveTo(root.mapX(segmentStartEast),
                                                root.mapY(segmentStartNorth))
@@ -783,6 +925,7 @@ Item {
                         required property real eastMeters
                         required property real northMeters
                         readonly property real tipY: 41
+                        readonly property bool buildingRisk: root.waypointHasRisk(index)
                         width: 36
                         height: 45
                         x: root.mapX(eastMeters) - width / 2
@@ -813,9 +956,11 @@ Item {
                             height: 42
                             ShapePath {
                                 strokeWidth: root.selectedIndex === marker.index ? 2 : 1.5
-                                strokeColor: root.selectedIndex === marker.index
+                                strokeColor: marker.buildingRisk ? Theme.danger
+                                             : root.selectedIndex === marker.index
                                              ? Theme.accentHover : Theme.lineStrong
-                                fillColor: root.selectedIndex === marker.index
+                                fillColor: marker.buildingRisk ? Theme.dangerSoft
+                                           : root.selectedIndex === marker.index
                                            ? Theme.accent : Theme.surface
                                 startX: 17; startY: 2
                                 PathCubic { x: 3; y: 15; control1X: 8; control1Y: 2; control2X: 3; control2Y: 8 }
@@ -832,10 +977,14 @@ Item {
                             height: 18
                             radius: 9
                             color: root.selectedIndex === marker.index
-                                   ? Qt.lighter(Theme.accent, 1.12) : Theme.surfaceRaised
+                                   ? Qt.lighter(marker.buildingRisk ? Theme.danger
+                                                                   : Theme.accent, 1.12)
+                                   : marker.buildingRisk ? Theme.dangerSoft
+                                                         : Theme.surfaceRaised
                             border.width: 1
                             border.color: root.selectedIndex === marker.index
-                                          ? Qt.rgba(1, 1, 1, 0.34) : Theme.line
+                                          ? Qt.rgba(1, 1, 1, 0.34)
+                                          : marker.buildingRisk ? Theme.danger : Theme.line
                             Rectangle {
                                 x: 4; y: 3; width: 10; height: 4; radius: 2
                                 color: root.selectedIndex === marker.index
@@ -882,9 +1031,13 @@ Item {
                                 missionModel.setProperty(marker.index, "northMeters",
                                                          Math.round(nextNorth * 10) / 10)
                                 root.dirty = true
+                                root.scheduleSafetyAnalysis()
                                 routeCanvas.requestPaint()
                             }
-                            onReleased: routeCanvas.requestPaint()
+                            onReleased: {
+                                root.scheduleSafetyAnalysis()
+                                routeCanvas.requestPaint()
+                            }
                             onClicked: mouse => mouse.accepted = true
                         }
                     }
@@ -916,7 +1069,7 @@ Item {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: 12
-                    width: 100
+                    width: root.worldMapAvailable ? 133 : 100
                     height: 34
                     radius: Theme.radiusMedium
                     color: Theme.surface
@@ -943,6 +1096,22 @@ Item {
                             accessibleLabel: "放大地图"
                             toolTipText: "放大地图"
                             onClicked: root.zoomAt(mapArea.width / 2, mapArea.height / 2, 1.35)
+                        }
+                        Rectangle {
+                            visible: root.worldMapAvailable
+                            width: visible ? 1 : 0
+                            height: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Theme.line
+                        }
+                        CompactIconButton {
+                            visible: root.worldMapAvailable
+                            width: visible ? 32 : 0
+                            height: 32
+                            iconSource: "qrc:/icons/maximize-2.svg"
+                            accessibleLabel: "显示完整场景"
+                            toolTipText: "显示完整场景"
+                            onClicked: root.fitWorldToView()
                         }
                         Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.line }
                         CompactIconButton {
@@ -991,6 +1160,35 @@ Item {
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textTiny
+                        }
+                        Rectangle {
+                            visible: root.worldMapAvailable
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 1
+                            height: 14
+                            color: Theme.line
+                        }
+                        ThemedIcon {
+                            visible: root.worldMapAvailable
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 13
+                            height: 13
+                            source: root.missionRouteSafe ? "qrc:/icons/map-pin.svg"
+                                                          : "qrc:/icons/heart-pulse.svg"
+                            iconColor: root.missionRouteSafe ? Theme.textMuted : Theme.danger
+                        }
+                        Text {
+                            visible: root.worldMapAvailable
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.missionRouteSafe
+                                  ? "校园底图"
+                                  : "建筑风险 · 建议 ≥ "
+                                    + Number(root.missionSafety.requiredAltitudeMeters || 0).toFixed(1)
+                                    + " m"
+                            color: root.missionRouteSafe ? Theme.textMuted : Theme.danger
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTiny
+                            font.weight: root.missionRouteSafe ? Font.Normal : Font.Medium
                         }
                         Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
@@ -1187,9 +1385,11 @@ Item {
                         }
                     }
                     ActionButton {
-                        Layout.preferredWidth: 74
+                        Layout.preferredWidth: root.compactEditor ? 38 : 74
                         compact: true
-                        text: "保存"
+                        text: root.compactEditor ? "" : "保存"
+                        accessibleLabel: "保存航线"
+                        toolTipText: "保存航线"
                         iconSource: "qrc:/icons/save.svg"
                         kind: "secondary"
                         enabled: (!root.currentRouteId.length || root.dirty) && !root.editingLocked
@@ -1197,9 +1397,11 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionRunning || App.missionPaused
-                        Layout.preferredWidth: 84
+                        Layout.preferredWidth: root.compactEditor ? 38 : 84
                         compact: true
-                        text: App.missionPaused ? "继续" : "暂停"
+                        text: root.compactEditor ? "" : (App.missionPaused ? "继续" : "暂停")
+                        accessibleLabel: App.missionPaused ? "继续任务" : "暂停任务"
+                        toolTipText: App.missionPaused ? "继续任务" : "暂停任务"
                         iconSource: App.missionPaused ? "qrc:/icons/play.svg" : "qrc:/icons/pause.svg"
                         kind: "secondary"
                         enabled: !App.missionBusy
@@ -1207,9 +1409,11 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionRunning || App.missionPaused
-                        Layout.preferredWidth: 78
+                        Layout.preferredWidth: root.compactEditor ? 38 : 78
                         compact: true
-                        text: "终止"
+                        text: root.compactEditor ? "" : "终止"
+                        accessibleLabel: "终止任务并悬停"
+                        toolTipText: "终止任务并悬停"
                         iconSource: "qrc:/icons/x.svg"
                         kind: "secondary"
                         enabled: !App.missionBusy
@@ -1217,9 +1421,11 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionMonitorState === "stopped" && App.inAir
-                        Layout.preferredWidth: 78
+                        Layout.preferredWidth: root.compactEditor ? 38 : 78
                         compact: true
-                        text: "返航"
+                        text: root.compactEditor ? "" : "返航"
+                        accessibleLabel: "返航"
+                        toolTipText: "返航"
                         iconSource: "qrc:/icons/rotate-ccw.svg"
                         kind: "secondary"
                         enabled: !App.missionBusy
@@ -1227,9 +1433,11 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionMonitorState === "stopped" && App.inAir
-                        Layout.preferredWidth: 78
+                        Layout.preferredWidth: root.compactEditor ? 38 : 78
                         compact: true
-                        text: "降落"
+                        text: root.compactEditor ? "" : "降落"
+                        accessibleLabel: "降落"
+                        toolTipText: "降落"
                         iconSource: "qrc:/icons/plane-landing.svg"
                         kind: "secondary"
                         enabled: !App.missionBusy
@@ -1239,9 +1447,10 @@ Item {
                         id: executeMissionButton
                         visible: !App.missionRunning && !App.missionPaused
                                  && !(App.missionMonitorState === "stopped" && App.inAir)
-                        Layout.preferredWidth: 122
+                        Layout.preferredWidth: root.compactEditor ? 96 : 122
                         compact: true
-                        text: App.missionBusy ? "正在处理" : "上传并执行"
+                        text: App.missionBusy ? "处理中" : root.compactEditor ? "执行" : "上传并执行"
+                        accessibleLabel: App.missionBusy ? "正在处理航线" : "上传并执行航线"
                         iconSource: "qrc:/icons/upload.svg"
                         enabled: root.canExecute
                         toolTipText: root.executeBlockReason()

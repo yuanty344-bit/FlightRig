@@ -64,6 +64,10 @@ int main(int argc, char *argv[])
     if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {
         controller.setSelectedModelId(arguments.at(modelIndex + 1));
     }
+    const qsizetype worldIndex = arguments.indexOf(QStringLiteral("--world"));
+    if (worldIndex >= 0 && worldIndex + 1 < arguments.size()) {
+        controller.setSelectedWorldId(arguments.at(worldIndex + 1));
+    }
     const bool connectionOnly = arguments.contains(QStringLiteral("--connection-only"));
 
     Phase phase = Phase::WaitDocker;
@@ -209,7 +213,7 @@ int main(int argc, char *argv[])
                     break;
                 }
                 qWarning("FLIGHT_TEST_STEP: takeoff verified; starting keyboard offboard control");
-                controller.setControlSpeedMode(1);
+                controller.setControlSpeedMetersPerSecond(1.0);
                 controller.startKeyboardControl();
                 phase = Phase::WaitKeyboardControl;
                 phaseClock.restart();

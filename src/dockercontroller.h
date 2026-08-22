@@ -11,6 +11,7 @@ class DockerController final : public QObject
     Q_PROPERTY(bool dockerAvailable READ dockerAvailable NOTIFY dockerAvailableChanged)
     Q_PROPERTY(bool imageAvailable READ imageAvailable NOTIFY imageAvailableChanged)
     Q_PROPERTY(bool simulationRunning READ simulationRunning NOTIFY simulationRunningChanged)
+    Q_PROPERTY(bool containerNameAvailable READ containerNameAvailable NOTIFY containerNameAvailableChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(QString problemCode READ problemCode NOTIFY problemCodeChanged)
@@ -22,11 +23,13 @@ public:
     [[nodiscard]] bool dockerAvailable() const { return m_dockerAvailable; }
     [[nodiscard]] bool imageAvailable() const { return m_imageAvailable; }
     [[nodiscard]] bool simulationRunning() const { return m_simulationRunning; }
+    [[nodiscard]] bool containerNameAvailable() const { return m_containerNameAvailable; }
     [[nodiscard]] bool busy() const { return m_busy; }
     [[nodiscard]] QString statusMessage() const { return m_statusMessage; }
     [[nodiscard]] QString problemCode() const { return m_problemCode; }
 
     Q_INVOKABLE void probe();
+    void setContainerName(const QString &containerName);
     void startSimulation(const QString &modelId,
                          const QString &worldId,
                          const QString &worldAssetsDirectory,
@@ -37,6 +40,7 @@ signals:
     void dockerAvailableChanged();
     void imageAvailableChanged();
     void simulationRunningChanged();
+    void containerNameAvailableChanged();
     void busyChanged();
     void statusMessageChanged();
     void problemCodeChanged();
@@ -49,6 +53,7 @@ private:
     void setDockerAvailable(bool value);
     void setImageAvailable(bool value);
     void setSimulationRunning(bool value);
+    void setContainerNameAvailable(bool value);
     void setBusy(bool value);
     void setStatusMessage(const QString &message);
     void setProblemCode(const QString &code);
@@ -72,6 +77,7 @@ private:
     bool m_dockerAvailable{false};
     bool m_imageAvailable{false};
     bool m_simulationRunning{false};
+    bool m_containerNameAvailable{true};
     bool m_busy{false};
     bool m_startedByUs{false};
     QString m_statusMessage{QStringLiteral("正在检查 Docker Desktop…")};

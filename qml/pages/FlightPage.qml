@@ -26,11 +26,31 @@ Item {
     property bool yawRightPressed: false
     property int viewIndex: 1
     property int previousViewIndex: 1
-    property real preciseTurnDegrees: 45.0
+    property real preciseTurnDegrees: App.preciseTurnDefaultDegrees
+    property bool replayEventPanelOpen: false
+    property bool replayAnalysisOpen: false
 
     signal openSettings()
     signal openHealth()
     signal openTelemetry()
+    signal replayClosed()
+
+    function openReplay() {
+        clearKeyboardState(true)
+        viewIndex = 1
+        replayEventPanelOpen = false
+        replayAnalysisOpen = false
+        forceActiveFocus(Qt.OtherFocusReason)
+    }
+
+    function inspectReplayTime(timeMs) {
+        pauseReplayForInspection()
+        App.seekReplay(Math.max(0, Math.min(App.replayDurationMs, timeMs)))
+    }
+
+    function pauseReplayForInspection() {
+        if (App.replayPlaying) App.toggleReplay()
+    }
 
     function displayFlightMode() {
         if (!App.vehicleConnected) return "等待连接"
@@ -42,7 +62,10 @@ Item {
         if (viewIndex !== 2)
             previousViewIndex = viewIndex
         viewIndex = 2
-        missionPlanner.loadLibraryRoute(routeId)
+        var plan = App.selectedTestPlan || ({})
+        var planEndAction = String(plan.routeId || "") === String(routeId || "")
+                            ? String(plan.endAction || "") : ""
+        missionPlanner.loadLibraryRoute(routeId, planEndAction)
     }
 
     function openMissionPlanner(showLibrary) {
@@ -194,7 +217,7 @@ Item {
                 spacing: 2
                 Text {
                     Layout.fillWidth: true
-                    text: root.viewIndex === 2 ? "任务" : "飞行"
+                    text: App.replayActive ? "飞行回放" : root.viewIndex === 2 ? "任务" : "飞行"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: 24
@@ -202,10 +225,13 @@ Item {
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: App.hasIssue ? App.issueMessage
-                                       : App.vehicleConnected
-                                         ? App.selectedModelName + " · UDP 14540 · " + root.displayFlightMode()
-                                         : "等待 PX4 飞行器连接"
+                    text: App.replayActive
+                          ? App.replaySessionName + " · " + App.replayModelName + " · "
+                            + App.replayWorldName
+                            + (App.replayWorldRecorded ? "" : "（旧会话推定）")
+                          : App.hasIssue ? App.issueMessage
+                                       : String(App.selectedTestPlan.name || App.selectedModelName)
+                                         + " · " + App.testRunStageLabel
                     color: App.hasIssue ? Theme.warning : Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textSmall
@@ -220,7 +246,18 @@ Item {
                 spacing: 8
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2
+                    visible: App.simulationRunning && !App.replayActive
+                    iconSource: "qrc:/icons/octagon-pause.svg"
+                    accessibleLabel: "中止当前测试"
+                    toolTipText: App.inAir || App.armed
+                                 ? "中止测试并安全降落后停止仿真"
+                                 : "中止测试并停止仿真"
+                    danger: true
+                    onClicked: abortTestDialog.open()
+                }
+
+                CompactIconButton {
+                    visible: root.viewIndex !== 2 && !App.replayActive
                     iconSource: "qrc:/icons/route.svg"
                     accessibleLabel: "打开航线规划"
                     toolTipText: "航线规划"
@@ -228,7 +265,7 @@ Item {
                 }
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2
+                    visible: root.viewIndex !== 2 && !App.replayActive
                     iconSource: "qrc:/icons/gauge.svg"
                     accessibleLabel: "打开更多遥测"
                     toolTipText: "更多遥测"
@@ -236,7 +273,7 @@ Item {
                 }
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2
+                    visible: root.viewIndex !== 2 && !App.replayActive
                     iconSource: "qrc:/icons/heart-pulse.svg"
                     accessibleLabel: "打开健康检查"
                     toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
@@ -245,7 +282,7 @@ Item {
                 }
 
                 SegmentedControl {
-                    visible: root.viewIndex !== 2
+                    visible: root.viewIndex !== 2 && !App.replayActive
                     width: 124
                     options: ["仪表", "三维"]
                     currentIndex: root.viewIndex
@@ -261,6 +298,37 @@ Item {
                     accessibleLabel: "打开航线库"
                     toolTipText: "航线库"
                     onClicked: missionPlanner.openRouteLibrary()
+                }
+
+                CompactIconButton {
+                    visible: App.replayActive
+                    iconSource: "qrc:/icons/scroll-text.svg"
+                    accessibleLabel: "查看飞行事件"
+                    toolTipText: "飞行事件"
+                    outlined: root.replayEventPanelOpen
+                    normalIconColor: root.replayEventPanelOpen ? Theme.accent : Theme.textSecondary
+                    onClicked: {
+                        root.replayAnalysisOpen = false
+                        root.replayEventPanelOpen = !root.replayEventPanelOpen
+                    }
+                }
+
+                CompactIconButton {
+                    visible: App.replayActive
+                    iconSource: "qrc:/icons/map-pin.svg"
+                    accessibleLabel: "查看或选择回放场景"
+                    toolTipText: "查看回放场景"
+                    normalIconColor: App.replayWorldRecorded ? Theme.textSecondary : Theme.warning
+                    onClicked: replayWorldDialog.open()
+                }
+
+                CompactIconButton {
+                    visible: App.replayActive
+                    outlined: true
+                    iconSource: "qrc:/icons/x.svg"
+                    accessibleLabel: "退出历史回放"
+                    toolTipText: "退出回放"
+                    onClicked: root.replayClosed()
                 }
 
                 CompactIconButton {
@@ -281,19 +349,51 @@ Item {
 
             TelemetryPanel {
                 anchors.fill: parent
-                visible: root.viewIndex === 0
+                visible: root.viewIndex === 0 && !App.replayActive
                 onMoreTelemetryRequested: root.openTelemetry()
             }
 
             FlightScene3D {
+                id: flightScene
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: replayEventPanel.visible ? replayEventPanel.left : parent.right
+                anchors.rightMargin: replayEventPanel.visible ? 10 : 0
+                visible: root.viewIndex === 1 || App.replayActive
+                onReplayAnalysisRequested: {
+                    root.replayEventPanelOpen = false
+                    root.replayAnalysisOpen = true
+                }
+            }
+
+            ReplayEventPanel {
+                id: replayEventPanel
+                visible: App.replayActive && root.replayEventPanelOpen
+                         && !root.replayAnalysisOpen
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                width: Math.min(320, Math.max(268, parent.width * 0.28))
+                onCloseRequested: root.replayEventPanelOpen = false
+                onEventRequested: eventIndex => {
+                    root.pauseReplayForInspection()
+                    App.seekReplayEvent(eventIndex)
+                }
+            }
+
+            ReplayAnalysisPanel {
+                visible: App.replayActive && root.replayAnalysisOpen
                 anchors.fill: parent
-                visible: root.viewIndex === 1
+                z: 5
+                onCloseRequested: root.replayAnalysisOpen = false
+                onSeekRequested: timeMs => root.inspectReplayTime(timeMs)
             }
 
             MissionPlanner {
                 id: missionPlanner
                 anchors.fill: parent
-                visible: root.viewIndex === 2
+                visible: root.viewIndex === 2 && !App.replayActive
             }
         }
 
@@ -301,7 +401,7 @@ Item {
             // MissionPlanner already owns its status and actions. Keeping this
             // flight-control strip in mission view only duplicates information
             // and steals the vertical space needed by its settings pane.
-            visible: root.viewIndex !== 2
+            visible: root.viewIndex !== 2 && !App.replayActive
             Layout.fillWidth: true
             Layout.preferredHeight: root.compactLayout ? 62 : 70
 
@@ -359,14 +459,22 @@ Item {
                     color: Theme.line
                 }
 
-                ColumnLayout {
+                RowLayout {
                     visible: App.keyboardControlActive && root.viewIndex !== 2
-                    Layout.preferredWidth: 116
-                    spacing: 2
-                    Text { text: "水平速度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    Layout.preferredWidth: 164
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 7
+                    Text {
+                        text: "水平"
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textTiny
+                        verticalAlignment: Text.AlignVCenter
+                    }
                     NumericField {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 30
+                        Layout.preferredHeight: 32
+                        Layout.alignment: Qt.AlignVCenter
                         value: App.controlSpeedMetersPerSecond
                         from: 0.5; to: 2.0; stepSize: 0.1; decimals: 1; unit: "m/s"
                         accessibleName: "键盘控制水平速度"
@@ -441,6 +549,136 @@ Item {
                 }
             }
         }
+
+
+        SurfaceCard {
+            visible: App.replayActive
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.compactLayout ? 66 : 74
+
+            ReplayControls {
+                anchors.fill: parent
+                anchors.margins: 12
+                onPlayPauseRequested: App.toggleReplay()
+                onStopRequested: {
+                    if (App.replayPlaying) App.toggleReplay()
+                    App.seekReplay(0)
+                }
+                onCloseRequested: root.replayClosed()
+                onSeekRequested: timeMs => App.seekReplay(timeMs)
+                onSpeedRequested: multiplier => App.setReplaySpeed(multiplier)
+            }
+        }
+    }
+
+    Dialog {
+        id: replayWorldDialog
+        anchors.centerIn: parent
+        width: Math.min(430, root.width - 40)
+        height: Math.min(480, root.height - 40,
+                         128 + Math.max(1, Math.min(App.simulationWorlds.length, 5)) * 54)
+        modal: true
+        padding: 20
+        background: Rectangle {
+            radius: Theme.radiusLarge
+            color: Theme.surfaceRaised
+            border.width: 1
+            border.color: Theme.lineStrong
+        }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Text {
+                text: "回放场景"
+                color: Theme.textPrimary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textTitle
+                font.weight: Font.Medium
+            }
+            Text {
+                Layout.fillWidth: true
+                text: App.replayWorldRecorded
+                      ? "会话已记录原始场景；也可以临时切换查看。"
+                      : "旧会话没有保存场景，选择后会为这条记录记住。"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSmall
+                wrapMode: Text.WordWrap
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 2
+                model: App.simulationWorlds
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                delegate: Rectangle {
+                    id: replayWorldOption
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 52
+                    radius: Theme.radiusSmall
+                    color: String(replayWorldOption.modelData.id) === App.replayWorldId
+                           ? Theme.accentSoft : optionMouse.containsMouse
+                                                ? Theme.surfaceInteractive : "transparent"
+                    border.width: String(replayWorldOption.modelData.id) === App.replayWorldId ? 1 : 0
+                    border.color: Theme.accent
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 10
+                        Rectangle {
+                            Layout.preferredWidth: 14
+                            Layout.preferredHeight: 14
+                            radius: 7
+                            color: "transparent"
+                            border.width: 1
+                            border.color: String(replayWorldOption.modelData.id) === App.replayWorldId
+                                          ? Theme.accent : Theme.lineStrong
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 6
+                                height: 6
+                                radius: 3
+                                visible: String(replayWorldOption.modelData.id) === App.replayWorldId
+                                color: Theme.accent
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text {
+                                Layout.fillWidth: true
+                                text: String(replayWorldOption.modelData.name)
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textSmall
+                                font.weight: Font.Medium
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: String(replayWorldOption.modelData.description)
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textTiny
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                    MouseArea {
+                        id: optionMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (App.setReplayWorldId(String(replayWorldOption.modelData.id)))
+                                replayWorldDialog.close()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Popup {
@@ -501,6 +739,41 @@ Item {
                 Item { Layout.fillWidth: true }
                 ActionButton { Layout.preferredWidth: 88; text: "取消"; kind: "secondary"; onClicked: takeoffDialog.close() }
                 ActionButton { Layout.preferredWidth: 112; text: "确认起飞"; onClicked: { takeoffDialog.close(); App.takeoff() } }
+            }
+        }
+    }
+
+    Dialog {
+        id: abortTestDialog
+        anchors.centerIn: parent
+        width: Math.min(420, root.width - 48)
+        modal: true
+        padding: 20
+        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text { text: "中止当前测试？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
+            Text {
+                Layout.fillWidth: true
+                text: App.inAir || App.armed
+                      ? "FlightBench 会先发送降落指令，确认落地并锁定后停止仿真。本次记录将标记为“用户中止”。"
+                      : "仿真将停止，本次记录会标记为“用户中止”。"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textBody
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ActionButton { implicitWidth: 86; text: "继续测试"; kind: "secondary"; onClicked: abortTestDialog.close() }
+                ActionButton {
+                    implicitWidth: 104
+                    text: "确认中止"
+                    kind: "danger"
+                    iconSource: "qrc:/icons/octagon-pause.svg"
+                    onClicked: { abortTestDialog.close(); App.abortTest() }
+                }
             }
         }
     }

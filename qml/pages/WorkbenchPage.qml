@@ -13,48 +13,81 @@ Item {
     signal openHealth()
     signal loadRoute(string routeId)
 
-    readonly property var recentRoute: App.savedRoutes.length > 0 ? App.savedRoutes[0] : ({})
+    readonly property var currentPlan: App.selectedTestPlan || ({})
+    readonly property bool noPlan: !Boolean(currentPlan.id)
+    readonly property bool planNeedsRoute: Boolean(currentPlan.requiresRoute)
+                                                && !Boolean(currentPlan.routeAvailable)
     readonly property bool environmentReady: App.dockerAvailable && App.imageAvailable
     readonly property bool compactLayout: width < 820 || height < 470
+    property string pendingDeletePlanId: ""
 
     function launchTitle() {
         if (App.busy) return "正在处理"
         if (App.vehicleConnected) return "仿真已连接"
         if (App.simulationRunning) return "仿真正在启动"
+        if (root.noPlan) return "先保存一个测试方案"
+        if (root.planNeedsRoute) return "测试方案尚未完整"
         return "仿真尚未启动"
     }
 
     function launchDescription() {
         if (App.hasIssue) return App.issueMessage
-        if (App.vehicleReady) return "飞行器已就绪，可以进入飞行"
-        if (App.vehicleConnected) return "正在完成起飞前健康检查"
-        if (App.simulationRunning) return "正在等待 PX4 与 MAVSDK 建立连接"
-        return root.environmentReady ? "环境已就绪，可以直接开始" : "正在检查本机仿真环境"
+        if (root.noPlan) return "设置机型和场景，再把当前配置保存为方案"
+        return App.testRunGuidance
     }
 
     function primaryText() {
         if (App.hasIssue) return App.recoveryLabel
-        if (App.vehicleReady) return "进入飞行"
+        if (root.noPlan) return "创建方案"
+        if (App.vehicleReady) return Boolean(root.currentPlan.routeAvailable) ? "打开航线" : "进入飞行"
         if (App.simulationRunning) return "停止仿真"
+        if (root.planNeedsRoute) return "完善方案"
         return "启动仿真"
     }
 
     function primaryHint() {
         if (App.busy) return "请等待当前操作完成"
         if (App.hasIssue) return App.issueMessage
+        if (root.noPlan) return "保存当前机型、场景和飞行设置"
         if (App.vehicleReady) return "进入飞行页面"
         if (App.simulationRunning) return "停止当前本地仿真"
+        if (root.planNeedsRoute) return "请先为测试方案选择一条航线"
         if (!App.dockerAvailable) return "请先启动 Docker Desktop"
         if (!App.imageAvailable) return "未找到 PX4 SITL 镜像"
         return "启动 " + App.selectedModelName + " 本地仿真"
     }
 
     function runPrimaryAction() {
-        if (App.hasIssue && App.recoveryAction === "health") root.openHealth()
+        if (!App.simulationRunning && root.noPlan) planEditor.prepare({})
+        else if (!App.simulationRunning && root.planNeedsRoute) planEditor.prepare(root.currentPlan)
+        else if (App.hasIssue && App.recoveryAction === "health") root.openHealth()
+        else if (App.hasIssue && App.recoveryAction === "environment") root.openEnvironment()
         else if (App.hasIssue) App.recover()
+        else if (App.vehicleReady && Boolean(root.currentPlan.routeAvailable))
+            root.loadRoute(String(root.currentPlan.routeId || ""))
         else if (App.vehicleReady) root.openFlight()
-        else if (App.simulationRunning) App.stopSimulation()
-        else App.startSimulation()
+        else if (App.simulationRunning) App.abortTest()
+        else preflightDialog.open()
+    }
+
+    function planSummary() {
+        if (root.noPlan) return "保存当前设置后即可重复使用"
+        if (App.selectedTestPlanModified)
+            return "当前环境与已保存方案不同 · 可更新方案或重新应用"
+        if (root.planNeedsRoute)
+            return String(root.currentPlan.modelName || "") + " · "
+                   + String(root.currentPlan.worldName || "") + " · 需选择航线"
+        if (root.currentPlan.routeAvailable)
+            return String(root.currentPlan.routeName || "航线") + " · "
+                   + Number(root.currentPlan.routeWaypointCount || 0) + " 个航点 · "
+                   + Number(root.currentPlan.routeDistanceMeters || 0) + " m"
+        return String(root.currentPlan.modelName || "") + " · "
+               + String(root.currentPlan.worldName || "") + " · 起飞 "
+               + Number(root.currentPlan.takeoffAltitudeMeters || 5).toFixed(1) + " m"
+    }
+
+    function editCurrentPlan() {
+        planEditor.prepare(root.noPlan ? ({}) : root.currentPlan)
     }
 
     ColumnLayout {
@@ -70,14 +103,14 @@ Item {
             Layout.preferredHeight: root.compactLayout ? 48 : 56
             spacing: 2
             Text {
-                text: "准备"
+                text: "工作台"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: 24
                 font.weight: Font.Medium
             }
             Text {
-                text: "配置环境，然后开始一次仿真"
+                text: "设置环境，保存方案，然后开始一次仿真"
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall
@@ -114,7 +147,9 @@ Item {
                                 anchors.centerIn: parent
                                 width: 18
                                 height: 18
-                                source: App.simulationRunning ? "qrc:/icons/square.svg" : "qrc:/icons/play.svg"
+                                source: root.noPlan ? "qrc:/icons/save.svg"
+                                                    : App.simulationRunning ? "qrc:/icons/square.svg"
+                                                                            : "qrc:/icons/play.svg"
                                 iconColor: Theme.accent
                             }
                         }
@@ -205,12 +240,15 @@ Item {
                         ActionButton {
                             Layout.preferredWidth: 116
                             text: root.primaryText()
-                            iconSource: App.simulationRunning && !App.vehicleReady
-                                        ? "qrc:/icons/square.svg" : "qrc:/icons/play.svg"
+                            iconSource: root.noPlan ? "qrc:/icons/save.svg"
+                                                   : App.simulationRunning && !App.vehicleReady
+                                                     ? "qrc:/icons/square.svg" : "qrc:/icons/play.svg"
                             kind: App.hasIssue ? "secondary" : "primary"
                             toolTipText: root.primaryHint()
                             enabled: App.hasIssue ? !App.busy
-                                                  : App.vehicleReady
+                                                  : root.noPlan
+                                                    || root.planNeedsRoute
+                                                    || App.vehicleReady
                                                     || (App.dockerAvailable && App.imageAvailable && !App.busy)
                             onClicked: root.runPrimaryAction()
                         }
@@ -244,7 +282,7 @@ Item {
                             anchors.left: parent.left
                             anchors.leftMargin: 18
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "启动条件"
+                            text: "测试进度"
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textSmall
@@ -252,10 +290,20 @@ Item {
                         }
                         Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.line }
                     }
-                    StatusRow { Layout.fillWidth: true; label: "Docker Desktop"; value: App.dockerAvailable ? "可用" : "未连接"; complete: App.dockerAvailable }
-                    StatusRow { Layout.fillWidth: true; label: "PX4 镜像"; value: App.imageAvailable ? "已安装" : "未找到"; complete: App.imageAvailable }
-                    StatusRow { Layout.fillWidth: true; label: "监听地址"; value: "UDP 14540"; complete: true; dividerVisible: false }
-                    Item { Layout.fillHeight: true }
+                    Repeater {
+                        model: App.testPlanSteps
+                        StatusRow {
+                            required property int index
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: (conditionCard.height - 50) / 4
+                            label: String(modelData.label || "")
+                            value: String(modelData.value || "")
+                            state: String(modelData.state || "pending")
+                            complete: state === "complete"
+                            dividerVisible: index < App.testPlanSteps.length - 1
+                        }
+                    }
                 }
             }
         }
@@ -272,8 +320,8 @@ Item {
                 ThemedIcon {
                     Layout.preferredWidth: 18
                     Layout.preferredHeight: 18
-                    source: "qrc:/icons/route.svg"
-                    iconColor: App.savedRoutes.length > 0 ? Theme.accent : Theme.textFaint
+                    source: "qrc:/icons/clipboard-check.svg"
+                    iconColor: root.planNeedsRoute ? Theme.warning : Theme.accent
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -281,7 +329,8 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         Layout.maximumWidth: 480
-                        text: App.savedRoutes.length > 0 ? "继续最近航线" : "还没有保存的航线"
+                        text: root.noPlan ? "还没有测试方案"
+                                          : "当前方案 · " + String(root.currentPlan.name || "未命名")
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
@@ -291,12 +340,9 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         Layout.maximumWidth: 480
-                        text: App.savedRoutes.length > 0
-                              ? String(root.recentRoute.name || "未命名航线") + " · "
-                                + Number(root.recentRoute.waypointCount || 0) + " 个航点 · "
-                                + Number(root.recentRoute.distanceMeters || 0) + " m"
-                              : "在飞行页规划航点后即可保存和复用"
-                        color: Theme.textMuted
+                        text: root.planSummary()
+                        color: root.planNeedsRoute || App.selectedTestPlanModified
+                               ? Theme.warning : Theme.textMuted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textTiny
                         elide: Text.ElideRight
@@ -305,29 +351,149 @@ Item {
                 Row {
                     spacing: 8
                     CompactIconButton {
-                        outlined: true
-                        iconSource: "qrc:/icons/folder-open.svg"
-                        accessibleLabel: "打开航线库"
-                        toolTipText: "航线库"
-                        onClicked: root.openMission(true)
+                        visible: !root.noPlan
+                        iconSource: "qrc:/icons/pencil.svg"
+                        accessibleLabel: "编辑当前测试方案"
+                        toolTipText: "编辑方案"
+                        enabled: !App.simulationRunning && !App.busy
+                        onClicked: planEditor.prepare(root.currentPlan)
                     }
                     ActionButton {
-                        width: 72
-                        implicitWidth: 72
+                        width: 92
+                        implicitWidth: 92
                         compact: true
-                        text: App.savedRoutes.length > 0 ? "载入" : "规划"
+                        text: root.noPlan ? "新建方案" : "更换方案"
                         kind: "secondary"
-                        onClicked: {
-                            if (App.savedRoutes.length > 0)
-                                root.loadRoute(String(root.recentRoute.id || ""))
-                            else
-                                root.openMission(false)
-                        }
+                        enabled: !App.simulationRunning && !App.busy
+                        toolTipText: enabled
+                                     ? (root.noPlan ? "保存当前设置为测试方案" : "选择已保存的方案")
+                                     : "停止仿真后才能更换方案"
+                        onClicked: root.noPlan ? planEditor.prepare({}) : planPicker.showPicker()
                     }
                 }
             }
         }
 
         Item { Layout.fillHeight: true }
+    }
+
+    TestPlanPicker {
+        id: planPicker
+        onApplyRequested: planId => {
+            App.selectedTestPlanId = planId
+            planPicker.close()
+        }
+        onCreateRequested: {
+            planPicker.close()
+            planEditor.prepare({})
+        }
+        onEditRequested: plan => {
+            planPicker.close()
+            App.selectedTestPlanId = String(plan.id || "")
+            planEditor.prepare(App.selectedTestPlan)
+        }
+        onDuplicateRequested: planId => {
+            var response = App.duplicateTestPlan(planId)
+            if (response.success)
+                planPicker.pendingId = String(response.id || App.selectedTestPlanId)
+        }
+        onDeleteRequested: planId => {
+            root.pendingDeletePlanId = planId
+            deletePlanDialog.open()
+        }
+    }
+
+    TestPlanEditDialog {
+        id: planEditor
+        onSaveRequested: draft => {
+            var response = App.saveCurrentTestPlan(draft)
+            if (response.success)
+                planEditor.close()
+        }
+        onRouteEditRequested: draft => {
+            var response = App.saveCurrentTestPlan(draft)
+            if (response.success) {
+                planEditor.close()
+                root.loadRoute(String(draft.routeId || ""))
+            }
+        }
+    }
+
+    PreflightSummary {
+        id: preflightDialog
+        onStartRequested: {
+            preflightDialog.close()
+            App.startSimulation()
+        }
+        onPlanRequested: {
+            preflightDialog.close()
+            planEditor.prepare(root.currentPlan)
+        }
+        onEnvironmentRequested: {
+            preflightDialog.close()
+            root.openEnvironment()
+        }
+        onRouteRequested: {
+            preflightDialog.close()
+            if (root.currentPlan.routeAvailable)
+                root.loadRoute(String(root.currentPlan.routeId || ""))
+            else
+                planEditor.prepare(root.currentPlan)
+        }
+    }
+
+    Dialog {
+        id: deletePlanDialog
+        anchors.centerIn: parent
+        width: Math.min(380, root.width - 40)
+        modal: true
+        padding: 18
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle {
+            radius: Theme.radiusLarge
+            color: Theme.surfaceRaised
+            border.width: 1
+            border.color: Theme.lineStrong
+        }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text {
+                text: "删除测试方案？"
+                color: Theme.textPrimary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSubtitle
+                font.weight: Font.Medium
+            }
+            Text {
+                Layout.fillWidth: true
+                text: "这个方案将从本机删除，航线和飞行记录不会受到影响。"
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSmall
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    Layout.preferredWidth: 82
+                    text: "取消"
+                    kind: "secondary"
+                    onClicked: deletePlanDialog.close()
+                }
+                ActionButton {
+                    Layout.preferredWidth: 82
+                    text: "删除"
+                    kind: "danger"
+                    onClicked: {
+                        var response = App.deleteTestPlan(root.pendingDeletePlanId)
+                        if (response.success)
+                            planPicker.pendingId = App.selectedTestPlanId
+                        root.pendingDeletePlanId = ""
+                        deletePlanDialog.close()
+                    }
+                }
+            }
+        }
     }
 }

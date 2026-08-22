@@ -31,6 +31,10 @@ constexpr quint8 CompleteCoreTelemetryMask = PositionTelemetryFlag | VelocityTel
 constexpr double RadiansToDegrees = 180.0 / std::numbers::pi_v<double>;
 constexpr double MinimumControlSpeed = 0.5;
 constexpr double MaximumControlSpeed = 2.0;
+constexpr double MinimumVerticalControlSpeed = 0.2;
+constexpr double MaximumVerticalControlSpeed = 1.5;
+constexpr double MinimumYawControlRate = 5.0;
+constexpr double MaximumYawControlRate = 90.0;
 constexpr qint64 CoreTelemetryTimeoutMs = 1500;
 constexpr qint64 AuxiliaryTelemetryTimeoutMs = 3500;
 
@@ -66,22 +70,6 @@ double signedHeadingError(double target, double current)
     double error = std::fmod(target - current + 540.0, 360.0) - 180.0;
     if (error <= -180.0) error += 360.0;
     return error;
-}
-
-double controlSpeedRatio(double horizontalSpeed)
-{
-    return (horizontalSpeed - MinimumControlSpeed)
-           / (MaximumControlSpeed - MinimumControlSpeed);
-}
-
-double verticalControlSpeed(double horizontalSpeed)
-{
-    return 0.3 + std::clamp(controlSpeedRatio(horizontalSpeed), 0.0, 1.0) * 0.5;
-}
-
-double yawControlSpeed(double horizontalSpeed)
-{
-    return 15.0 + std::clamp(controlSpeedRatio(horizontalSpeed), 0.0, 1.0) * 45.0;
 }
 
 QString actionResultText(Action::Result result)
@@ -459,7 +447,7 @@ VehicleConnection::VehicleConnection(QObject *parent)
             } else {
                 const double speed = qBound(5.0,
                                             std::abs(error) * 1.2,
-                                            yawControlSpeed(m_controlSpeedMetersPerSecond));
+                                            m_controlYawRateDegreesPerSecond);
                 m_controlYawDegreesPerSecond = std::copysign(speed, error);
             }
         }
@@ -875,8 +863,8 @@ void VehicleConnection::setKeyboardControlAxes(double forward,
     m_controlYawAxis = boundedYaw;
     m_controlForwardMetersPerSecond = boundedForward * m_controlSpeedMetersPerSecond;
     m_controlRightMetersPerSecond = boundedRight * m_controlSpeedMetersPerSecond;
-    m_controlUpMetersPerSecond = boundedUp * verticalControlSpeed(m_controlSpeedMetersPerSecond);
-    m_controlYawDegreesPerSecond = boundedYaw * yawControlSpeed(m_controlSpeedMetersPerSecond);
+    m_controlUpMetersPerSecond = boundedUp * m_controlVerticalSpeedMetersPerSecond;
+    m_controlYawDegreesPerSecond = boundedYaw * m_controlYawRateDegreesPerSecond;
     emit controlCommandChanged();
 }
 
@@ -890,8 +878,33 @@ void VehicleConnection::setControlSpeedMetersPerSecond(double value)
     if (m_keyboardControlActive) {
         m_controlForwardMetersPerSecond = m_controlForwardAxis * rounded;
         m_controlRightMetersPerSecond = m_controlRightAxis * rounded;
-        m_controlUpMetersPerSecond = m_controlUpAxis * verticalControlSpeed(rounded);
-        m_controlYawDegreesPerSecond = m_controlYawAxis * yawControlSpeed(rounded);
+        emit controlCommandChanged();
+    }
+}
+
+void VehicleConnection::setControlVerticalSpeedMetersPerSecond(double value)
+{
+    const double bounded = qBound(MinimumVerticalControlSpeed, value,
+                                  MaximumVerticalControlSpeed);
+    const double rounded = std::round(bounded * 10.0) / 10.0;
+    if (qFuzzyCompare(m_controlVerticalSpeedMetersPerSecond, rounded)) return;
+    m_controlVerticalSpeedMetersPerSecond = rounded;
+    emit controlSpeedChanged();
+    if (m_keyboardControlActive) {
+        m_controlUpMetersPerSecond = m_controlUpAxis * rounded;
+        emit controlCommandChanged();
+    }
+}
+
+void VehicleConnection::setControlYawRateDegreesPerSecond(double value)
+{
+    const double bounded = qBound(MinimumYawControlRate, value, MaximumYawControlRate);
+    const double rounded = std::round(bounded);
+    if (qFuzzyCompare(m_controlYawRateDegreesPerSecond, rounded)) return;
+    m_controlYawRateDegreesPerSecond = rounded;
+    emit controlSpeedChanged();
+    if (m_keyboardControlActive && !m_preciseTurnActive) {
+        m_controlYawDegreesPerSecond = m_controlYawAxis * rounded;
         emit controlCommandChanged();
     }
 }

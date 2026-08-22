@@ -63,6 +63,22 @@ void FlightPathGeometry::appendPoint(const QVector3D &point)
     emit pointCountChanged();
 }
 
+void FlightPathGeometry::setPoints(const QVector<QVector3D> &points)
+{
+    QVector<QVector3D> validPoints;
+    validPoints.reserve(std::min<qsizetype>(points.size(), MaxPathPoints));
+    const qsizetype first = std::max<qsizetype>(0, points.size() - MaxPathPoints);
+    for (qsizetype index = first; index < points.size(); ++index) {
+        const QVector3D &point = points.at(index);
+        if (qIsFinite(point.x()) && qIsFinite(point.y()) && qIsFinite(point.z()))
+            validPoints.append(point);
+    }
+    m_points = std::move(validPoints);
+    m_sampleClock.invalidate();
+    rebuildGeometry();
+    emit pointCountChanged();
+}
+
 void FlightPathGeometry::clearPath()
 {
     if (m_points.isEmpty()) return;
@@ -88,6 +104,13 @@ void FlightPathGeometry::setMaxVisibleLengthMeters(int value)
     m_maxVisibleLengthMeters = boundedValue;
     rebuildGeometry();
     emit displaySettingsChanged();
+}
+
+void FlightPathGeometry::setDashed(bool dashed)
+{
+    if (m_dashed == dashed) return;
+    m_dashed = dashed;
+    rebuildGeometry();
 }
 
 void FlightPathGeometry::rebuildGeometry()
@@ -124,11 +147,10 @@ void FlightPathGeometry::rebuildGeometry()
     QVector<QVector3D> vertices;
     vertices.reserve(std::max<qsizetype>(0, visiblePoints.size() - 1) * 24);
 
-    for (qsizetype index = 1; index < visiblePoints.size(); ++index) {
-        const QVector3D start = visiblePoints.at(index - 1);
-        const QVector3D end = visiblePoints.at(index);
+    const auto appendTube = [&vertices, pathHalfWidthMeters](const QVector3D &start,
+                                                             const QVector3D &end) {
         const QVector3D delta = end - start;
-        if (delta.lengthSquared() < 0.000001f) continue;
+        if (delta.lengthSquared() < 0.000001f) return;
 
         const QVector3D direction = delta.normalized();
         const QVector3D reference = std::abs(QVector3D::dotProduct(direction,
@@ -153,6 +175,25 @@ void FlightPathGeometry::rebuildGeometry()
         appendQuad(vertices, start10, start11, end11, end10);
         appendQuad(vertices, start00, start10, end10, end00);
         appendQuad(vertices, start01, end01, end11, start11);
+    };
+
+    for (qsizetype index = 1; index < visiblePoints.size(); ++index) {
+        const QVector3D start = visiblePoints.at(index - 1);
+        const QVector3D end = visiblePoints.at(index);
+        if (!m_dashed) {
+            appendTube(start, end);
+            continue;
+        }
+        const QVector3D delta = end - start;
+        const float length = delta.length();
+        if (length < 0.001f) continue;
+        constexpr float dashLength = 0.55f;
+        constexpr float gapLength = 0.32f;
+        for (float offset = 0; offset < length; offset += dashLength + gapLength) {
+            const float dashEnd = std::min(length, offset + dashLength);
+            appendTube(start + delta * (offset / length),
+                       start + delta * (dashEnd / length));
+        }
     }
 
     QByteArray vertexData;

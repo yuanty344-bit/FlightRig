@@ -1,0 +1,6550 @@
+{
+  "schemaVersion": 1,
+  "id": "xian_mutasi",
+  "name": "西安木塔寺城市公园",
+  "sceneType": "park",
+  "coordinateSystem": {
+    "type": "local-enu",
+    "axes": {
+      "x": "east",
+      "y": "north",
+      "z": "up"
+    },
+    "units": "meters",
+    "origin": {
+      "latitude": 34.21012,
+      "longitude": 108.88975,
+      "altitudeMeters": 0.0
+    }
+  },
+  "bounds": {
+    "minX": -499.998,
+    "minY": -499.998,
+    "maxX": 499.998,
+    "maxY": 499.998
+  },
+  "sizeMeters": [
+    1000.0,
+    1000.0
+  ],
+  "boundary": [
+    [
+      -499.998,
+      -499.998
+    ],
+    [
+      499.998,
+      -499.998
+    ],
+    [
+      499.998,
+      499.998
+    ],
+    [
+      -499.998,
+      499.998
+    ]
+  ],
+  "buildings": [
+    {
+      "id": "osm-way-1007764442",
+      "sourceId": "osm-way-1007764442",
+      "name": "建筑 1007764442",
+      "outline": [
+        [
+          487.518,
+          188.742
+        ],
+        [
+          487.297,
+          178.033
+        ],
+        [
+          475.844,
+          177.822
+        ],
+        [
+          475.955,
+          167.658
+        ],
+        [
+          457.359,
+          166.801
+        ],
+        [
+          457.037,
+          177.822
+        ],
+        [
+          448.171,
+          177.71
+        ],
+        [
+          447.951,
+          188.419
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 620.77,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764444",
+      "sourceId": "osm-way-1007764444",
+      "name": "建筑 1007764444",
+      "outline": [
+        [
+          530.261,
+          114.37
+        ],
+        [
+          530.518,
+          102.548
+        ],
+        [
+          458.151,
+          99.909
+        ],
+        [
+          458.022,
+          111.676
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 853.29,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764447",
+      "sourceId": "osm-way-1007764447",
+      "name": "兰亭坊-16号楼",
+      "outline": [
+        [
+          392.384,
+          41.478
+        ],
+        [
+          392.006,
+          23.522
+        ],
+        [
+          347.137,
+          23.589
+        ],
+        [
+          347.44,
+          41.711
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 810.12,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764448",
+      "sourceId": "osm-way-1007764448",
+      "name": "建筑 1007764448",
+      "outline": [
+        [
+          390.763,
+          -3.328
+        ],
+        [
+          390.303,
+          -18.991
+        ],
+        [
+          344.669,
+          -19.303
+        ],
+        [
+          344.743,
+          -3.484
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 721.3,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764449",
+      "sourceId": "osm-way-1007764449",
+      "name": "建筑 1007764449",
+      "outline": [
+        [
+          332.84,
+          -6.1
+        ],
+        [
+          332.472,
+          -25.192
+        ],
+        [
+          261.853,
+          -24.735
+        ],
+        [
+          262.212,
+          -5.466
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1354.79,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764450",
+      "sourceId": "osm-way-1007764450",
+      "name": "建筑 1007764450",
+      "outline": [
+        [
+          337.48,
+          35.945
+        ],
+        [
+          337.176,
+          19.203
+        ],
+        [
+          285.429,
+          19.203
+        ],
+        [
+          285.577,
+          36.246
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 875.49,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764451",
+      "sourceId": "osm-way-1007764451",
+      "name": "建筑 1007764451",
+      "outline": [
+        [
+          303.445,
+          75.508
+        ],
+        [
+          303.445,
+          61.76
+        ],
+        [
+          256.44,
+          61.983
+        ],
+        [
+          256.974,
+          75.976
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 648.37,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764452",
+      "sourceId": "osm-way-1007764452",
+      "name": "建筑 1007764452",
+      "outline": [
+        [
+          243.294,
+          76.053
+        ],
+        [
+          243.754,
+          55.871
+        ],
+        [
+          220.518,
+          55.493
+        ],
+        [
+          220.518,
+          76.12
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 469.46,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764453",
+      "sourceId": "osm-way-1007764453",
+      "name": "兰亭坊-13号楼",
+      "outline": [
+        [
+          248.652,
+          -3.763
+        ],
+        [
+          249.103,
+          -23.622
+        ],
+        [
+          226.355,
+          -23.622
+        ],
+        [
+          226.097,
+          -3.696
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 450.58,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764454",
+      "sourceId": "osm-way-1007764454",
+      "name": "建筑 1007764454",
+      "outline": [
+        [
+          291.496,
+          323.84
+        ],
+        [
+          291.57,
+          312.841
+        ],
+        [
+          281.176,
+          312.763
+        ],
+        [
+          281.324,
+          306.418
+        ],
+        [
+          267.644,
+          306.418
+        ],
+        [
+          267.8,
+          321.624
+        ],
+        [
+          259.082,
+          321.936
+        ],
+        [
+          259.469,
+          331.409
+        ],
+        [
+          275.063,
+          331.331
+        ],
+        [
+          274.981,
+          324.073
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 487.1,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764455",
+      "sourceId": "osm-way-1007764455",
+      "name": "天地源兰亭坊-3号楼",
+      "outline": [
+        [
+          382.948,
+          325.665
+        ],
+        [
+          383.592,
+          312.852
+        ],
+        [
+          304.872,
+          312.763
+        ],
+        [
+          305.056,
+          325.398
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 996.41,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764456",
+      "sourceId": "osm-way-1007764456",
+      "name": "天地源兰亭坊-4号楼",
+      "outline": [
+        [
+          389.649,
+          269.193
+        ],
+        [
+          389.419,
+          257.504
+        ],
+        [
+          335.233,
+          257.883
+        ],
+        [
+          335.611,
+          269.271
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 624.44,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764457",
+      "sourceId": "osm-way-1007764457",
+      "name": "天地源兰亭坊-5号楼",
+      "outline": [
+        [
+          309.687,
+          259.886
+        ],
+        [
+          306.474,
+          248.565
+        ],
+        [
+          254.028,
+          259.564
+        ],
+        [
+          256.79,
+          272.031
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 661.05,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764458",
+      "sourceId": "osm-way-1007764458",
+      "name": "天地源兰亭坊-6号楼",
+      "outline": [
+        [
+          234.963,
+          244.413
+        ],
+        [
+          231.75,
+          233.481
+        ],
+        [
+          224.357,
+          234.962
+        ],
+        [
+          219.92,
+          220.112
+        ],
+        [
+          209.702,
+          222.75
+        ],
+        [
+          213.945,
+          237.144
+        ],
+        [
+          203.819,
+          239.894
+        ],
+        [
+          207.105,
+          251.426
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 502.7,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764459",
+      "sourceId": "osm-way-1007764459",
+      "name": "天地源兰亭坊-7号楼",
+      "outline": [
+        [
+          311.924,
+          209.759
+        ],
+        [
+          309.42,
+          196.512
+        ],
+        [
+          257.287,
+          206.03
+        ],
+        [
+          259.993,
+          219.4
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 717.42,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764460",
+      "sourceId": "osm-way-1007764460",
+      "name": "天地源兰亭坊-8号楼",
+      "outline": [
+        [
+          390.395,
+          231.222
+        ],
+        [
+          390.137,
+          218.821
+        ],
+        [
+          378.501,
+          218.698
+        ],
+        [
+          378.566,
+          211.819
+        ],
+        [
+          366.165,
+          211.685
+        ],
+        [
+          366.036,
+          226.402
+        ],
+        [
+          360.697,
+          226.602
+        ],
+        [
+          360.568,
+          239.582
+        ],
+        [
+          371.689,
+          239.515
+        ],
+        [
+          371.818,
+          231.166
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 506.16,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764461",
+      "sourceId": "osm-way-1007764461",
+      "name": "天地源兰亭坊-9号楼",
+      "outline": [
+        [
+          392.862,
+          178.623
+        ],
+        [
+          392.632,
+          165.02
+        ],
+        [
+          343.104,
+          165.855
+        ],
+        [
+          343.408,
+          179.236
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 667.93,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764462",
+      "sourceId": "osm-way-1007764462",
+      "name": "兰亭坊-11号楼",
+      "outline": [
+        [
+          238.212,
+          172.167
+        ],
+        [
+          235.487,
+          160.445
+        ],
+        [
+          226.668,
+          161.358
+        ],
+        [
+          225.029,
+          146.363
+        ],
+        [
+          214.581,
+          147.81
+        ],
+        [
+          216.302,
+          162.449
+        ],
+        [
+          204.031,
+          164.719
+        ],
+        [
+          206.13,
+          177.989
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 575.05,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764463",
+      "sourceId": "osm-way-1007764463",
+      "name": "天地源兰亭坊-10号楼",
+      "outline": [
+        [
+          310.11,
+          159.443
+        ],
+        [
+          307.478,
+          147.175
+        ],
+        [
+          255.667,
+          156.816
+        ],
+        [
+          258.576,
+          169.996
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 685.45,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764478",
+      "sourceId": "osm-way-1007764478",
+      "name": "建筑 1007764478",
+      "outline": [
+        [
+          498.316,
+          24.156
+        ],
+        [
+          498.445,
+          9.373
+        ],
+        [
+          451.532,
+          9.629
+        ],
+        [
+          451.716,
+          24.346
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 689.66,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764479",
+      "sourceId": "osm-way-1007764479",
+      "name": "建筑 1007764479",
+      "outline": [
+        [
+          499.099,
+          -34.531
+        ],
+        [
+          498.97,
+          -48.48
+        ],
+        [
+          453.658,
+          -48.546
+        ],
+        [
+          453.787,
+          -34.598
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 632.03,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764480",
+      "sourceId": "osm-way-1007764480",
+      "name": "建筑 1007764480",
+      "outline": [
+        [
+          499.651,
+          -91.004
+        ],
+        [
+          499.163,
+          -104.952
+        ],
+        [
+          451.983,
+          -104.952
+        ],
+        [
+          452.222,
+          -90.525
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 671.22,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764481",
+      "sourceId": "osm-way-1007764481",
+      "name": "建筑 1007764481",
+      "outline": [
+        [
+          499.421,
+          -145.617
+        ],
+        [
+          499.191,
+          -162.359
+        ],
+        [
+          452.489,
+          -162.437
+        ],
+        [
+          452.489,
+          -145.929
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 778.31,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764483",
+      "sourceId": "osm-way-1007764483",
+      "name": "建筑 1007764483",
+      "outline": [
+        [
+          499.715,
+          -203.459
+        ],
+        [
+          499.329,
+          -218.598
+        ],
+        [
+          453.318,
+          -218.91
+        ],
+        [
+          453.621,
+          -203.614
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 700.72,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764486",
+      "sourceId": "osm-way-1007764486",
+      "name": "建筑 1007764486",
+      "outline": [
+        [
+          506.979,
+          -262.324
+        ],
+        [
+          506.436,
+          -281.137
+        ],
+        [
+          456.53,
+          -280.781
+        ],
+        [
+          457.166,
+          -262.324
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 929.24,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764488",
+      "sourceId": "osm-way-1007764488",
+      "name": "建筑 1007764488",
+      "outline": [
+        [
+          -242.069,
+          -161.38
+        ],
+        [
+          -245.153,
+          -171.833
+        ],
+        [
+          -307.422,
+          -152.563
+        ],
+        [
+          -303.878,
+          -142.11
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 712.35,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764489",
+      "sourceId": "osm-way-1007764489",
+      "name": "建筑 1007764489",
+      "outline": [
+        [
+          -150.038,
+          -173.425
+        ],
+        [
+          -149.734,
+          -184.2
+        ],
+        [
+          -222.802,
+          -184.59
+        ],
+        [
+          -222.884,
+          -173.347
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 803.21,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764490",
+      "sourceId": "osm-way-1007764490",
+      "name": "建筑 1007764490",
+      "outline": [
+        [
+          -213.982,
+          -226.546
+        ],
+        [
+          -213.982,
+          -235.452
+        ],
+        [
+          -250.346,
+          -234.817
+        ],
+        [
+          -250.346,
+          -226.001
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 322.22,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764491",
+      "sourceId": "osm-way-1007764491",
+      "name": "建筑 1007764491",
+      "outline": [
+        [
+          -123.175,
+          -227.916
+        ],
+        [
+          -123.451,
+          -238.825
+        ],
+        [
+          -180.445,
+          -238.279
+        ],
+        [
+          -180.169,
+          -227.37
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 621.9,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764492",
+      "sourceId": "osm-way-1007764492",
+      "name": "建筑 1007764492",
+      "outline": [
+        [
+          41.279,
+          74.673
+        ],
+        [
+          40.736,
+          53.266
+        ],
+        [
+          4.741,
+          53.266
+        ],
+        [
+          4.962,
+          74.885
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 777.86,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764493",
+      "sourceId": "osm-way-1007764493",
+      "name": "建筑 1007764493",
+      "outline": [
+        [
+          137.702,
+          73.037
+        ],
+        [
+          137.251,
+          56.673
+        ],
+        [
+          107.525,
+          56.851
+        ],
+        [
+          107.976,
+          73.393
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 489.2,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764494",
+      "sourceId": "osm-way-1007764494",
+      "name": "建筑 1007764494",
+      "outline": [
+        [
+          88.607,
+          40.053
+        ],
+        [
+          88.524,
+          19.592
+        ],
+        [
+          57.795,
+          19.781
+        ],
+        [
+          58.43,
+          39.953
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 618.71,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764495",
+      "sourceId": "osm-way-1007764495",
+      "name": "紫薇公园时光-6栋",
+      "outline": [
+        [
+          63.217,
+          -20.761
+        ],
+        [
+          63.033,
+          -38.305
+        ],
+        [
+          1.841,
+          -37.604
+        ],
+        [
+          2.274,
+          -20.16
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1068.52,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764496",
+      "sourceId": "osm-way-1007764496",
+      "name": "建筑 1007764496",
+      "outline": [
+        [
+          144.653,
+          -7.303
+        ],
+        [
+          145.831,
+          -25.759
+        ],
+        [
+          124.105,
+          -25.581
+        ],
+        [
+          124.013,
+          -30.669
+        ],
+        [
+          101.016,
+          -30.579
+        ],
+        [
+          101.477,
+          -15.128
+        ],
+        [
+          131.286,
+          -15.217
+        ],
+        [
+          131.378,
+          -7.124
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 685.48,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764497",
+      "sourceId": "osm-way-1007764497",
+      "name": "建筑 1007764497",
+      "outline": [
+        [
+          64.451,
+          -77.924
+        ],
+        [
+          64.764,
+          -90.647
+        ],
+        [
+          1.455,
+          -91.16
+        ],
+        [
+          1.547,
+          -77.89
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 820.19,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1007764498",
+      "sourceId": "osm-way-1007764498",
+      "name": "建筑 1007764498",
+      "outline": [
+        [
+          149.403,
+          -62.573
+        ],
+        [
+          149.025,
+          -79.426
+        ],
+        [
+          124.436,
+          -79.326
+        ],
+        [
+          124.381,
+          -82.076
+        ],
+        [
+          92.658,
+          -82.02
+        ],
+        [
+          93.072,
+          -66.046
+        ],
+        [
+          122.503,
+          -66.213
+        ],
+        [
+          122.724,
+          -62.606
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 924.89,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-1053829298",
+      "sourceId": "osm-way-1053829298",
+      "name": "建筑 1053829298",
+      "outline": [
+        [
+          115.755,
+          -471.549
+        ],
+        [
+          118.784,
+          -471.538
+        ],
+        [
+          118.812,
+          -478.885
+        ],
+        [
+          115.783,
+          -478.896
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 22.25,
+      "tags": {
+        "building": "yes",
+        "amenity": "toilets"
+      }
+    },
+    {
+      "id": "osm-way-1054197360",
+      "sourceId": "osm-way-1054197360",
+      "name": "建筑 1054197360",
+      "outline": [
+        [
+          228.979,
+          -132.192
+        ],
+        [
+          232.348,
+          -135.042
+        ],
+        [
+          235.506,
+          -137.702
+        ],
+        [
+          242.217,
+          -129.743
+        ],
+        [
+          235.69,
+          -124.244
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 88.87,
+      "tags": {
+        "building": "yes",
+        "amenity": "toilets"
+      }
+    },
+    {
+      "id": "osm-way-1417903995",
+      "sourceId": "osm-way-1417903995",
+      "name": "建筑 1417903995",
+      "outline": [
+        [
+          -481.165,
+          -491.609
+        ],
+        [
+          -469.437,
+          -491.542
+        ],
+        [
+          -469.41,
+          -496.507
+        ],
+        [
+          -481.138,
+          -496.585
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 58.3,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-768807502",
+      "sourceId": "osm-way-768807502",
+      "name": "中国人寿陕西省分公司综合楼",
+      "outline": [
+        [
+          -341.65,
+          -246.617
+        ],
+        [
+          -386.731,
+          -246.205
+        ],
+        [
+          -387.173,
+          -144.448
+        ],
+        [
+          -342.976,
+          -144.426
+        ]
+      ],
+      "heightMeters": 100.0,
+      "heightSource": "osm-height",
+      "levels": 20.0,
+      "footprintAreaSquareMeters": 4551.85,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-969143238",
+      "sourceId": "osm-way-969143238",
+      "name": "延长石油科研中心",
+      "outline": [
+        [
+          -363.597,
+          -295.787
+        ],
+        [
+          -330.4,
+          -278.711
+        ],
+        [
+          -128.515,
+          -276.061
+        ],
+        [
+          -127.493,
+          -338.2
+        ],
+        [
+          -331.901,
+          -335.973
+        ],
+        [
+          -364.121,
+          -321.424
+        ]
+      ],
+      "heightMeters": 217.0,
+      "heightSource": "osm-height",
+      "levels": null,
+      "footprintAreaSquareMeters": 13482.37,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-969143239",
+      "sourceId": "osm-way-969143239",
+      "name": "万达广场(高新店)",
+      "outline": [
+        [
+          -346.244,
+          68.228
+        ],
+        [
+          -392.2,
+          -32.461
+        ],
+        [
+          -223.078,
+          -86.963
+        ],
+        [
+          -116.243,
+          -87.119
+        ],
+        [
+          -118.591,
+          45.875
+        ],
+        [
+          -219.57,
+          45.296
+        ],
+        [
+          -220.141,
+          70.766
+        ]
+      ],
+      "heightMeters": 15.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 33571.17,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-969143240",
+      "sourceId": "osm-way-969143240",
+      "name": "建筑 969143240",
+      "outline": [
+        [
+          -330.207,
+          67.46
+        ],
+        [
+          -276.435,
+          68.439
+        ],
+        [
+          -276.757,
+          40.943
+        ],
+        [
+          -329.599,
+          39.964
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1465.87,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-969143241",
+      "sourceId": "osm-way-969143241",
+      "name": "建筑 969143241",
+      "outline": [
+        [
+          -119.226,
+          43.248
+        ],
+        [
+          -119.06,
+          17.9
+        ],
+        [
+          -197.412,
+          17.9
+        ],
+        [
+          -197.577,
+          43.248
+        ]
+      ],
+      "heightMeters": 12.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1986.05,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-969143242",
+      "sourceId": "osm-way-969143242",
+      "name": "建筑 969143242",
+      "outline": [
+        [
+          -124.768,
+          -24.012
+        ],
+        [
+          -124.077,
+          -77.823
+        ],
+        [
+          -154.779,
+          -78.213
+        ],
+        [
+          -155.451,
+          -24.39
+        ]
+      ],
+      "heightMeters": 12.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1652.04,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-985151948",
+      "sourceId": "osm-way-985151948",
+      "name": "隆胜大厦",
+      "outline": [
+        [
+          -151.235,
+          456.02
+        ],
+        [
+          -152.091,
+          439.289
+        ],
+        [
+          -159.428,
+          434.847
+        ],
+        [
+          -163.359,
+          425.452
+        ],
+        [
+          -161.481,
+          416.224
+        ],
+        [
+          -152.597,
+          401.708
+        ],
+        [
+          -141.154,
+          393.681
+        ],
+        [
+          -130.218,
+          391.633
+        ],
+        [
+          -122.531,
+          396.754
+        ],
+        [
+          -121.849,
+          408.543
+        ],
+        [
+          -110.407,
+          414.008
+        ],
+        [
+          -106.651,
+          391.967
+        ],
+        [
+          -91.442,
+          391.633
+        ],
+        [
+          -94.351,
+          414.52
+        ],
+        [
+          -102.554,
+          427.155
+        ],
+        [
+          -112.8,
+          438.599
+        ],
+        [
+          -125.605,
+          448.339
+        ],
+        [
+          -138.761,
+          454.996
+        ]
+      ],
+      "heightMeters": 12.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 2891.98,
+      "tags": {
+        "building": "yes"
+      }
+    },
+    {
+      "id": "osm-way-990454700",
+      "sourceId": "osm-way-990454700",
+      "name": "建筑 990454700",
+      "outline": [
+        [
+          193.195,
+          28.053
+        ],
+        [
+          199.658,
+          28.409
+        ],
+        [
+          200.367,
+          18.535
+        ],
+        [
+          193.665,
+          18.067
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 65.61,
+      "tags": {
+        "building": "yes",
+        "amenity": "toilets"
+      }
+    },
+    {
+      "id": "osm-way-999822451",
+      "sourceId": "osm-way-999822451",
+      "name": "枫林绿洲C4-8号楼",
+      "outline": [
+        [
+          489.948,
+          425.975
+        ],
+        [
+          489.948,
+          416.346
+        ],
+        [
+          482.97,
+          415.678
+        ],
+        [
+          477.492,
+          402.554
+        ],
+        [
+          457.727,
+          409.032
+        ],
+        [
+          462.708,
+          421.489
+        ],
+        [
+          455.232,
+          428.135
+        ],
+        [
+          462.376,
+          434.948
+        ],
+        [
+          473.34,
+          424.317
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 582.2,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999822455",
+      "sourceId": "osm-way-999822455",
+      "name": "天地源·枫林绿洲D4-6/7/8号楼",
+      "outline": [
+        [
+          381.604,
+          414.543
+        ],
+        [
+          381.465,
+          402.943
+        ],
+        [
+          312.881,
+          403.221
+        ],
+        [
+          312.596,
+          415.522
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 822.1,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999822461",
+      "sourceId": "osm-way-999822461",
+      "name": "枫林绿洲D4-5号楼",
+      "outline": [
+        [
+          429.916,
+          473.119
+        ],
+        [
+          436.231,
+          466.807
+        ],
+        [
+          431.417,
+          462.154
+        ],
+        [
+          434.906,
+          447.371
+        ],
+        [
+          415.297,
+          440.903
+        ],
+        [
+          410.151,
+          454.017
+        ],
+        [
+          402.013,
+          455.352
+        ],
+        [
+          401.847,
+          462.488
+        ],
+        [
+          417.958,
+          461.664
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 563.93,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866829",
+      "sourceId": "osm-way-999866829",
+      "name": "天地源·枫林绿洲D4-1/2/3/4号楼",
+      "outline": [
+        [
+          389.603,
+          466.874
+        ],
+        [
+          389.742,
+          455.007
+        ],
+        [
+          299.367,
+          455.709
+        ],
+        [
+          299.367,
+          467.297
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1059.02,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866830",
+      "sourceId": "osm-way-999866830",
+      "name": "枫林绿洲D3-5/6/7号楼",
+      "outline": [
+        [
+          273.25,
+          417.493
+        ],
+        [
+          273.333,
+          408.197
+        ],
+        [
+          251.248,
+          407.374
+        ],
+        [
+          251.248,
+          409.611
+        ],
+        [
+          228.224,
+          409.611
+        ],
+        [
+          227.966,
+          412.494
+        ],
+        [
+          204.85,
+          412.539
+        ],
+        [
+          204.74,
+          421.122
+        ],
+        [
+          226.815,
+          420.765
+        ],
+        [
+          226.815,
+          418.695
+        ],
+        [
+          247.934,
+          418.528
+        ],
+        [
+          247.961,
+          416.658
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 601.49,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866831",
+      "sourceId": "osm-way-999866831",
+      "name": "枫林绿洲D3-1/2/3/4号楼",
+      "outline": [
+        [
+          273.729,
+          465.16
+        ],
+        [
+          273.397,
+          455.53
+        ],
+        [
+          181.863,
+          454.863
+        ],
+        [
+          181.946,
+          464.603
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 887.59,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866838",
+      "sourceId": "osm-way-999866838",
+      "name": "枫林绿洲E3-4栋",
+      "outline": [
+        [
+          125.725,
+          437.998
+        ],
+        [
+          130.89,
+          431.986
+        ],
+        [
+          126.701,
+          428.636
+        ],
+        [
+          129.638,
+          413.697
+        ],
+        [
+          108.123,
+          407.964
+        ],
+        [
+          104.496,
+          420.543
+        ],
+        [
+          95.272,
+          421.79
+        ],
+        [
+          95.272,
+          431.708
+        ],
+        [
+          111.612,
+          430.729
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 631.05,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866841",
+      "sourceId": "osm-way-999866841",
+      "name": "枫林绿洲E3-5/6/7号楼",
+      "outline": [
+        [
+          85.284,
+          412.94
+        ],
+        [
+          85.182,
+          402.075
+        ],
+        [
+          61.081,
+          402.175
+        ],
+        [
+          60.888,
+          398.323
+        ],
+        [
+          16.543,
+          398.624
+        ],
+        [
+          16.838,
+          408.698
+        ],
+        [
+          59.304,
+          408.298
+        ],
+        [
+          59.01,
+          412.94
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 714.48,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866842",
+      "sourceId": "osm-way-999866842",
+      "name": "枫林绿洲E3-1/2/3号楼",
+      "outline": [
+        [
+          87.797,
+          464.035
+        ],
+        [
+          87.088,
+          451.946
+        ],
+        [
+          20.143,
+          451.946
+        ],
+        [
+          20.262,
+          464.269
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 820.78,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866851",
+      "sourceId": "osm-way-999866851",
+      "name": "天地源·枫林绿洲G4-6/7/8号楼",
+      "outline": [
+        [
+          -2.743,
+          412.127
+        ],
+        [
+          -2.937,
+          397.01
+        ],
+        [
+          -80.671,
+          396.13
+        ],
+        [
+          -80.377,
+          411.927
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1200.63,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866852",
+      "sourceId": "osm-way-999866852",
+      "name": "枫林绿洲G4-4/5号楼",
+      "outline": [
+        [
+          -81.555,
+          452.692
+        ],
+        [
+          -88.128,
+          440.48
+        ],
+        [
+          -139.101,
+          467.375
+        ],
+        [
+          -132.528,
+          480.288
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 819.43,
+      "tags": {
+        "building": "residential"
+      }
+    },
+    {
+      "id": "osm-way-999866853",
+      "sourceId": "osm-way-999866853",
+      "name": "天地源·枫林绿洲G4-1/2/3号楼",
+      "outline": [
+        [
+          -9.178,
+          486.589
+        ],
+        [
+          -15.3,
+          473.943
+        ],
+        [
+          -79.3,
+          508.318
+        ],
+        [
+          -72.386,
+          520.463
+        ]
+      ],
+      "heightMeters": 9.0,
+      "heightSource": "area-default",
+      "levels": null,
+      "footprintAreaSquareMeters": 1010.83,
+      "tags": {
+        "building": "residential"
+      }
+    }
+  ],
+  "roads": [
+    {
+      "id": "osm-way-1053826818-part-1",
+      "sourceId": "osm-way-1053826818",
+      "name": "跑道",
+      "kind": "footway",
+      "centerline": [
+        [
+          499.998,
+          -427.817
+        ],
+        [
+          478.137,
+          -428.057
+        ],
+        [
+          462.652,
+          -441.382
+        ],
+        [
+          398.367,
+          -440.992
+        ],
+        [
+          378.971,
+          -421.979
+        ],
+        [
+          308.417,
+          -421.79
+        ],
+        [
+          297.636,
+          -431.786
+        ],
+        [
+          186.908,
+          -431.786
+        ],
+        [
+          175.538,
+          -421.979
+        ],
+        [
+          141.237,
+          -422.368
+        ],
+        [
+          135.953,
+          -425.897
+        ],
+        [
+          131.249,
+          -430.996
+        ],
+        [
+          130.706,
+          -454.673
+        ],
+        [
+          130.466,
+          -465.293
+        ],
+        [
+          133.403,
+          -475.29
+        ],
+        [
+          138.89,
+          -480.388
+        ],
+        [
+          150.259,
+          -483.527
+        ],
+        [
+          160.643,
+          -483.917
+        ],
+        [
+          169.858,
+          -479.409
+        ],
+        [
+          181.421,
+          -468.822
+        ],
+        [
+          192.984,
+          -460.985
+        ],
+        [
+          204.344,
+          -458.636
+        ],
+        [
+          218.456,
+          -460.195
+        ],
+        [
+          230.801,
+          -463.534
+        ],
+        [
+          240.606,
+          -471.961
+        ],
+        [
+          252.362,
+          -483.127
+        ],
+        [
+          261.374,
+          -489.995
+        ],
+        [
+          270.194,
+          -491.754
+        ],
+        [
+          280.191,
+          -489.205
+        ],
+        [
+          289.406,
+          -483.127
+        ],
+        [
+          299.791,
+          -472.941
+        ],
+        [
+          310.764,
+          -459.805
+        ],
+        [
+          318.018,
+          -455.887
+        ],
+        [
+          330.759,
+          -453.538
+        ],
+        [
+          340.95,
+          -455.297
+        ],
+        [
+          352.31,
+          -458.826
+        ],
+        [
+          364.462,
+          -463.724
+        ],
+        [
+          376.025,
+          -467.642
+        ],
+        [
+          389.162,
+          -468.633
+        ],
+        [
+          403.854,
+          -464.314
+        ],
+        [
+          419.532,
+          -459.616
+        ],
+        [
+          435.412,
+          -459.805
+        ],
+        [
+          446.975,
+          -462.944
+        ],
+        [
+          461.87,
+          -471.371
+        ],
+        [
+          476.563,
+          -479.208
+        ],
+        [
+          489.11,
+          -480.978
+        ],
+        [
+          499.998,
+          -479.875
+        ]
+      ],
+      "widthMeters": 4.0
+    },
+    {
+      "id": "osm-way-1054196820-part-1",
+      "sourceId": "osm-way-1054196820",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          157.099,
+          -161.157
+        ],
+        [
+          146.125,
+          -164.018
+        ],
+        [
+          130.834,
+          -173.525
+        ],
+        [
+          125.541,
+          -177.989
+        ],
+        [
+          118.489,
+          -187.306
+        ],
+        [
+          111.723,
+          -193.095
+        ],
+        [
+          105.159,
+          -196.624
+        ],
+        [
+          96.681,
+          -198.538
+        ],
+        [
+          90.209,
+          -199.318
+        ],
+        [
+          85.155,
+          -201.277
+        ],
+        [
+          81.067,
+          -206.386
+        ],
+        [
+          78.471,
+          -213.789
+        ],
+        [
+          77.689,
+          -221.147
+        ],
+        [
+          76.556,
+          -228.65
+        ],
+        [
+          71.079,
+          -238.023
+        ],
+        [
+          66.761,
+          -244.636
+        ],
+        [
+          65.344,
+          -253.218
+        ],
+        [
+          65.325,
+          -261.935
+        ],
+        [
+          65.325,
+          -270.707
+        ],
+        [
+          63.76,
+          -280.559
+        ],
+        [
+          59.986,
+          -290.366
+        ],
+        [
+          58.218,
+          -297.869
+        ],
+        [
+          57.684,
+          -306.151
+        ],
+        [
+          60.722,
+          -311.795
+        ],
+        [
+          65.04,
+          -313.943
+        ],
+        [
+          72.34,
+          -315.568
+        ],
+        [
+          80.92,
+          -317.572
+        ],
+        [
+          85.228,
+          -318.941
+        ],
+        [
+          88.423,
+          -324.24
+        ],
+        [
+          91.654,
+          -330.274
+        ],
+        [
+          98.954,
+          -333.747
+        ],
+        [
+          107.092,
+          -334.537
+        ],
+        [
+          114.153,
+          -332.278
+        ],
+        [
+          120.432,
+          -329.728
+        ],
+        [
+          124.74,
+          -327.725
+        ],
+        [
+          132.142,
+          -328.459
+        ],
+        [
+          135.52,
+          -329.283
+        ],
+        [
+          138.853,
+          -330.085
+        ],
+        [
+          144.247,
+          -329.895
+        ],
+        [
+          149.734,
+          -329.305
+        ],
+        [
+          153.159,
+          -326.767
+        ]
+      ],
+      "widthMeters": 3.0
+    },
+    {
+      "id": "osm-way-1054197114-part-1",
+      "sourceId": "osm-way-1054197114",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          266.852,
+          -311.272
+        ],
+        [
+          279.749,
+          -311.127
+        ],
+        [
+          294.792,
+          -309.802
+        ],
+        [
+          301.604,
+          -306.362
+        ],
+        [
+          309.199,
+          -295.308
+        ],
+        [
+          311.197,
+          -289.319
+        ],
+        [
+          314.014,
+          -280.837
+        ],
+        [
+          314.032,
+          -273.924
+        ],
+        [
+          313.894,
+          -268.046
+        ],
+        [
+          318.552,
+          -262.647
+        ],
+        [
+          318.479,
+          -256.235
+        ],
+        [
+          310.893,
+          -247.652
+        ],
+        [
+          307.054,
+          -242.766
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054197195-part-1",
+      "sourceId": "osm-way-1054197195",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          282.078,
+          -195.31
+        ],
+        [
+          284.472,
+          -190.434
+        ],
+        [
+          286.157,
+          -182.987
+        ],
+        [
+          287.869,
+          -179.647
+        ],
+        [
+          287.786,
+          -176.575
+        ],
+        [
+          283.892,
+          -172.734
+        ],
+        [
+          279.749,
+          -169.239
+        ],
+        [
+          273.287,
+          -166.256
+        ],
+        [
+          271.271,
+          -164.219
+        ],
+        [
+          266.474,
+          -163.272
+        ],
+        [
+          264.118,
+          -163.439
+        ],
+        [
+          258.677,
+          -164.608
+        ],
+        [
+          252.702,
+          -164.04
+        ],
+        [
+          246.608,
+          -162.827
+        ],
+        [
+          245.945,
+          -161.502
+        ],
+        [
+          237.209,
+          -160.734
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054197363-part-1",
+      "sourceId": "osm-way-1054197363",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          220.436,
+          -149.691
+        ],
+        [
+          226.3,
+          -143.29
+        ],
+        [
+          232.348,
+          -135.042
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198414-part-1",
+      "sourceId": "osm-way-1054198414",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          135.465,
+          -221.671
+        ],
+        [
+          131.313,
+          -225.277
+        ],
+        [
+          126.517,
+          -229.04
+        ],
+        [
+          124.814,
+          -233.114
+        ],
+        [
+          122.485,
+          -237.322
+        ],
+        [
+          121.5,
+          -241.497
+        ],
+        [
+          120.202,
+          -245.704
+        ],
+        [
+          117.513,
+          -248.71
+        ],
+        [
+          113.122,
+          -250.369
+        ],
+        [
+          108.151,
+          -251.259
+        ],
+        [
+          103.447,
+          -249.69
+        ],
+        [
+          101.164,
+          -247.051
+        ],
+        [
+          100.262,
+          -239.482
+        ],
+        [
+          101.247,
+          -236.832
+        ],
+        [
+          100.538,
+          -234.105
+        ],
+        [
+          98.292,
+          -232.402
+        ],
+        [
+          95.162,
+          -231.945
+        ],
+        [
+          87.852,
+          -233.927
+        ],
+        [
+          82.752,
+          -237.277
+        ],
+        [
+          79.475,
+          -237.545
+        ],
+        [
+          74.688,
+          -238.714
+        ],
+        [
+          71.079,
+          -238.023
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198415-part-1",
+      "sourceId": "osm-way-1054198415",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          108.151,
+          -251.259
+        ],
+        [
+          108.998,
+          -258.105
+        ],
+        [
+          111.732,
+          -263.349
+        ],
+        [
+          115.267,
+          -266.844
+        ],
+        [
+          119.971,
+          -269.315
+        ],
+        [
+          122.347,
+          -269.315
+        ],
+        [
+          125.753,
+          -265.775
+        ],
+        [
+          129.785,
+          -263.037
+        ],
+        [
+          135.428,
+          -263.705
+        ],
+        [
+          140.804,
+          -264.25
+        ],
+        [
+          144.293,
+          -264.963
+        ],
+        [
+          146.77,
+          -265.052
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198416-part-1",
+      "sourceId": "osm-way-1054198416",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          122.347,
+          -269.315
+        ],
+        [
+          122.199,
+          -273.968
+        ],
+        [
+          120.588,
+          -277.731
+        ],
+        [
+          116.777,
+          -280.414
+        ],
+        [
+          110.867,
+          -281.449
+        ],
+        [
+          106.558,
+          -281.449
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198417-part-1",
+      "sourceId": "osm-way-1054198417",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          135.52,
+          -329.283
+        ],
+        [
+          132.666,
+          -334.471
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198418-part-1",
+      "sourceId": "osm-way-1054198418",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          120.432,
+          -329.728
+        ],
+        [
+          117.504,
+          -335.495
+        ],
+        [
+          110.839,
+          -344.222
+        ],
+        [
+          101.081,
+          -349.81
+        ],
+        [
+          97.472,
+          -350.623
+        ],
+        [
+          83.544,
+          -351.013
+        ],
+        [
+          84.28,
+          -362.2
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054198419-part-1",
+      "sourceId": "osm-way-1054198419",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          153.849,
+          -336.463
+        ],
+        [
+          151.382,
+          -342.853
+        ],
+        [
+          151.17,
+          -353.295
+        ],
+        [
+          151.769,
+          -361.744
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1054199853-part-1",
+      "sourceId": "osm-way-1054199853",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          138.659,
+          -225.834
+        ],
+        [
+          143.18,
+          -225.077
+        ],
+        [
+          145.693,
+          -226.869
+        ],
+        [
+          147.11,
+          -226.346
+        ],
+        [
+          149.44,
+          -225.444
+        ],
+        [
+          150.949,
+          -229.04
+        ],
+        [
+          155.7,
+          -227.236
+        ],
+        [
+          156.906,
+          -230.398
+        ],
+        [
+          160.892,
+          -229.062
+        ],
+        [
+          161.38,
+          -231.767
+        ],
+        [
+          161.886,
+          -232.925
+        ],
+        [
+          163.212,
+          -232.246
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1119875641-part-1",
+      "sourceId": "osm-way-1119875641",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          90.172,
+          -416.891
+        ],
+        [
+          98.457,
+          -416.602
+        ],
+        [
+          107.451,
+          -416.647
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1119875642-part-1",
+      "sourceId": "osm-way-1119875642",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          107.451,
+          -416.647
+        ],
+        [
+          107.203,
+          -454.184
+        ],
+        [
+          130.706,
+          -454.673
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1214373306-part-1",
+      "sourceId": "osm-way-1214373306",
+      "name": "科技八路",
+      "kind": "primary",
+      "centerline": [
+        [
+          499.998,
+          -373.241
+        ],
+        [
+          452.102,
+          -373.466
+        ],
+        [
+          428.83,
+          -376.215
+        ],
+        [
+          420.692,
+          -376.438
+        ],
+        [
+          395.293,
+          -376.483
+        ],
+        [
+          329.894,
+          -376.293
+        ],
+        [
+          278.746,
+          -376.137
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1214373307-part-1",
+      "sourceId": "osm-way-1214373307",
+      "name": "科技八路",
+      "kind": "primary",
+      "centerline": [
+        [
+          286.718,
+          -391.333
+        ],
+        [
+          395.514,
+          -390.865
+        ],
+        [
+          420.765,
+          -390.765
+        ],
+        [
+          428.986,
+          -389.919
+        ],
+        [
+          451.67,
+          -389.741
+        ],
+        [
+          499.998,
+          -389.349
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-1260614567-part-1",
+      "sourceId": "osm-way-1260614567",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          -480.59,
+          499.998
+        ],
+        [
+          -479.693,
+          387.726
+        ],
+        [
+          -499.998,
+          387.355
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-162658753-part-1",
+      "sourceId": "osm-way-162658753",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -187.248,
+          363.325
+        ],
+        [
+          -186.889,
+          372.297
+        ],
+        [
+          -186.411,
+          384.264
+        ],
+        [
+          -185.131,
+          415.99
+        ],
+        [
+          -181.467,
+          435.727
+        ],
+        [
+          -169.352,
+          476.859
+        ],
+        [
+          -163.994,
+          491.041
+        ],
+        [
+          -159.165,
+          499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-237109698-part-1",
+      "sourceId": "osm-way-237109698",
+      "name": "",
+      "kind": "residential",
+      "centerline": [
+        [
+          499.998,
+          391.809
+        ],
+        [
+          442.197,
+          391.088
+        ],
+        [
+          325.337,
+          388.895
+        ],
+        [
+          292.969,
+          392.802
+        ],
+        [
+          235.653,
+          398.713
+        ],
+        [
+          195.359,
+          401.084
+        ],
+        [
+          143.778,
+          400.338
+        ],
+        [
+          73.675,
+          389.83
+        ],
+        [
+          36.115,
+          385.433
+        ],
+        [
+          4.907,
+          385.277
+        ],
+        [
+          5.128,
+          420.676
+        ],
+        [
+          5.781,
+          464.135
+        ],
+        [
+          2.835,
+          483.015
+        ],
+        [
+          -0.895,
+          499.998
+        ]
+      ],
+      "widthMeters": 5.5
+    },
+    {
+      "id": "osm-way-237110062-part-1",
+      "sourceId": "osm-way-237110062",
+      "name": "木塔寺西路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          426.584,
+          -47.567
+        ],
+        [
+          420.37,
+          -47.5
+        ],
+        [
+          399.886,
+          -47.556
+        ],
+        [
+          319.685,
+          -48.546
+        ],
+        [
+          296.145,
+          -49.203
+        ],
+        [
+          277.853,
+          -50.417
+        ],
+        [
+          258.926,
+          -53.077
+        ],
+        [
+          237.209,
+          -59.1
+        ],
+        [
+          214.415,
+          -69.241
+        ],
+        [
+          196.611,
+          -78.413
+        ],
+        [
+          183.345,
+          -87.241
+        ],
+        [
+          158.461,
+          -102.514
+        ],
+        [
+          139.829,
+          -110.396
+        ],
+        [
+          114.991,
+          -117.42
+        ],
+        [
+          87.953,
+          -121.706
+        ],
+        [
+          -42.973,
+          -125.168
+        ],
+        [
+          -66.218,
+          -125.758
+        ],
+        [
+          -75.848,
+          -125.591
+        ],
+        [
+          -99.019,
+          -125.535
+        ],
+        [
+          -160.367,
+          -125.401
+        ],
+        [
+          -191.52,
+          -122.307
+        ],
+        [
+          -221.715,
+          -115.316
+        ],
+        [
+          -314.566,
+          -87.72
+        ],
+        [
+          -341.199,
+          -82.666
+        ],
+        [
+          -364.628,
+          -79.972
+        ],
+        [
+          -400.715,
+          -80.284
+        ],
+        [
+          -419.9,
+          -80.451
+        ],
+        [
+          -428.968,
+          -80.54
+        ],
+        [
+          -448.181,
+          -83.089
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-28696871-part-1",
+      "sourceId": "osm-way-28696871",
+      "name": "科技六路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -499.998,
+          354.12
+        ],
+        [
+          -467.789,
+          354.497
+        ],
+        [
+          -448.402,
+          354.72
+        ],
+        [
+          -431.895,
+          354.642
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-28718664-part-1",
+      "sourceId": "osm-way-28718664",
+      "name": "科技六路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -431.895,
+          354.642
+        ],
+        [
+          -413.06,
+          354.742
+        ],
+        [
+          -395.836,
+          354.831
+        ],
+        [
+          -202.576,
+          356.267
+        ],
+        [
+          -189.872,
+          356.267
+        ],
+        [
+          -165.909,
+          356.423
+        ],
+        [
+          13.33,
+          357.592
+        ],
+        [
+          58.237,
+          360.575
+        ],
+        [
+          151.723,
+          373.366
+        ],
+        [
+          199.299,
+          373.956
+        ],
+        [
+          240.56,
+          371.295
+        ],
+        [
+          293.319,
+          364.516
+        ],
+        [
+          315.339,
+          363.28
+        ],
+        [
+          352.835,
+          362.222
+        ],
+        [
+          413.659,
+          363.069
+        ],
+        [
+          421.382,
+          363.013
+        ],
+        [
+          499.998,
+          363.595
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-28718665-part-1",
+      "sourceId": "osm-way-28718665",
+      "name": "科技六路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          499.998,
+          371.113
+        ],
+        [
+          421.097,
+          370.004
+        ],
+        [
+          413.474,
+          370.071
+        ],
+        [
+          325.042,
+          369.759
+        ],
+        [
+          294.018,
+          371.251
+        ],
+        [
+          236.141,
+          379.154
+        ],
+        [
+          198.415,
+          381.47
+        ],
+        [
+          154.411,
+          380.679
+        ],
+        [
+          50.605,
+          367.176
+        ],
+        [
+          -5.045,
+          365.005
+        ],
+        [
+          -165.495,
+          363.525
+        ],
+        [
+          -187.248,
+          363.325
+        ],
+        [
+          -206.535,
+          363.369
+        ],
+        [
+          -395.265,
+          361.098
+        ],
+        [
+          -412.609,
+          360.976
+        ],
+        [
+          -431.472,
+          360.831
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-335518218-part-1",
+      "sourceId": "osm-way-335518218",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -181.24,
+          499.998
+        ],
+        [
+          -192.348,
+          471.894
+        ],
+        [
+          -197.089,
+          457.735
+        ],
+        [
+          -200.864,
+          442.139
+        ],
+        [
+          -205.577,
+          413.296
+        ],
+        [
+          -206.12,
+          384.742
+        ],
+        [
+          -206.36,
+          372.297
+        ],
+        [
+          -206.535,
+          363.369
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-446874249-part-1",
+      "sourceId": "osm-way-446874249",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -64.43,
+          -499.998
+        ],
+        [
+          -64.386,
+          -499.112
+        ],
+        [
+          -64.22,
+          -417.882
+        ],
+        [
+          -64.174,
+          -399.648
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-446874269-part-1",
+      "sourceId": "osm-way-446874269",
+      "name": "科技八路",
+      "kind": "primary_link",
+      "centerline": [
+        [
+          278.746,
+          -376.137
+        ],
+        [
+          243.312,
+          -372.141
+        ],
+        [
+          107.074,
+          -371.896
+        ],
+        [
+          -45.155,
+          -371.629
+        ],
+        [
+          -64.681,
+          -371.596
+        ],
+        [
+          -77.182,
+          -377.362
+        ],
+        [
+          -100.842,
+          -377.384
+        ],
+        [
+          -109.219,
+          -377.395
+        ],
+        [
+          -396.922,
+          -377.685
+        ],
+        [
+          -427.836,
+          -377.017
+        ],
+        [
+          -447.242,
+          -377.418
+        ],
+        [
+          -499.998,
+          -378.479
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-505067562-part-1",
+      "sourceId": "osm-way-505067562",
+      "name": "",
+      "kind": "residential",
+      "centerline": [
+        [
+          292.969,
+          392.802
+        ],
+        [
+          287.206,
+          420.554
+        ],
+        [
+          289.038,
+          499.998
+        ]
+      ],
+      "widthMeters": 5.5
+    },
+    {
+      "id": "osm-way-537294827-part-1",
+      "sourceId": "osm-way-537294827",
+      "name": "木塔寺路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          428.986,
+          -389.919
+        ],
+        [
+          428.83,
+          -376.215
+        ],
+        [
+          428.664,
+          -346.716
+        ],
+        [
+          426.961,
+          -75.942
+        ],
+        [
+          426.749,
+          -54.624
+        ],
+        [
+          426.584,
+          -47.567
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-537294828-part-1",
+      "sourceId": "osm-way-537294828",
+      "name": "科技八路",
+      "kind": "primary_link",
+      "centerline": [
+        [
+          -499.998,
+          -398.011
+        ],
+        [
+          -452.029,
+          -397.878
+        ],
+        [
+          -427.918,
+          -395.774
+        ],
+        [
+          -397.475,
+          -395.796
+        ],
+        [
+          -332.591,
+          -395.719
+        ],
+        [
+          -109.385,
+          -395.462
+        ],
+        [
+          -100.501,
+          -395.451
+        ],
+        [
+          -77.228,
+          -395.429
+        ],
+        [
+          -64.174,
+          -399.648
+        ],
+        [
+          -44.649,
+          -399.559
+        ],
+        [
+          21.054,
+          -399.258
+        ],
+        [
+          98.402,
+          -398.902
+        ],
+        [
+          235.902,
+          -397.511
+        ],
+        [
+          286.718,
+          -391.333
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-537296527-part-1",
+      "sourceId": "osm-way-537296527",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -64.174,
+          -399.648
+        ],
+        [
+          -64.681,
+          -371.596
+        ],
+        [
+          -64.644,
+          -353.484
+        ],
+        [
+          -64.497,
+          -283.765
+        ],
+        [
+          -64.441,
+          -274.135
+        ],
+        [
+          -64.414,
+          -250.135
+        ],
+        [
+          -64.662,
+          -148.166
+        ],
+        [
+          -64.699,
+          -132.047
+        ],
+        [
+          -66.218,
+          -125.758
+        ],
+        [
+          -66.191,
+          -106.032
+        ],
+        [
+          -68.492,
+          82.165
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-537296529-part-1",
+      "sourceId": "osm-way-537296529",
+      "name": "木塔寺东路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          499.998,
+          69.056
+        ],
+        [
+          454.303,
+          67.382
+        ],
+        [
+          427.688,
+          66.402
+        ],
+        [
+          420.729,
+          66.268
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-667038150-part-1",
+      "sourceId": "osm-way-667038150",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          174.636,
+          -100.544
+        ],
+        [
+          171.626,
+          -133.249
+        ],
+        [
+          159.851,
+          -139.027
+        ],
+        [
+          155.0,
+          -156.582
+        ],
+        [
+          157.099,
+          -161.157
+        ],
+        [
+          158.701,
+          -164.664
+        ],
+        [
+          141.845,
+          -181.518
+        ],
+        [
+          133.292,
+          -197.681
+        ],
+        [
+          130.991,
+          -205.529
+        ],
+        [
+          132.832,
+          -218.231
+        ],
+        [
+          135.465,
+          -221.671
+        ],
+        [
+          138.659,
+          -225.834
+        ],
+        [
+          143.456,
+          -232.09
+        ],
+        [
+          144.616,
+          -241.786
+        ],
+        [
+          142.305,
+          -251.482
+        ],
+        [
+          146.77,
+          -265.052
+        ],
+        [
+          148.077,
+          -269.037
+        ],
+        [
+          142.765,
+          -280.347
+        ],
+        [
+          134.452,
+          -294.663
+        ],
+        [
+          135.833,
+          -303.902
+        ],
+        [
+          147.147,
+          -313.832
+        ],
+        [
+          153.159,
+          -326.767
+        ],
+        [
+          153.849,
+          -336.463
+        ],
+        [
+          168.855,
+          -336.697
+        ],
+        [
+          219.423,
+          -333.691
+        ],
+        [
+          256.606,
+          -315.68
+        ],
+        [
+          266.76,
+          -317.761
+        ],
+        [
+          268.38,
+          -313.375
+        ],
+        [
+          266.852,
+          -311.272
+        ],
+        [
+          264.688,
+          -308.288
+        ],
+        [
+          274.152,
+          -285.657
+        ],
+        [
+          294.939,
+          -273.657
+        ],
+        [
+          302.092,
+          -251.482
+        ],
+        [
+          307.054,
+          -242.766
+        ],
+        [
+          310.635,
+          -236.476
+        ],
+        [
+          310.405,
+          -217.541
+        ],
+        [
+          295.169,
+          -203.681
+        ],
+        [
+          282.078,
+          -195.31
+        ],
+        [
+          275.312,
+          -190.98
+        ],
+        [
+          262.608,
+          -184.056
+        ],
+        [
+          250.603,
+          -180.36
+        ],
+        [
+          243.671,
+          -167.658
+        ],
+        [
+          237.209,
+          -160.734
+        ],
+        [
+          220.436,
+          -149.691
+        ],
+        [
+          218.272,
+          -148.266
+        ],
+        [
+          216.192,
+          -133.717
+        ],
+        [
+          192.597,
+          -89.289
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-667038152-part-1",
+      "sourceId": "osm-way-667038152",
+      "name": "木塔寺路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          426.584,
+          -47.567
+        ],
+        [
+          426.823,
+          -23.5
+        ],
+        [
+          427.449,
+          38.928
+        ],
+        [
+          427.652,
+          59.2
+        ],
+        [
+          427.688,
+          66.402
+        ],
+        [
+          428.379,
+          86.629
+        ],
+        [
+          427.762,
+          152.062
+        ],
+        [
+          427.495,
+          181.061
+        ],
+        [
+          421.879,
+          339.636
+        ],
+        [
+          421.566,
+          354.419
+        ],
+        [
+          421.382,
+          363.013
+        ],
+        [
+          421.097,
+          370.004
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-667038153-part-1",
+      "sourceId": "osm-way-667038153",
+      "name": "",
+      "kind": "residential",
+      "centerline": [
+        [
+          160.919,
+          -108.292
+        ],
+        [
+          158.461,
+          -102.514
+        ],
+        [
+          144.367,
+          81.586
+        ]
+      ],
+      "widthMeters": 5.5
+    },
+    {
+      "id": "osm-way-667038154-part-1",
+      "sourceId": "osm-way-667038154",
+      "name": "",
+      "kind": "service",
+      "centerline": [
+        [
+          -200.864,
+          442.139
+        ],
+        [
+          -234.125,
+          442.395
+        ],
+        [
+          -243.091,
+          428.079
+        ],
+        [
+          -256.468,
+          406.917
+        ],
+        [
+          -276.518,
+          393.603
+        ],
+        [
+          -299.965,
+          387.436
+        ],
+        [
+          -326.681,
+          388.015
+        ],
+        [
+          -352.089,
+          396.008
+        ],
+        [
+          -374.902,
+          396.854
+        ],
+        [
+          -392.669,
+          412.06
+        ],
+        [
+          -393.313,
+          433.055
+        ]
+      ],
+      "widthMeters": 5.5
+    },
+    {
+      "id": "osm-way-764120439-part-1",
+      "sourceId": "osm-way-764120439",
+      "name": "唐延路",
+      "kind": "primary",
+      "centerline": [
+        [
+          -448.181,
+          -83.089
+        ],
+        [
+          -448.613,
+          -111.676
+        ],
+        [
+          -448.356,
+          -214.78
+        ],
+        [
+          -448.346,
+          -219.466
+        ],
+        [
+          -447.674,
+          -274.636
+        ],
+        [
+          -446.128,
+          -365.339
+        ],
+        [
+          -447.242,
+          -377.418
+        ],
+        [
+          -452.029,
+          -397.878
+        ],
+        [
+          -452.148,
+          -424.35
+        ],
+        [
+          -449.132,
+          -499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764120444-part-1",
+      "sourceId": "osm-way-764120444",
+      "name": "唐延路",
+      "kind": "primary",
+      "centerline": [
+        [
+          -427.891,
+          -499.998
+        ],
+        [
+          -428.462,
+          -461.263
+        ],
+        [
+          -427.918,
+          -395.774
+        ],
+        [
+          -427.836,
+          -377.017
+        ],
+        [
+          -427.099,
+          -282.084
+        ],
+        [
+          -427.32,
+          -270.161
+        ],
+        [
+          -429.833,
+          -196.657
+        ],
+        [
+          -429.088,
+          -111.509
+        ],
+        [
+          -428.913,
+          -86.829
+        ],
+        [
+          -428.968,
+          -80.54
+        ],
+        [
+          -430.597,
+          -60.858
+        ],
+        [
+          -431.012,
+          23.711
+        ],
+        [
+          -431.978,
+          221.637
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764120446-part-1",
+      "sourceId": "osm-way-764120446",
+      "name": "科技六路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -431.472,
+          360.831
+        ],
+        [
+          -448.503,
+          360.798
+        ],
+        [
+          -467.421,
+          360.764
+        ],
+        [
+          -499.998,
+          360.591
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764120457-part-1",
+      "sourceId": "osm-way-764120457",
+      "name": "科技七路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -499.998,
+          -83.124
+        ],
+        [
+          -465.276,
+          -83.1
+        ],
+        [
+          -448.181,
+          -83.089
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764126375-part-1",
+      "sourceId": "osm-way-764126375",
+      "name": "木塔寺西路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          -448.181,
+          -83.089
+        ],
+        [
+          -428.913,
+          -86.829
+        ],
+        [
+          -401.037,
+          -86.718
+        ],
+        [
+          -364.361,
+          -86.851
+        ],
+        [
+          -342.718,
+          -88.621
+        ],
+        [
+          -315.956,
+          -93.72
+        ],
+        [
+          -230.203,
+          -119.791
+        ],
+        [
+          -214.958,
+          -124.567
+        ],
+        [
+          -185.978,
+          -129.62
+        ],
+        [
+          -161.278,
+          -131.98
+        ],
+        [
+          -98.844,
+          -131.969
+        ],
+        [
+          -76.243,
+          -131.969
+        ],
+        [
+          -64.699,
+          -132.047
+        ],
+        [
+          -42.982,
+          -131.591
+        ],
+        [
+          36.483,
+          -129.932
+        ],
+        [
+          88.92,
+          -128.262
+        ],
+        [
+          105.767,
+          -125.947
+        ],
+        [
+          122.696,
+          -123.142
+        ],
+        [
+          143.382,
+          -116.251
+        ],
+        [
+          160.919,
+          -108.292
+        ],
+        [
+          174.636,
+          -100.544
+        ],
+        [
+          186.972,
+          -92.818
+        ],
+        [
+          192.597,
+          -89.289
+        ],
+        [
+          207.566,
+          -80.618
+        ],
+        [
+          221.457,
+          -73.226
+        ],
+        [
+          238.811,
+          -66.636
+        ],
+        [
+          252.371,
+          -61.927
+        ],
+        [
+          273.084,
+          -57.374
+        ],
+        [
+          292.84,
+          -55.871
+        ],
+        [
+          309.273,
+          -55.593
+        ],
+        [
+          400.071,
+          -55.025
+        ],
+        [
+          420.351,
+          -54.613
+        ],
+        [
+          426.749,
+          -54.624
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764126387-part-1",
+      "sourceId": "osm-way-764126387",
+      "name": "唐延路",
+      "kind": "primary",
+      "centerline": [
+        [
+          -431.978,
+          221.637
+        ],
+        [
+          -433.055,
+          329.25
+        ],
+        [
+          -432.264,
+          344.2
+        ],
+        [
+          -431.895,
+          354.642
+        ],
+        [
+          -431.472,
+          360.831
+        ],
+        [
+          -431.021,
+          369.458
+        ],
+        [
+          -431.076,
+          373.922
+        ],
+        [
+          -431.509,
+          475.401
+        ],
+        [
+          -431.615,
+          499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-764126388-part-1",
+      "sourceId": "osm-way-764126388",
+      "name": "唐延路辅路",
+      "kind": "cycleway",
+      "centerline": [
+        [
+          -413.797,
+          344.423
+        ],
+        [
+          -413.06,
+          354.742
+        ],
+        [
+          -412.609,
+          360.976
+        ],
+        [
+          -411.992,
+          369.603
+        ],
+        [
+          -412.876,
+          414.966
+        ],
+        [
+          -413.161,
+          428.903
+        ],
+        [
+          -413.907,
+          443.875
+        ],
+        [
+          -415.592,
+          458.002
+        ],
+        [
+          -417.93,
+          473.063
+        ],
+        [
+          -419.615,
+          483.917
+        ],
+        [
+          -420.176,
+          495.238
+        ],
+        [
+          -420.301,
+          499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-768143172-part-1",
+      "sourceId": "osm-way-768143172",
+      "name": "科技八路隧道",
+      "kind": "trunk",
+      "centerline": [
+        [
+          -31.503,
+          -381.748
+        ],
+        [
+          -499.998,
+          -382.178
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-768143174-part-1",
+      "sourceId": "osm-way-768143174",
+      "name": "科技八路隧道",
+      "kind": "trunk",
+      "centerline": [
+        [
+          -499.998,
+          -392.63
+        ],
+        [
+          -32.276,
+          -390.865
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-775630502-part-1",
+      "sourceId": "osm-way-775630502",
+      "name": "",
+      "kind": "service",
+      "centerline": [
+        [
+          -76.961,
+          -271.497
+        ],
+        [
+          -115.58,
+          -273.378
+        ],
+        [
+          -129.38,
+          -273.256
+        ],
+        [
+          -338.446,
+          -274.313
+        ],
+        [
+          -383.537,
+          -292.047
+        ],
+        [
+          -383.076,
+          -315.235
+        ],
+        [
+          -363.993,
+          -327.88
+        ],
+        [
+          -338.225,
+          -337.855
+        ],
+        [
+          -275.036,
+          -340.994
+        ],
+        [
+          -266.732,
+          -348.486
+        ],
+        [
+          -195.709,
+          -349.131
+        ],
+        [
+          -115.856,
+          -347.539
+        ],
+        [
+          -115.58,
+          -273.378
+        ]
+      ],
+      "widthMeters": 5.5
+    },
+    {
+      "id": "osm-way-929222927-part-1",
+      "sourceId": "osm-way-929222927",
+      "name": "木塔寺路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          413.474,
+          370.071
+        ],
+        [
+          413.659,
+          363.069
+        ],
+        [
+          413.87,
+          354.263
+        ],
+        [
+          414.22,
+          339.636
+        ],
+        [
+          417.313,
+          267.189
+        ],
+        [
+          421.014,
+          180.304
+        ],
+        [
+          421.566,
+          86.195
+        ],
+        [
+          420.729,
+          66.268
+        ],
+        [
+          420.793,
+          58.788
+        ],
+        [
+          420.545,
+          38.639
+        ],
+        [
+          420.545,
+          -23.722
+        ],
+        [
+          420.37,
+          -47.5
+        ],
+        [
+          420.351,
+          -54.613
+        ],
+        [
+          420.443,
+          -75.152
+        ],
+        [
+          420.609,
+          -346.716
+        ],
+        [
+          420.692,
+          -376.438
+        ],
+        [
+          420.765,
+          -390.765
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-929222931-part-1",
+      "sourceId": "osm-way-929222931",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -75.415,
+          82.31
+        ],
+        [
+          -75.01,
+          39.051
+        ],
+        [
+          -75.746,
+          -105.798
+        ],
+        [
+          -75.848,
+          -125.591
+        ],
+        [
+          -76.243,
+          -131.969
+        ],
+        [
+          -76.372,
+          -147.988
+        ],
+        [
+          -76.998,
+          -225.556
+        ],
+        [
+          -76.961,
+          -271.497
+        ],
+        [
+          -77.136,
+          -353.829
+        ],
+        [
+          -77.182,
+          -377.362
+        ],
+        [
+          -77.228,
+          -395.429
+        ],
+        [
+          -77.182,
+          -417.882
+        ],
+        [
+          -76.998,
+          -497.42
+        ],
+        [
+          -76.839,
+          -499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-929222943-part-1",
+      "sourceId": "osm-way-929222943",
+      "name": "木塔寺东路",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          420.793,
+          58.788
+        ],
+        [
+          427.652,
+          59.2
+        ],
+        [
+          453.934,
+          60.246
+        ],
+        [
+          499.998,
+          62.077
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-969131275-part-1",
+      "sourceId": "osm-way-969131275",
+      "name": "高阁巷",
+      "kind": "tertiary",
+      "centerline": [
+        [
+          98.402,
+          -398.902
+        ],
+        [
+          98.457,
+          -416.602
+        ],
+        [
+          98.66,
+          -486.221
+        ],
+        [
+          98.701,
+          -499.998
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-969131276-part-1",
+      "sourceId": "osm-way-969131276",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -68.492,
+          82.165
+        ],
+        [
+          -77.09,
+          135.921
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-969131277-part-1",
+      "sourceId": "osm-way-969131277",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -84.925,
+          134.608
+        ],
+        [
+          -75.415,
+          82.31
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985057943-part-1",
+      "sourceId": "osm-way-985057943",
+      "name": "科技八路",
+      "kind": "trunk",
+      "centerline": [
+        [
+          278.746,
+          -376.137
+        ],
+        [
+          228.776,
+          -379.577
+        ],
+        [
+          -31.503,
+          -381.748
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985057944-part-1",
+      "sourceId": "osm-way-985057944",
+      "name": "科技八路",
+      "kind": "trunk",
+      "centerline": [
+        [
+          -32.276,
+          -390.865
+        ],
+        [
+          245.614,
+          -390.264
+        ],
+        [
+          286.718,
+          -391.333
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985094944-part-1",
+      "sourceId": "osm-way-985094944",
+      "name": "",
+      "kind": "secondary_link",
+      "centerline": [
+        [
+          -109.385,
+          -395.462
+        ],
+        [
+          -109.219,
+          -377.395
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985094945-part-1",
+      "sourceId": "osm-way-985094945",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -206.535,
+          363.369
+        ],
+        [
+          -202.576,
+          356.267
+        ],
+        [
+          -197.485,
+          347.662
+        ],
+        [
+          -193.158,
+          340.337
+        ],
+        [
+          -109.928,
+          199.551
+        ],
+        [
+          -94.674,
+          166.79
+        ],
+        [
+          -84.925,
+          134.608
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985094946-part-1",
+      "sourceId": "osm-way-985094946",
+      "name": "高新路",
+      "kind": "secondary",
+      "centerline": [
+        [
+          -77.09,
+          135.921
+        ],
+        [
+          -87.383,
+          168.337
+        ],
+        [
+          -105.122,
+          205.752
+        ],
+        [
+          -181.292,
+          341.027
+        ],
+        [
+          -184.965,
+          347.562
+        ],
+        [
+          -189.872,
+          356.267
+        ],
+        [
+          -187.248,
+          363.325
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-985151949-part-1",
+      "sourceId": "osm-way-985151949",
+      "name": "唐延路辅路",
+      "kind": "cycleway",
+      "centerline": [
+        [
+          -448.402,
+          354.72
+        ],
+        [
+          -448.457,
+          343.988
+        ],
+        [
+          -448.549,
+          327.012
+        ],
+        [
+          -448.788,
+          281.638
+        ],
+        [
+          -443.78,
+          220.947
+        ],
+        [
+          -444.811,
+          -60.402
+        ],
+        [
+          -448.181,
+          -83.089
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-986966634-part-1",
+      "sourceId": "osm-way-986966634",
+      "name": "科技八路辅路",
+      "kind": "primary_link",
+      "centerline": [
+        [
+          -427.836,
+          -377.017
+        ],
+        [
+          -446.128,
+          -365.339
+        ],
+        [
+          -499.998,
+          -365.37
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-987175572-part-1",
+      "sourceId": "osm-way-987175572",
+      "name": "科技六路辅路",
+      "kind": "secondary_link",
+      "centerline": [
+        [
+          -448.457,
+          343.988
+        ],
+        [
+          -432.264,
+          344.2
+        ],
+        [
+          -413.797,
+          344.423
+        ],
+        [
+          -395.817,
+          344.69
+        ],
+        [
+          -197.485,
+          347.662
+        ],
+        [
+          -184.965,
+          347.562
+        ],
+        [
+          -44.216,
+          349.777
+        ],
+        [
+          32.506,
+          350.99
+        ],
+        [
+          64.892,
+          353.484
+        ],
+        [
+          138.457,
+          364.104
+        ],
+        [
+          159.299,
+          366.074
+        ],
+        [
+          215.428,
+          365.551
+        ],
+        [
+          243.358,
+          362.79
+        ],
+        [
+          289.913,
+          356.501
+        ],
+        [
+          311.28,
+          354.797
+        ],
+        [
+          352.154,
+          354.586
+        ],
+        [
+          413.87,
+          354.263
+        ],
+        [
+          421.566,
+          354.419
+        ],
+        [
+          499.998,
+          355.477
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-987463449-part-1",
+      "sourceId": "osm-way-987463449",
+      "name": "科技六路辅路",
+      "kind": "secondary_link",
+      "centerline": [
+        [
+          -448.457,
+          343.988
+        ],
+        [
+          -467.596,
+          344.011
+        ],
+        [
+          -499.998,
+          344.052
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-987463450-part-1",
+      "sourceId": "osm-way-987463450",
+      "name": "科技六路辅路",
+      "kind": "secondary_link",
+      "centerline": [
+        [
+          -499.998,
+          369.162
+        ],
+        [
+          -467.283,
+          369.158
+        ],
+        [
+          -448.659,
+          369.314
+        ],
+        [
+          -431.021,
+          369.458
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-987463452-part-1",
+      "sourceId": "osm-way-987463452",
+      "name": "唐延路辅路",
+      "kind": "cycleway",
+      "centerline": [
+        [
+          -419.9,
+          -80.451
+        ],
+        [
+          -419.79,
+          -60.691
+        ],
+        [
+          -420.471,
+          228.973
+        ],
+        [
+          -419.486,
+          242.354
+        ],
+        [
+          -416.945,
+          262.258
+        ],
+        [
+          -415.021,
+          281.494
+        ],
+        [
+          -413.741,
+          327.057
+        ],
+        [
+          -413.797,
+          344.423
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-987463477-part-1",
+      "sourceId": "osm-way-987463477",
+      "name": "唐延路辅路",
+      "kind": "cycleway",
+      "centerline": [
+        [
+          -442.588,
+          499.998
+        ],
+        [
+          -442.455,
+          483.16
+        ],
+        [
+          -443.955,
+          469.323
+        ],
+        [
+          -446.201,
+          452.67
+        ],
+        [
+          -448.07,
+          437.697
+        ],
+        [
+          -449.571,
+          421.979
+        ],
+        [
+          -448.659,
+          369.314
+        ],
+        [
+          -448.503,
+          360.798
+        ],
+        [
+          -448.402,
+          354.72
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-988793730-part-1",
+      "sourceId": "osm-way-988793730",
+      "name": "科技六路辅路",
+      "kind": "secondary_link",
+      "centerline": [
+        [
+          499.998,
+          379.748
+        ],
+        [
+          323.928,
+          377.785
+        ],
+        [
+          309.245,
+          378.208
+        ],
+        [
+          306.483,
+          378.286
+        ],
+        [
+          227.248,
+          387.091
+        ],
+        [
+          207.317,
+          388.75
+        ],
+        [
+          180.077,
+          389.574
+        ],
+        [
+          152.008,
+          388.082
+        ],
+        [
+          62.471,
+          376.46
+        ],
+        [
+          35.231,
+          373.967
+        ],
+        [
+          -186.889,
+          372.297
+        ],
+        [
+          -206.36,
+          372.297
+        ],
+        [
+          -344.209,
+          370.516
+        ],
+        [
+          -396.407,
+          369.837
+        ],
+        [
+          -411.992,
+          369.603
+        ],
+        [
+          -420.959,
+          369.469
+        ],
+        [
+          -431.021,
+          369.458
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-999822429-part-1",
+      "sourceId": "osm-way-999822429",
+      "name": "",
+      "kind": "footway",
+      "centerline": [
+        [
+          110.222,
+          388.06
+        ],
+        [
+          110.627,
+          384.052
+        ],
+        [
+          111.373,
+          381.035
+        ],
+        [
+          112.607,
+          377.573
+        ],
+        [
+          116.363,
+          370.861
+        ],
+        [
+          117.394,
+          368.145
+        ],
+        [
+          117.688,
+          364.438
+        ],
+        [
+          117.596,
+          361.877
+        ],
+        [
+          117.099,
+          359.206
+        ],
+        [
+          116.16,
+          356.1
+        ],
+        [
+          114.43,
+          352.738
+        ],
+        [
+          113.638,
+          350.167
+        ],
+        [
+          113.444,
+          346.76
+        ],
+        [
+          114.678,
+          343.454
+        ],
+        [
+          116.805,
+          340.738
+        ],
+        [
+          119.815,
+          339.157
+        ],
+        [
+          123.617,
+          338.812
+        ],
+        [
+          126.434,
+          339.747
+        ],
+        [
+          128.459,
+          341.873
+        ],
+        [
+          129.739,
+          344.545
+        ],
+        [
+          130.089,
+          347.406
+        ],
+        [
+          129.444,
+          349.632
+        ],
+        [
+          127.474,
+          351.647
+        ],
+        [
+          125.246,
+          352.783
+        ],
+        [
+          122.678,
+          353.139
+        ],
+        [
+          120.312,
+          352.393
+        ],
+        [
+          118.729,
+          350.612
+        ],
+        [
+          117.937,
+          347.651
+        ]
+      ],
+      "widthMeters": 2.0
+    },
+    {
+      "id": "osm-way-999822430-part-1",
+      "sourceId": "osm-way-999822430",
+      "name": "",
+      "kind": "steps",
+      "centerline": [
+        [
+          110.222,
+          388.06
+        ],
+        [
+          125.053,
+          388.694
+        ]
+      ],
+      "widthMeters": 2.0
+    }
+  ],
+  "areas": [
+    {
+      "id": "osm-way-1053827771",
+      "name": "",
+      "kind": "pitch",
+      "outline": [
+        [
+          472.346,
+          -465.939
+        ],
+        [
+          487.223,
+          -459.26
+        ],
+        [
+          491.08,
+          -467.854
+        ],
+        [
+          476.203,
+          -474.522
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-1054199441",
+      "name": "",
+      "kind": "water",
+      "outline": [
+        [
+          174.397,
+          -318.864
+        ],
+        [
+          174.857,
+          -326.133
+        ],
+        [
+          164.823,
+          -326.456
+        ],
+        [
+          159.483,
+          -318.93
+        ],
+        [
+          157.034,
+          -311.405
+        ],
+        [
+          153.011,
+          -304.481
+        ],
+        [
+          152.551,
+          -300.774
+        ],
+        [
+          157.173,
+          -299.26
+        ],
+        [
+          155.451,
+          -283.809
+        ],
+        [
+          151.032,
+          -283.486
+        ],
+        [
+          149.311,
+          -277.408
+        ],
+        [
+          156.574,
+          -275.894
+        ],
+        [
+          159.281,
+          -266.454
+        ],
+        [
+          156.049,
+          -257.671
+        ],
+        [
+          153.674,
+          -251.204
+        ],
+        [
+          154.862,
+          -245.059
+        ],
+        [
+          149.384,
+          -238.135
+        ],
+        [
+          150.765,
+          -234.238
+        ],
+        [
+          149.182,
+          -229.418
+        ],
+        [
+          147.11,
+          -226.346
+        ],
+        [
+          145.223,
+          -223.541
+        ],
+        [
+          141.983,
+          -219.778
+        ],
+        [
+          139.212,
+          -216.015
+        ],
+        [
+          138.687,
+          -208.223
+        ],
+        [
+          142.646,
+          -204.405
+        ],
+        [
+          145.352,
+          -199.718
+        ],
+        [
+          149.384,
+          -194.564
+        ],
+        [
+          155.055,
+          -184.79
+        ],
+        [
+          160.606,
+          -179.514
+        ],
+        [
+          164.362,
+          -168.616
+        ],
+        [
+          171.037,
+          -161.959
+        ],
+        [
+          183.575,
+          -157.862
+        ],
+        [
+          189.448,
+          -159.777
+        ],
+        [
+          195.193,
+          -161.625
+        ],
+        [
+          201.131,
+          -159.243
+        ],
+        [
+          206.019,
+          -157.528
+        ],
+        [
+          207.142,
+          -152.385
+        ],
+        [
+          217.112,
+          -153.632
+        ],
+        [
+          222.525,
+          -164.196
+        ],
+        [
+          230.378,
+          -168.95
+        ],
+        [
+          233.609,
+          -177.733
+        ],
+        [
+          241.075,
+          -185.391
+        ],
+        [
+          256.053,
+          -189.878
+        ],
+        [
+          268.665,
+          -197.804
+        ],
+        [
+          277.116,
+          -209.615
+        ],
+        [
+          281.406,
+          -222.951
+        ],
+        [
+          282.99,
+          -236.22
+        ],
+        [
+          287.823,
+          -246.706
+        ],
+        [
+          288.55,
+          -254.821
+        ],
+        [
+          283.533,
+          -264.851
+        ],
+        [
+          267.377,
+          -275.115
+        ],
+        [
+          258.603,
+          -284.755
+        ],
+        [
+          253.779,
+          -299.082
+        ],
+        [
+          253.448,
+          -307.921
+        ],
+        [
+          240.91,
+          -316.37
+        ],
+        [
+          225.628,
+          -321.947
+        ],
+        [
+          217.84,
+          -318.841
+        ],
+        [
+          211.699,
+          -324.519
+        ],
+        [
+          203.386,
+          -325.843
+        ],
+        [
+          202.595,
+          -319.108
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-1054199545",
+      "name": "湖心岛",
+      "kind": "park",
+      "outline": [
+        [
+          161.849,
+          -226.88
+        ],
+        [
+          160.367,
+          -222.862
+        ],
+        [
+          165.688,
+          -210.628
+        ],
+        [
+          169.803,
+          -207.845
+        ],
+        [
+          177.232,
+          -203.37
+        ],
+        [
+          184.072,
+          -199.963
+        ],
+        [
+          187.432,
+          -189.421
+        ],
+        [
+          196.979,
+          -187.918
+        ],
+        [
+          206.949,
+          -190.824
+        ],
+        [
+          212.528,
+          -194.497
+        ],
+        [
+          215.731,
+          -201.744
+        ],
+        [
+          214.857,
+          -209.448
+        ],
+        [
+          211.331,
+          -216.984
+        ],
+        [
+          208.201,
+          -221.604
+        ],
+        [
+          204.786,
+          -225.088
+        ],
+        [
+          203.911,
+          -231.032
+        ],
+        [
+          202.641,
+          -235.752
+        ],
+        [
+          197.752,
+          -237.222
+        ],
+        [
+          192.358,
+          -237.467
+        ],
+        [
+          188.537,
+          -235.953
+        ],
+        [
+          183.032,
+          -238.001
+        ],
+        [
+          177.527,
+          -240.684
+        ],
+        [
+          171.304,
+          -238.569
+        ],
+        [
+          166.332,
+          -236.008
+        ],
+        [
+          163.755,
+          -234.394
+        ],
+        [
+          163.212,
+          -232.246
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-259324566",
+      "name": "木塔寺生态遗址公园",
+      "kind": "park",
+      "outline": [
+        [
+          -3.903,
+          347.617
+        ],
+        [
+          -13.072,
+          127.405
+        ],
+        [
+          -64.073,
+          126.581
+        ],
+        [
+          -109.339,
+          125.847
+        ],
+        [
+          -110.425,
+          156.393
+        ],
+        [
+          -204.242,
+          156.07
+        ],
+        [
+          -204.657,
+          130.589
+        ],
+        [
+          -363.947,
+          129.832
+        ],
+        [
+          -409.856,
+          129.609
+        ],
+        [
+          -412.821,
+          129.598
+        ],
+        [
+          -412.904,
+          79.037
+        ],
+        [
+          -207.704,
+          81.041
+        ],
+        [
+          -207.685,
+          55.237
+        ],
+        [
+          -108.206,
+          56.15
+        ],
+        [
+          -107.553,
+          87.876
+        ],
+        [
+          -82.706,
+          87.842
+        ],
+        [
+          147.534,
+          87.542
+        ],
+        [
+          164.049,
+          -112.8
+        ],
+        [
+          119.548,
+          -129.743
+        ],
+        [
+          85.56,
+          -135.888
+        ],
+        [
+          41.749,
+          -137.58
+        ],
+        [
+          38.398,
+          -151.495
+        ],
+        [
+          38.122,
+          -162.894
+        ],
+        [
+          42.191,
+          -178.256
+        ],
+        [
+          50.54,
+          -192.449
+        ],
+        [
+          57.252,
+          -209.169
+        ],
+        [
+          58.55,
+          -229.274
+        ],
+        [
+          56.847,
+          -248.899
+        ],
+        [
+          50.946,
+          -262.636
+        ],
+        [
+          45.735,
+          -283.085
+        ],
+        [
+          42.163,
+          -298.548
+        ],
+        [
+          40.598,
+          -314.032
+        ],
+        [
+          41.187,
+          -337.521
+        ],
+        [
+          44.465,
+          -356.69
+        ],
+        [
+          82.282,
+          -362.211
+        ],
+        [
+          84.28,
+          -362.2
+        ],
+        [
+          151.769,
+          -361.744
+        ],
+        [
+          284.546,
+          -360.853
+        ],
+        [
+          284.159,
+          -326.389
+        ],
+        [
+          306.944,
+          -323.016
+        ],
+        [
+          318.589,
+          -315.279
+        ],
+        [
+          329.36,
+          -303.245
+        ],
+        [
+          334.46,
+          -290.065
+        ],
+        [
+          336.614,
+          -274.859
+        ],
+        [
+          332.149,
+          -257.215
+        ],
+        [
+          323.229,
+          -241.43
+        ],
+        [
+          321.922,
+          -147.654
+        ],
+        [
+          260.758,
+          -146.485
+        ],
+        [
+          228.656,
+          -76.699
+        ],
+        [
+          218.42,
+          -82.042
+        ],
+        [
+          203.754,
+          90.169
+        ],
+        [
+          316.453,
+          89.957
+        ],
+        [
+          317.503,
+          55.025
+        ],
+        [
+          412.268,
+          54.146
+        ],
+        [
+          412.618,
+          152.43
+        ],
+        [
+          319.924,
+          146.129
+        ],
+        [
+          319.261,
+          127.439
+        ],
+        [
+          202.282,
+          126.715
+        ],
+        [
+          185.066,
+          361.521
+        ],
+        [
+          150.047,
+          361.855
+        ],
+        [
+          33.279,
+          348.207
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-374519287",
+      "name": "",
+      "kind": "water",
+      "outline": [
+        [
+          101.394,
+          269.159
+        ],
+        [
+          88.239,
+          274.28
+        ],
+        [
+          77.155,
+          265.809
+        ],
+        [
+          77.155,
+          256.035
+        ],
+        [
+          55.005,
+          255.389
+        ],
+        [
+          50.439,
+          229.975
+        ],
+        [
+          49.795,
+          214.335
+        ],
+        [
+          47.834,
+          198.694
+        ],
+        [
+          60.216,
+          182.408
+        ],
+        [
+          67.387,
+          181.106
+        ],
+        [
+          56.303,
+          173.28
+        ],
+        [
+          54.352,
+          153.087
+        ],
+        [
+          67.387,
+          142.01
+        ],
+        [
+          76.51,
+          132.236
+        ],
+        [
+          92.796,
+          126.37
+        ],
+        [
+          112.349,
+          137.446
+        ],
+        [
+          114.954,
+          149.825
+        ],
+        [
+          114.954,
+          160.256
+        ],
+        [
+          79.116,
+          158.296
+        ],
+        [
+          66.08,
+          158.953
+        ],
+        [
+          60.87,
+          170.029
+        ],
+        [
+          63.475,
+          176.542
+        ],
+        [
+          77.808,
+          179.803
+        ],
+        [
+          88.239,
+          189.577
+        ],
+        [
+          91.498,
+          205.863
+        ],
+        [
+          85.633,
+          214.335
+        ],
+        [
+          70.646,
+          219.544
+        ],
+        [
+          63.475,
+          229.975
+        ],
+        [
+          77.155,
+          235.185
+        ],
+        [
+          83.673,
+          225.411
+        ],
+        [
+          95.401,
+          219.544
+        ],
+        [
+          102.572,
+          219.544
+        ],
+        [
+          107.783,
+          230.632
+        ],
+        [
+          108.436,
+          257.348
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-987175576",
+      "name": "",
+      "kind": "pitch",
+      "outline": [
+        [
+          450.326,
+          -413.596
+        ],
+        [
+          450.639,
+          -434.647
+        ],
+        [
+          410.096,
+          -434.491
+        ],
+        [
+          409.783,
+          -413.129
+        ]
+      ]
+    },
+    {
+      "id": "osm-way-987175577",
+      "name": "",
+      "kind": "pitch",
+      "outline": [
+        [
+          438.947,
+          -466.774
+        ],
+        [
+          439.26,
+          -485.954
+        ],
+        [
+          406.819,
+          -485.954
+        ],
+        [
+          407.132,
+          -466.93
+        ]
+      ]
+    }
+  ],
+  "pointsOfInterest": [
+    {
+      "id": "osm-node-8967863450",
+      "name": "parking",
+      "position": [
+        -102.268,
+        10.854
+      ],
+      "kind": "parking"
+    },
+    {
+      "id": "osm-node-8967863452",
+      "name": "星巴克",
+      "position": [
+        -199.391,
+        -70.343
+      ],
+      "kind": "cafe"
+    },
+    {
+      "id": "osm-node-8967863453",
+      "name": "万达影城(万达广场高新店)",
+      "position": [
+        -156.372,
+        -55.381
+      ],
+      "kind": "cinema"
+    },
+    {
+      "id": "osm-node-8967863460",
+      "name": "必胜客",
+      "position": [
+        -321.774,
+        33.362
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-8967863463",
+      "name": "哈根达斯",
+      "position": [
+        -329.839,
+        -32.483
+      ],
+      "kind": "ice_cream"
+    },
+    {
+      "id": "osm-node-8967863469",
+      "name": "麦当劳",
+      "position": [
+        -245.135,
+        34.977
+      ],
+      "kind": "fast_food"
+    },
+    {
+      "id": "osm-node-8967863475",
+      "name": "味千拉面",
+      "position": [
+        -273.618,
+        38.483
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-8967863476",
+      "name": "Dairy Queen",
+      "position": [
+        -321.148,
+        16.041
+      ],
+      "kind": "fast_food"
+    },
+    {
+      "id": "osm-node-8967863477",
+      "name": "海底捞火锅",
+      "position": [
+        -368.218,
+        -19.525
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9110351347",
+      "name": "奈雪的茶",
+      "position": [
+        -340.472,
+        39.296
+      ],
+      "kind": "cafe"
+    },
+    {
+      "id": "osm-node-9121557024",
+      "name": "中国银行",
+      "position": [
+        -125.974,
+        1.815
+      ],
+      "kind": "bank"
+    },
+    {
+      "id": "osm-node-9139487283",
+      "name": "西贝莜面村(万达广场高新店)",
+      "position": [
+        -200.91,
+        -48.869
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9139487284",
+      "name": "上下九广州菜馆(万达广场高新店)",
+      "position": [
+        -202.456,
+        -77.89
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9139487285",
+      "name": "眉州东坡酒楼(万达广场高新店)",
+      "position": [
+        -335.04,
+        50.506
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9139487286",
+      "name": "站点比萨(万达广场高新店)",
+      "position": [
+        -332.398,
+        -8.037
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9139487288",
+      "name": "蓉李记(高新万达店)",
+      "position": [
+        -236.159,
+        -3.996
+      ],
+      "kind": "restaurant"
+    },
+    {
+      "id": "osm-node-9147784498",
+      "name": "招商银行",
+      "position": [
+        -383.896,
+        -150.504
+      ],
+      "kind": "bank"
+    },
+    {
+      "id": "osm-node-9152287195",
+      "name": "toilets",
+      "position": [
+        409.332,
+        66.769
+      ],
+      "kind": "toilets"
+    },
+    {
+      "id": "osm-node-9229794812",
+      "name": "长安银行(西安高新路支行)",
+      "position": [
+        -153.545,
+        406.472
+      ],
+      "kind": "bank"
+    },
+    {
+      "id": "osm-node-9297167453",
+      "name": "华夏银行",
+      "position": [
+        450.574,
+        237.055
+      ],
+      "kind": "bank"
+    },
+    {
+      "id": "osm-node-9306777636",
+      "name": "肯德基",
+      "position": [
+        -203.469,
+        -72.925
+      ],
+      "kind": "fast_food"
+    }
+  ],
+  "landingPads": [],
+  "fixedNoFlyZones": [],
+  "source": {
+    "provider": "OpenStreetMap",
+    "license": "ODbL-1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "url": "https://www.openstreetmap.org/copyright",
+    "boundaryElement": "bounding-box",
+    "rawFile": "source/osm.json",
+    "skippedBuildingRelations": []
+  },
+  "statistics": {
+    "buildingCount": 59,
+    "roadCount": 66,
+    "areaCount": 7,
+    "pointOfInterestCount": 21
+  }
+}

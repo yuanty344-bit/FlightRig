@@ -54,6 +54,8 @@ class VehicleConnection final : public QObject
     Q_PROPERTY(bool preciseTurnActive READ preciseTurnActive NOTIFY preciseTurnChanged)
     Q_PROPERTY(double preciseTurnTargetDegrees READ preciseTurnTargetDegrees NOTIFY preciseTurnChanged)
     Q_PROPERTY(double controlSpeedMetersPerSecond READ controlSpeedMetersPerSecond WRITE setControlSpeedMetersPerSecond NOTIFY controlSpeedChanged)
+    Q_PROPERTY(double controlVerticalSpeedMetersPerSecond READ controlVerticalSpeedMetersPerSecond WRITE setControlVerticalSpeedMetersPerSecond NOTIFY controlSpeedChanged)
+    Q_PROPERTY(double controlYawRateDegreesPerSecond READ controlYawRateDegreesPerSecond WRITE setControlYawRateDegreesPerSecond NOTIFY controlSpeedChanged)
     Q_PROPERTY(QString controlCommandText READ controlCommandText NOTIFY controlCommandChanged)
     Q_PROPERTY(bool globalPositionAvailable READ globalPositionAvailable NOTIFY globalPositionChanged)
     Q_PROPERTY(bool missionBusy READ missionBusy NOTIFY missionStateChanged)
@@ -114,6 +116,14 @@ public:
     {
         return m_controlSpeedMetersPerSecond;
     }
+    [[nodiscard]] double controlVerticalSpeedMetersPerSecond() const
+    {
+        return m_controlVerticalSpeedMetersPerSecond;
+    }
+    [[nodiscard]] double controlYawRateDegreesPerSecond() const
+    {
+        return m_controlYawRateDegreesPerSecond;
+    }
     [[nodiscard]] QString controlCommandText() const;
     [[nodiscard]] bool globalPositionAvailable() const { return m_globalPositionAvailable; }
     [[nodiscard]] bool missionBusy() const { return m_missionBusy; }
@@ -151,6 +161,8 @@ public:
     void setSitlExpected(bool expected);
     void setTakeoffAltitude(double value);
     void setControlSpeedMetersPerSecond(double value);
+    void setControlVerticalSpeedMetersPerSecond(double value);
+    void setControlYawRateDegreesPerSecond(double value);
 
 signals:
     void connectedChanged();
@@ -310,6 +322,8 @@ private:
     double m_preciseTurnTargetDegrees{0.0};
     double m_preciseTurnRequestedDegrees{0.0};
     double m_controlSpeedMetersPerSecond{1.0};
+    double m_controlVerticalSpeedMetersPerSecond{0.5};
+    double m_controlYawRateDegreesPerSecond{30.0};
     double m_controlForwardAxis{0.0};
     double m_controlRightAxis{0.0};
     double m_controlUpAxis{0.0};

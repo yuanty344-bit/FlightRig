@@ -14,6 +14,8 @@
 #include <QTimer>
 #include <QtQml/qqml.h>
 
+#include <memory>
+
 int main(int argc, char *argv[])
 {
     QGuiApplication application(argc, argv);
@@ -37,7 +39,8 @@ int main(int argc, char *argv[])
         return renderer.isValid() && image.save(arguments.at(exportIconIndex + 1)) ? 0 : 4;
     }
 
-    AppController controller;
+    std::unique_ptr<AppController> controllerOwner(createAppController());
+    AppController &controller = *controllerOwner;
 
     const qsizetype modelIndex = arguments.indexOf(QStringLiteral("--model"));
     if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {
@@ -50,6 +53,12 @@ int main(int argc, char *argv[])
     const bool dynamicScenePreview = arguments.contains(QStringLiteral("--scene-preview-dynamic"));
     if (arguments.contains(QStringLiteral("--scene-preview")) && !dynamicScenePreview) {
         controller.prepareFlightScenePreview();
+    }
+    const qsizetype replayIndex = arguments.indexOf(QStringLiteral("--replay-session"));
+    if (replayIndex >= 0 && replayIndex + 1 < arguments.size()
+        && !controller.startSessionReplay(arguments.at(replayIndex + 1))) {
+        qWarning("Unable to start requested replay session: %s",
+                 qPrintable(arguments.at(replayIndex + 1)));
     }
 
     if (arguments.contains(QStringLiteral("--connection-test"))) {

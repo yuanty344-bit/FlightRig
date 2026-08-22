@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "xian_mutasi",
+  "sourceScene": "city-sources/xian_mutasi/xian_mutasi.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 630,
+      "triangles": 1024
+    },
+    "roads": {
+      "vertices": 2520,
+      "triangles": 1260
+    },
+    "green_areas": {
+      "vertices": 99,
+      "triangles": 89
+    },
+    "water": {
+      "vertices": 94,
+      "triangles": 90
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/xian_mutasi.sdf": "eacfe5f3f5c5ca5d27956c752a2c0237cecfc47da19789ffdce89caecf05e2a7",
+    "simulation/models/xian_mutasi/model.sdf": "b574b264bc9ce1198536dda5924d7315209b077e00b2a27a2c5a6cc51f282356",
+    "simulation/models/xian_mutasi/model.config": "9cb6fc87af0620ffe2dcf10ed8c41ec5c5f68443387f72a4edfee62bfd82c201",
+    "simulation/models/xian_mutasi/ATTRIBUTION.md": "939d3d62f3e127e56b3c9d21d8349f36aea4ad492a73b0510580a84cb813cc59",
+    "simulation/models/xian_mutasi/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/xian_mutasi/meshes/buildings.obj": "84abbd6712d48dbf8a8cfed76f65047d09654c4cc2f48814fc3311b29abdd46c",
+    "simulation/models/xian_mutasi/meshes/roads.obj": "1196414f30fba399e42af83a83ec14e0b1732e483582e52362f9d3b2e2c4bec2",
+    "simulation/models/xian_mutasi/meshes/green_areas.obj": "98065c66cfc1b2793583b4e66a6f17b72b8545690f01e2d082b5a41eef210c15",
+    "simulation/models/xian_mutasi/meshes/water.obj": "1558eae54f052ace319a75d2c1a36a38c64eb8abd609a7a8561526aea3a92ab8"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

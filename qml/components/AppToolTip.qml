@@ -4,11 +4,13 @@ import FlightBench
 
 ToolTip {
     id: root
+    property int maximumWidth: 360
+
     delay: 450
     timeout: 3500
     padding: 0
-    implicitWidth: tipLabel.implicitWidth + 16
-    implicitHeight: 26
+    implicitWidth: Math.min(maximumWidth, tipLabel.implicitWidth + 16)
+    implicitHeight: Math.max(26, tipLabel.implicitHeight + 10)
 
     contentItem: Rectangle {
         radius: Theme.radiusSmall
@@ -18,11 +20,20 @@ ToolTip {
 
         Text {
             id: tipLabel
-            anchors.centerIn: parent
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            anchors.topMargin: 5
+            anchors.bottomMargin: 5
             text: root.text
             color: Theme.textSecondary
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textTiny
+            wrapMode: Text.Wrap
+            maximumLineCount: 3
+            elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
     }
 

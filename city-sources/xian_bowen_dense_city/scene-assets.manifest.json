@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "xian_bowen_dense_city",
+  "sourceScene": "city-sources/xian_bowen_dense_city/xian_bowen_dense_city.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 5810,
+      "triangles": 10580
+    },
+    "roads": {
+      "vertices": 2624,
+      "triangles": 1312
+    },
+    "green_areas": {
+      "vertices": 51,
+      "triangles": 29
+    },
+    "water": {
+      "vertices": 0,
+      "triangles": 0
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/xian_bowen_dense_city.sdf": "d508c12730648ac866511852d0f321ed300c0493d8cc99c1cae9175cee1b6b07",
+    "simulation/models/xian_bowen_dense_city/model.sdf": "d9b12da0c50c086b77f974bfea0c393828718ea245825b1cd05badbe33cfa8d9",
+    "simulation/models/xian_bowen_dense_city/model.config": "d60c424b9d63910e86f8e801d0655167dddf3b540296b57cc82eb5f3bf249db2",
+    "simulation/models/xian_bowen_dense_city/ATTRIBUTION.md": "b3592611396d988d0037aa77aa22311396f3bc321f260d3f864a57e568311479",
+    "simulation/models/xian_bowen_dense_city/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/xian_bowen_dense_city/meshes/buildings.obj": "6a2a2bb3bbd7e10d199fc220ce0aa7ad391c5be84e991bc8c9332ce742977160",
+    "simulation/models/xian_bowen_dense_city/meshes/roads.obj": "232ac890e98bdddd2ede8f862940da1afdedba35f54bd1c3c97463b19be66483",
+    "simulation/models/xian_bowen_dense_city/meshes/green_areas.obj": "6a5ba6701fc2b117237e47adfc5d31fcd0d0f202bd691d197dcb766839ad50eb",
+    "simulation/models/xian_bowen_dense_city/meshes/water.obj": "2f886de8dc23b185793d8906d8798389831d3d81e6365f3f7c67b68fd3a437d4"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

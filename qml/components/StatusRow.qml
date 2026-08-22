@@ -7,9 +7,13 @@ Item {
     property string label: "状态"
     property string value: "—"
     property bool complete: false
+    property string state: complete ? "complete" : "pending"
     property bool dividerVisible: true
     property url iconSource: "qrc:/icons/circle-check.svg"
-    property color stateColor: complete ? Theme.success : Theme.textFaint
+    property color stateColor: state === "complete" ? Theme.success
+                               : state === "current" ? Theme.accent
+                               : state === "problem" ? Theme.warning
+                               : Theme.textFaint
     implicitHeight: 54
 
     RowLayout {
@@ -33,7 +37,10 @@ Item {
         }
         Text {
             text: root.value
-            color: root.complete ? Theme.textMuted : Theme.textFaint
+            color: root.state === "problem" ? Theme.warning
+                   : root.state === "current" ? Theme.accent
+                   : root.state === "complete" ? Theme.textMuted
+                   : Theme.textFaint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textTiny
         }

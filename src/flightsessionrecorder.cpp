@@ -1,4 +1,6 @@
 #include "flightsessionrecorder.h"
+#include "acceptanceevaluator.h"
+#include "routedeviationanalyzer.h"
 
 #include <QDir>
 #include <QJsonDocument>
@@ -10,14 +12,74 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
-FlightSessionRecorder::FlightSessionRecorder(QObject *parent)
+namespace {
+struct RecordedFlightSummary
+{
+    bool available{false};
+    bool sawTelemetry{false};
+    bool sawInAir{false};
+    double maximumTelemetryGapSeconds{0.0};
+};
+
+RecordedFlightSummary summarizeRecordedFlight(const QString &csvPath)
+{
+    QFile file(csvPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
+    QTextStream stream(&file);
+    const QStringList header = stream.readLine().split(QLatin1Char(','));
+    const int elapsedColumn = header.indexOf(QStringLiteral("elapsed_ms"));
+    const int inAirColumn = header.indexOf(QStringLiteral("in_air"));
+    const int telemetryColumn = header.indexOf(QStringLiteral("telemetry_available"));
+    if (elapsedColumn < 0 || inAirColumn < 0 || telemetryColumn < 0) return {};
+
+    RecordedFlightSummary summary;
+    summary.available = true;
+    qint64 gapStartedMs = -1;
+    qint64 maximumGapMs = 0;
+    qint64 lastElapsedMs = 0;
+    const int largestColumn = std::max({elapsedColumn, inAirColumn, telemetryColumn});
+    while (!stream.atEnd()) {
+        const QStringList fields = stream.readLine().split(QLatin1Char(','));
+        if (fields.size() <= largestColumn) continue;
+        bool elapsedValid = false;
+        const qint64 elapsedMs = fields.at(elapsedColumn).toLongLong(&elapsedValid);
+        if (!elapsedValid) continue;
+        lastElapsedMs = elapsedMs;
+        summary.sawInAir = summary.sawInAir
+                           || fields.at(inAirColumn) == QStringLiteral("1");
+        const bool telemetryAvailable = fields.at(telemetryColumn) == QStringLiteral("1");
+        if (telemetryAvailable) {
+            if (summary.sawTelemetry && gapStartedMs >= 0)
+                maximumGapMs = std::max(maximumGapMs, elapsedMs - gapStartedMs);
+            summary.sawTelemetry = true;
+            gapStartedMs = -1;
+        } else if (summary.sawTelemetry && gapStartedMs < 0) {
+            gapStartedMs = elapsedMs;
+        }
+    }
+    if (summary.sawTelemetry && gapStartedMs >= 0)
+        maximumGapMs = std::max(maximumGapMs, lastElapsedMs - gapStartedMs);
+    summary.maximumTelemetryGapSeconds = maximumGapMs / 1000.0;
+    return summary;
+}
+}
+
+FlightSessionRecorder::FlightSessionRecorder(QObject *parent,
+                                             const QString &sessionsDirectory)
     : QObject(parent)
 {
     const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    m_sessionsDirectory = QDir(documents).filePath(QStringLiteral("FlightBench/Sessions"));
+    m_sessionsDirectory = sessionsDirectory.isEmpty()
+                              ? QDir(documents).filePath(QStringLiteral("FlightBench/Sessions"))
+                              : QDir::cleanPath(QFileInfo(sessionsDirectory).absoluteFilePath());
+    m_trashDirectory = QDir(QFileInfo(m_sessionsDirectory).absolutePath())
+                           .filePath(QStringLiteral("Trash"));
     QDir().mkpath(m_sessionsDirectory);
+    QDir().mkpath(m_trashDirectory);
     loadCompletedSessions();
+    loadTrashedSessions();
 
     m_summaryTimer.setInterval(1000);
     connect(&m_summaryTimer, &QTimer::timeout, this, [this] {
@@ -50,13 +112,15 @@ QVariantMap FlightSessionRecorder::activeSession() const
     summary.insert(QStringLiteral("healthResult"), m_healthPassed ? QStringLiteral("已通过")
                                                                   : QStringLiteral("等待中"));
     summary.insert(QStringLiteral("takeoffResult"),
-                   !m_takeoffRequested ? QStringLiteral("未执行")
-                                       : m_sawInAir ? QStringLiteral("成功")
+                   m_sawInAir ? QStringLiteral("成功")
+                              : !m_takeoffRequested ? QStringLiteral("未执行")
                                                     : QStringLiteral("进行中"));
     summary.insert(QStringLiteral("landingResult"),
-                   !m_landingRequested ? QStringLiteral("未执行")
-                                       : (!m_inAir && !m_armed) ? QStringLiteral("成功")
-                                                                : QStringLiteral("进行中"));
+                   m_landingRequested
+                       ? (!m_inAir && !m_armed ? QStringLiteral("成功")
+                                              : QStringLiteral("进行中"))
+                       : (m_sawInAir && !m_inAir && !m_armed ? QStringLiteral("成功")
+                                                             : QStringLiteral("未执行")));
     summary.insert(QStringLiteral("issueCount"), m_issueCount);
     summary.insert(QStringLiteral("sampleCount"), m_sampleCount);
     summary.insert(QStringLiteral("missionMaxCrossTrackError"), m_maxMissionCrossTrackError);
@@ -67,13 +131,31 @@ QVariantMap FlightSessionRecorder::activeSession() const
                        ? qRound(100.0 * m_missionCompletedItems / m_missionTotalItems)
                        : 0);
     summary.insert(QStringLiteral("missionInterruptionReason"), m_missionInterruptionReason);
+    qint64 currentMaximumGapMs = m_maxTelemetryGapMs;
+    if (m_telemetryGapStartedMs >= 0 && m_lastSampleElapsedMs >= m_telemetryGapStartedMs)
+        currentMaximumGapMs = std::max(currentMaximumGapMs,
+                                       m_lastSampleElapsedMs - m_telemetryGapStartedMs);
+    summary.insert(QStringLiteral("maximumTelemetryGapSeconds"),
+                   currentMaximumGapMs / 1000.0);
+    summary.insert(QStringLiteral("obstacleClearanceAvailable"),
+                   m_obstacleClearanceAvailable);
+    summary.insert(QStringLiteral("minimumObstacleClearanceMeters"),
+                   m_minimumObstacleClearanceMeters);
+    summary.insert(QStringLiteral("obstacleInfringementCount"),
+                   m_obstacleInfringementCount);
     summary.insert(QStringLiteral("status"), QStringLiteral("记录中"));
     return summary;
 }
 
 bool FlightSessionRecorder::startSession(const QString &modelId,
                                          const QString &modelName,
-                                         double takeoffAltitudeMeters)
+                                         double takeoffAltitudeMeters,
+                                         const QString &worldId,
+                                         const QString &worldName,
+                                         const QString &applicationVersion,
+                                         const QString &simulationImage,
+                                         const QString &qtVersion,
+                                         const QString &mavsdkVersion)
 {
     if (m_active) finishSession(QStringLiteral("开始新会话"));
     if (!QDir().mkpath(m_sessionsDirectory)) {
@@ -121,17 +203,35 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
     m_maxHorizontalSpeed = 0.0;
     m_maxVerticalSpeed = 0.0;
     m_maxMissionCrossTrackError = 0.0;
+    m_lastSampleElapsedMs = -1;
+    m_sawTelemetry = false;
+    m_telemetryGapStartedMs = -1;
+    m_maxTelemetryGapMs = 0;
+    m_obstacleClearanceAvailable = false;
+    m_minimumObstacleClearanceMeters = 0.0;
+    m_obstacleInfringementCount = 0;
+    m_lastObstacleInfringed = false;
     m_missionCompletedItems = 0;
     m_missionTotalItems = 0;
     m_missionInterruptionReason.clear();
 
     m_metadata = {
+        {QStringLiteral("format"), QStringLiteral("FlightBenchSession")},
+        {QStringLiteral("formatVersion"), 4},
         {QStringLiteral("id"), sessionId},
         {QStringLiteral("folderPath"), QDir::toNativeSeparators(folderPath)},
         {QStringLiteral("csvPath"), QDir::toNativeSeparators(csvPath)},
         {QStringLiteral("eventsPath"), QDir::toNativeSeparators(eventsPath)},
         {QStringLiteral("modelId"), modelId},
         {QStringLiteral("modelName"), modelName},
+        {QStringLiteral("worldId"), worldId},
+        {QStringLiteral("worldName"), worldName},
+        {QStringLiteral("displayName"), QString()},
+        {QStringLiteral("notes"), QString()},
+        {QStringLiteral("applicationVersion"), applicationVersion},
+        {QStringLiteral("qtVersion"), qtVersion},
+        {QStringLiteral("mavsdkVersion"), mavsdkVersion},
+        {QStringLiteral("simulationImage"), simulationImage},
         {QStringLiteral("startedAt"), m_startedAt.toString(Qt::ISODate)},
         {QStringLiteral("startedLabel"), m_startedAt.toString(QStringLiteral("MM月dd日 HH:mm"))},
         {QStringLiteral("takeoffAltitude"), takeoffAltitudeMeters},
@@ -150,6 +250,23 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
         {QStringLiteral("missionTotalItems"), 0},
         {QStringLiteral("missionCompletionPercent"), 0},
         {QStringLiteral("missionInterruptionReason"), QString()},
+        {QStringLiteral("maximumTelemetryGapSeconds"), 0.0},
+        {QStringLiteral("obstacleClearanceAvailable"), false},
+        {QStringLiteral("minimumObstacleClearanceMeters"), 0.0},
+        {QStringLiteral("obstacleInfringementCount"), 0},
+        {QStringLiteral("testPlanId"), QString()},
+        {QStringLiteral("testPlanName"), QString()},
+        {QStringLiteral("testPlanDescription"), QString()},
+        {QStringLiteral("testPlanType"), QString()},
+        {QStringLiteral("testPlanTypeLabel"), QString()},
+        {QStringLiteral("testPlanEndAction"), QStringLiteral("hold")},
+        {QStringLiteral("testPlanAcceptancePreset"), QStringLiteral("standard")},
+        {QStringLiteral("testPlanAcceptanceRules"), QVariantMap{}},
+        {QStringLiteral("testPlanControlSettings"), QVariantMap{}},
+        {QStringLiteral("testPlanBuiltIn"), false},
+        {QStringLiteral("testResult"), QStringLiteral("running")},
+        {QStringLiteral("testResultLabel"), QStringLiteral("进行中")},
+        {QStringLiteral("testResultReason"), QStringLiteral("测试正在进行")},
         {QStringLiteral("status"), QStringLiteral("记录中")},
     };
 
@@ -172,12 +289,14 @@ void FlightSessionRecorder::finishSession(const QString &reason)
     if (!m_active) return;
     const QDateTime endedAt = QDateTime::currentDateTime();
     const int duration = std::max(0, static_cast<int>(m_startedAt.secsTo(endedAt)));
-    const QString takeoffResult = !m_takeoffRequested ? QStringLiteral("未执行")
-                                                      : m_sawInAir ? QStringLiteral("成功")
+    const QString takeoffResult = m_sawInAir ? QStringLiteral("成功")
+                                             : !m_takeoffRequested ? QStringLiteral("未执行")
                                                                    : QStringLiteral("未完成");
-    const QString landingResult = !m_landingRequested ? QStringLiteral("未执行")
-                                                      : (!m_inAir && !m_armed) ? QStringLiteral("成功")
-                                                                               : QStringLiteral("未完成");
+    const QString landingResult = m_sawInAir
+                                      ? (!m_inAir && !m_armed ? QStringLiteral("成功")
+                                                               : QStringLiteral("未完成"))
+                                      : (!m_landingRequested ? QStringLiteral("未执行")
+                                                              : QStringLiteral("未完成"));
     QString status = m_issueCount > 0 ? QStringLiteral("有异常") : QStringLiteral("完成");
     if (takeoffResult == QStringLiteral("未完成") || landingResult == QStringLiteral("未完成")) {
         status = QStringLiteral("未完成");
@@ -203,8 +322,51 @@ void FlightSessionRecorder::finishSession(const QString &reason)
                           ? qRound(100.0 * m_missionCompletedItems / m_missionTotalItems)
                           : 0);
     m_metadata.insert(QStringLiteral("missionInterruptionReason"), m_missionInterruptionReason);
-    m_metadata.insert(QStringLiteral("status"), status);
+    if (m_telemetryGapStartedMs >= 0)
+        m_maxTelemetryGapMs = std::max(m_maxTelemetryGapMs,
+                                       m_lastSampleElapsedMs - m_telemetryGapStartedMs);
+    m_metadata.insert(QStringLiteral("maximumTelemetryGapSeconds"),
+                      m_maxTelemetryGapMs / 1000.0);
+    m_metadata.insert(QStringLiteral("obstacleClearanceAvailable"),
+                      m_obstacleClearanceAvailable);
+    m_metadata.insert(QStringLiteral("minimumObstacleClearanceMeters"),
+                      m_minimumObstacleClearanceMeters);
+    m_metadata.insert(QStringLiteral("obstacleInfringementCount"),
+                      m_obstacleInfringementCount);
+    m_metadata.insert(QStringLiteral("endedArmed"), m_armed);
+    m_metadata.insert(QStringLiteral("endedInAir"), m_inAir);
     m_metadata.insert(QStringLiteral("endReason"), reason);
+    const QVariantMap evaluation = AcceptanceEvaluator::evaluate(m_metadata);
+    m_metadata.insert(QStringLiteral("testResult"),
+                      evaluation.value(QStringLiteral("result")));
+    m_metadata.insert(QStringLiteral("testResultLabel"),
+                      evaluation.value(QStringLiteral("resultLabel")));
+    m_metadata.insert(QStringLiteral("testResultReason"),
+                      evaluation.value(QStringLiteral("reason")));
+    m_metadata.insert(QStringLiteral("acceptanceChecks"),
+                      evaluation.value(QStringLiteral("checks")));
+    m_metadata.insert(QStringLiteral("acceptancePassedCount"),
+                      evaluation.value(QStringLiteral("passedCount")));
+    m_metadata.insert(QStringLiteral("acceptanceWarningCount"),
+                      evaluation.value(QStringLiteral("warningCount")));
+    m_metadata.insert(QStringLiteral("acceptanceFailedCount"),
+                      evaluation.value(QStringLiteral("failedCount")));
+    m_metadata.insert(QStringLiteral("acceptancePresetLabel"),
+                      evaluation.value(QStringLiteral("presetLabel")));
+    m_csvFile.flush();
+    if (!m_metadata.value(QStringLiteral("missionWaypoints")).toList().isEmpty()) {
+        const QVariantMap routeAnalysis = RouteDeviationAnalyzer::analyze(
+            m_metadata.value(QStringLiteral("csvPath")).toString(),
+            m_metadata.value(QStringLiteral("missionWaypoints")).toList(),
+            m_metadata.value(QStringLiteral("missionStartEastMeters")).toDouble(),
+            m_metadata.value(QStringLiteral("missionStartUpMeters")).toDouble(),
+            m_metadata.value(QStringLiteral("missionStartSouthMeters")).toDouble(),
+            m_metadata.value(QStringLiteral("missionStartElapsedMs"), -1).toLongLong(),
+            m_metadata.value(QStringLiteral("missionEndElapsedMs"), -1).toLongLong());
+        if (routeAnalysis.value(QStringLiteral("available")).toBool())
+            m_metadata.insert(QStringLiteral("routeAnalysis"), routeAnalysis);
+    }
+    m_metadata.insert(QStringLiteral("status"), status);
     appendEvent(QStringLiteral("[%1] [会话] 结束记录：%2")
                     .arg(endedAt.toString(QStringLiteral("HH:mm:ss")), reason));
     writeMetadata();
@@ -233,7 +395,10 @@ void FlightSessionRecorder::appendEvent(const QString &entry)
 void FlightSessionRecorder::setMissionPlan(const QString &routeId,
                                            const QString &routeName,
                                            const QVariantList &relativeWaypoints,
-                                           const QString &endAction)
+                                           const QString &endAction,
+                                           double startEastMeters,
+                                           double startUpMeters,
+                                           double startSouthMeters)
 {
     if (!m_active) return;
     m_metadata.insert(QStringLiteral("missionRouteId"), routeId);
@@ -241,6 +406,12 @@ void FlightSessionRecorder::setMissionPlan(const QString &routeId,
                       routeName.isEmpty() ? QStringLiteral("未命名航线") : routeName);
     m_metadata.insert(QStringLiteral("missionEndAction"), endAction);
     m_metadata.insert(QStringLiteral("missionWaypoints"), relativeWaypoints);
+    m_metadata.insert(QStringLiteral("missionSnapshotVersion"), 1);
+    m_metadata.insert(QStringLiteral("missionStartElapsedMs"),
+                      std::max<qint64>(0, m_startedAt.msecsTo(QDateTime::currentDateTime())));
+    m_metadata.insert(QStringLiteral("missionStartEastMeters"), startEastMeters);
+    m_metadata.insert(QStringLiteral("missionStartUpMeters"), startUpMeters);
+    m_metadata.insert(QStringLiteral("missionStartSouthMeters"), startSouthMeters);
     appendEvent(QStringLiteral("[%1] [任务] 已保存执行航线快照：%2（%3 个航点）")
                     .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss")),
                          m_metadata.value(QStringLiteral("missionRouteName")).toString())
@@ -261,6 +432,35 @@ void FlightSessionRecorder::updateMissionMetrics(double crossTrackErrorMeters,
     m_missionCompletedItems = std::max(m_missionCompletedItems,
                                        std::clamp(completedItems, 0, m_missionTotalItems));
     if (!interruptionReason.isEmpty()) m_missionInterruptionReason = interruptionReason;
+    const bool missionFinished = m_missionTotalItems > 0
+                                 && m_missionCompletedItems >= m_missionTotalItems;
+    if ((missionFinished || !interruptionReason.isEmpty())
+        && !m_metadata.contains(QStringLiteral("missionEndElapsedMs"))) {
+        m_metadata.insert(QStringLiteral("missionEndElapsedMs"),
+                          std::max<qint64>(0,
+                              m_startedAt.msecsTo(QDateTime::currentDateTime())));
+    }
+}
+
+void FlightSessionRecorder::updateObstacleClearance(bool available,
+                                                    double clearanceMeters,
+                                                    bool infringed)
+{
+    if (!m_active || !available || !std::isfinite(clearanceMeters)) return;
+    const double normalizedClearance = std::max(0.0, clearanceMeters);
+    if (!m_obstacleClearanceAvailable) {
+        m_minimumObstacleClearanceMeters = normalizedClearance;
+    } else {
+        m_minimumObstacleClearanceMeters = std::min(
+            m_minimumObstacleClearanceMeters, normalizedClearance);
+    }
+    m_obstacleClearanceAvailable = true;
+    if (infringed && !m_lastObstacleInfringed) {
+        ++m_obstacleInfringementCount;
+        appendEvent(QStringLiteral("[%1] [安全] 飞行轨迹进入建筑安全范围")
+                        .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
+    }
+    m_lastObstacleInfringed = infringed;
 }
 
 void FlightSessionRecorder::markHealthReady()
@@ -350,6 +550,19 @@ void FlightSessionRecorder::recordSample(bool connected,
     if (!m_active || !m_csvFile.isOpen()) return;
     const QDateTime now = QDateTime::currentDateTime();
     const qint64 elapsedMs = m_startedAt.msecsTo(now);
+    m_lastSampleElapsedMs = elapsedMs;
+    if (!telemetryAvailable && m_sawTelemetry) {
+        if (m_telemetryGapStartedMs < 0) m_telemetryGapStartedMs = elapsedMs;
+        m_maxTelemetryGapMs = std::max(m_maxTelemetryGapMs,
+                                       elapsedMs - m_telemetryGapStartedMs);
+    } else if (telemetryAvailable) {
+        if (m_telemetryGapStartedMs >= 0) {
+            m_maxTelemetryGapMs = std::max(m_maxTelemetryGapMs,
+                                           elapsedMs - m_telemetryGapStartedMs);
+        }
+        m_telemetryGapStartedMs = -1;
+        m_sawTelemetry = true;
+    }
     m_maxAltitude = std::max(m_maxAltitude, std::max(0.0, altitudeMeters));
     m_maxHorizontalSpeed = std::max(m_maxHorizontalSpeed,
                                     std::abs(horizontalSpeedMetersPerSecond));
@@ -406,6 +619,50 @@ QVariantMap FlightSessionRecorder::sessionDetails(const QString &sessionId) cons
 {
     QVariantMap details = metadataForSession(sessionId);
     if (details.isEmpty()) return {};
+
+    // Sessions created before 0.10.0 counted the initial PX4 connection wait as
+    // a telemetry outage and only recognised takeoff/landing when the matching
+    // UI button had been pressed. Recompute those facts from the recorded CSV so
+    // an old report does not contradict its own altitude and completed mission.
+    const RecordedFlightSummary recorded = summarizeRecordedFlight(
+        details.value(QStringLiteral("csvPath")).toString());
+    bool adjustedLegacyMetrics = false;
+    if (recorded.available && recorded.sawTelemetry) {
+        const double storedGap = details.value(
+            QStringLiteral("maximumTelemetryGapSeconds")).toDouble();
+        if (std::abs(storedGap - recorded.maximumTelemetryGapSeconds) > 0.001) {
+            details.insert(QStringLiteral("maximumTelemetryGapSeconds"),
+                           recorded.maximumTelemetryGapSeconds);
+            adjustedLegacyMetrics = true;
+        }
+    }
+    if (recorded.sawInAir
+        && details.value(QStringLiteral("takeoffResult")).toString()
+               != QStringLiteral("成功")) {
+        details.insert(QStringLiteral("takeoffResult"), QStringLiteral("成功"));
+        adjustedLegacyMetrics = true;
+    }
+    if (recorded.sawInAir
+        && !details.value(QStringLiteral("endedInAir")).toBool()
+        && !details.value(QStringLiteral("endedArmed")).toBool()
+        && details.value(QStringLiteral("landingResult")).toString()
+               != QStringLiteral("成功")) {
+        details.insert(QStringLiteral("landingResult"), QStringLiteral("成功"));
+        adjustedLegacyMetrics = true;
+    }
+    if (adjustedLegacyMetrics
+        && !(m_active && activeSessionId() == sessionId)
+        && !details.value(QStringLiteral("testPlanType")).toString().isEmpty()) {
+        const QVariantMap evaluation = AcceptanceEvaluator::evaluate(details);
+        details.insert(QStringLiteral("testResult"), evaluation.value(QStringLiteral("result")));
+        details.insert(QStringLiteral("testResultLabel"), evaluation.value(QStringLiteral("resultLabel")));
+        details.insert(QStringLiteral("testResultReason"), evaluation.value(QStringLiteral("reason")));
+        details.insert(QStringLiteral("acceptanceChecks"), evaluation.value(QStringLiteral("checks")));
+        details.insert(QStringLiteral("acceptancePassedCount"), evaluation.value(QStringLiteral("passedCount")));
+        details.insert(QStringLiteral("acceptanceWarningCount"), evaluation.value(QStringLiteral("warningCount")));
+        details.insert(QStringLiteral("acceptanceFailedCount"), evaluation.value(QStringLiteral("failedCount")));
+        details.insert(QStringLiteral("acceptancePresetLabel"), evaluation.value(QStringLiteral("presetLabel")));
+    }
     QFile eventsFile(details.value(QStringLiteral("eventsPath")).toString());
     QStringList events;
     if (eventsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -416,7 +673,53 @@ QVariantMap FlightSessionRecorder::sessionDetails(const QString &sessionId) cons
         }
     }
     details.insert(QStringLiteral("events"), events);
+    if (!(m_active && activeSessionId() == sessionId)
+        && !details.contains(QStringLiteral("routeAnalysis"))) {
+        const QVariantList waypoints = details.value(QStringLiteral("missionWaypoints")).toList();
+        if (!waypoints.isEmpty()) {
+            const QVariantMap routeAnalysis = RouteDeviationAnalyzer::analyze(
+                details.value(QStringLiteral("csvPath")).toString(), waypoints,
+                details.value(QStringLiteral("missionStartEastMeters")).toDouble(),
+                details.value(QStringLiteral("missionStartUpMeters")).toDouble(),
+                details.value(QStringLiteral("missionStartSouthMeters")).toDouble(),
+                details.value(QStringLiteral("missionStartElapsedMs"), -1).toLongLong(),
+                details.value(QStringLiteral("missionEndElapsedMs"), -1).toLongLong());
+            if (routeAnalysis.value(QStringLiteral("available")).toBool())
+                details.insert(QStringLiteral("routeAnalysis"), routeAnalysis);
+        }
+    }
     return details;
+}
+
+void FlightSessionRecorder::setTestPlan(const QVariantMap &plan)
+{
+    if (!m_active || plan.isEmpty()) return;
+    m_metadata.insert(QStringLiteral("testPlanId"),
+                      plan.value(QStringLiteral("id")).toString());
+    m_metadata.insert(QStringLiteral("testPlanName"),
+                      plan.value(QStringLiteral("name")).toString());
+    m_metadata.insert(QStringLiteral("testPlanDescription"),
+                      plan.value(QStringLiteral("description")).toString());
+    m_metadata.insert(QStringLiteral("testPlanType"),
+                      plan.value(QStringLiteral("type"), QStringLiteral("free-flight")));
+    m_metadata.insert(QStringLiteral("testPlanTypeLabel"),
+                      plan.value(QStringLiteral("typeLabel"), QStringLiteral("自由飞行")));
+    m_metadata.insert(QStringLiteral("testPlanEndAction"),
+                      plan.value(QStringLiteral("endAction"), QStringLiteral("hold")));
+    m_metadata.insert(QStringLiteral("testPlanAcceptancePreset"),
+                      plan.value(QStringLiteral("acceptancePreset"), QStringLiteral("standard")));
+    m_metadata.insert(QStringLiteral("testPlanAcceptanceRules"),
+                      plan.value(QStringLiteral("acceptanceRules"), QVariantMap{}));
+    m_metadata.insert(QStringLiteral("testPlanControlSettings"),
+                      plan.value(QStringLiteral("controlSettings"), QVariantMap{}));
+    m_metadata.insert(QStringLiteral("testPlanBuiltIn"),
+                      plan.value(QStringLiteral("builtIn"), false));
+    appendEvent(QStringLiteral("[%1] [测试方案] %2（%3）")
+                    .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss")),
+                         plan.value(QStringLiteral("name")).toString(),
+                         plan.value(QStringLiteral("typeLabel")).toString()));
+    writeMetadata();
+    emit activeSessionChanged();
 }
 
 QString FlightSessionRecorder::csvPathForSession(const QString &sessionId) const
@@ -427,6 +730,227 @@ QString FlightSessionRecorder::csvPathForSession(const QString &sessionId) const
 QString FlightSessionRecorder::folderPathForSession(const QString &sessionId) const
 {
     return metadataForSession(sessionId).value(QStringLiteral("folderPath")).toString();
+}
+
+bool FlightSessionRecorder::updateSessionDetails(const QString &sessionId,
+                                                 const QString &displayName,
+                                                 const QString &notes)
+{
+    const QString normalizedName = displayName.trimmed().left(60);
+    const QString normalizedNotes = notes.trimmed().left(500);
+    if (sessionId.isEmpty()) {
+        emit recorderError(QStringLiteral("没有找到要编辑的飞行会话"));
+        return false;
+    }
+
+    if (m_active && activeSessionId() == sessionId) {
+        m_metadata.insert(QStringLiteral("displayName"), normalizedName);
+        m_metadata.insert(QStringLiteral("notes"), normalizedNotes);
+        m_metadata.insert(QStringLiteral("editedAt"),
+                          QDateTime::currentDateTime().toString(Qt::ISODate));
+        writeMetadata();
+        emit activeSessionChanged();
+        return true;
+    }
+
+    for (qsizetype index = 0; index < m_completedSessions.size(); ++index) {
+        QVariantMap metadata = m_completedSessions.at(index).toMap();
+        if (metadata.value(QStringLiteral("id")).toString() != sessionId) continue;
+
+        metadata.insert(QStringLiteral("displayName"), normalizedName);
+        metadata.insert(QStringLiteral("notes"), normalizedNotes);
+        metadata.insert(QStringLiteral("editedAt"),
+                        QDateTime::currentDateTime().toString(Qt::ISODate));
+        const QString folderPath = metadata.value(QStringLiteral("folderPath")).toString();
+        QSaveFile file(QDir(folderPath).filePath(QStringLiteral("session.json")));
+        const QByteArray contents = QJsonDocument(QJsonObject::fromVariantMap(metadata))
+                                        .toJson(QJsonDocument::Indented);
+        const bool opened = file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+        const bool written = opened && file.write(contents) == contents.size();
+        if (!written || !file.commit()) {
+            emit recorderError(QStringLiteral("无法保存会话名称和备注"));
+            return false;
+        }
+        m_completedSessions[index] = metadata;
+        emit completedSessionsChanged();
+        return true;
+    }
+
+    emit recorderError(QStringLiteral("没有找到要编辑的飞行会话"));
+    return false;
+}
+
+bool FlightSessionRecorder::deleteSession(const QString &sessionId)
+{
+    if (sessionId.isEmpty() || (m_active && activeSessionId() == sessionId)) {
+        emit recorderError(QStringLiteral("正在记录的会话不能删除"));
+        return false;
+    }
+
+    const QVariantMap metadata = metadataForSession(sessionId);
+    if (metadata.isEmpty()) {
+        emit recorderError(QStringLiteral("没有找到要删除的飞行会话"));
+        return false;
+    }
+
+    const QString rootPath = QFileInfo(m_sessionsDirectory).canonicalFilePath();
+    const QString folderPath = QFileInfo(metadata.value(QStringLiteral("folderPath")).toString())
+                                   .canonicalFilePath();
+    if (rootPath.isEmpty() || folderPath.isEmpty()
+        || QFileInfo(folderPath).dir().canonicalPath() != rootPath
+        || QFileInfo(folderPath).fileName() != sessionId) {
+        emit recorderError(QStringLiteral("会话目录校验失败，已取消删除"));
+        return false;
+    }
+
+    const QString trashTarget = QDir(m_trashDirectory).filePath(sessionId);
+    if (QFileInfo::exists(trashTarget)) {
+        emit recorderError(QStringLiteral("回收站里已有同名会话，请先处理后再重试"));
+        return false;
+    }
+    if (!QDir().rename(folderPath, trashTarget)) {
+        emit recorderError(QStringLiteral("无法把会话移到回收站：%1")
+                               .arg(QDir::toNativeSeparators(folderPath)));
+        return false;
+    }
+
+    QVariantMap trashedMetadata = metadata;
+    trashedMetadata.insert(QStringLiteral("trashedAt"),
+                           QDateTime::currentDateTime().toString(Qt::ISODate));
+    if (!saveStandaloneMetadata(trashedMetadata, trashTarget)) {
+        const bool rolledBack = QDir().rename(trashTarget, folderPath);
+        emit recorderError(rolledBack
+                               ? QStringLiteral("无法保存回收站会话信息，已恢复原会话")
+                               : QStringLiteral("无法保存回收站会话信息，且自动恢复目录失败；数据仍保留在回收站目录"));
+        return false;
+    }
+
+    for (qsizetype index = 0; index < m_completedSessions.size(); ++index) {
+        if (m_completedSessions.at(index).toMap().value(QStringLiteral("id")).toString()
+            == sessionId) {
+            m_completedSessions.removeAt(index);
+            break;
+        }
+    }
+    m_trashedSessions.prepend(trashedMetadata);
+    emit completedSessionsChanged();
+    emit trashedSessionsChanged();
+    return true;
+}
+
+bool FlightSessionRecorder::restoreSession(const QString &sessionId)
+{
+    for (qsizetype index = 0; index < m_trashedSessions.size(); ++index) {
+        QVariantMap metadata = m_trashedSessions.at(index).toMap();
+        if (metadata.value(QStringLiteral("id")).toString() != sessionId) continue;
+        const QString source = QFileInfo(metadata.value(QStringLiteral("folderPath")).toString())
+                                   .canonicalFilePath();
+        const QString trashRoot = QFileInfo(m_trashDirectory).canonicalFilePath();
+        const QString destination = QDir(m_sessionsDirectory).filePath(sessionId);
+        if (source.isEmpty() || trashRoot.isEmpty()
+            || QFileInfo(source).dir().canonicalPath() != trashRoot
+            || QFileInfo::exists(destination)) {
+            emit recorderError(QStringLiteral("会话恢复路径校验失败"));
+            return false;
+        }
+        if (!QDir().rename(source, destination)) {
+            emit recorderError(QStringLiteral("无法恢复这个会话"));
+            return false;
+        }
+        metadata.remove(QStringLiteral("trashedAt"));
+        if (!saveStandaloneMetadata(metadata, destination)) {
+            const bool rolledBack = QDir().rename(destination, source);
+            emit recorderError(rolledBack
+                                   ? QStringLiteral("无法保存恢复后的会话信息，已放回回收站")
+                                   : QStringLiteral("无法保存恢复后的会话信息，且自动放回回收站失败；数据仍保留在会话目录"));
+            return false;
+        }
+        m_trashedSessions.removeAt(index);
+        m_completedSessions.prepend(metadata);
+        emit trashedSessionsChanged();
+        emit completedSessionsChanged();
+        return true;
+    }
+    emit recorderError(QStringLiteral("回收站中没有找到这个会话"));
+    return false;
+}
+
+bool FlightSessionRecorder::permanentlyDeleteSession(const QString &sessionId)
+{
+    for (qsizetype index = 0; index < m_trashedSessions.size(); ++index) {
+        const QVariantMap metadata = m_trashedSessions.at(index).toMap();
+        if (metadata.value(QStringLiteral("id")).toString() != sessionId) continue;
+        const QString folderPath = QFileInfo(metadata.value(QStringLiteral("folderPath")).toString())
+                                       .canonicalFilePath();
+        const QString trashRoot = QFileInfo(m_trashDirectory).canonicalFilePath();
+        if (folderPath.isEmpty() || trashRoot.isEmpty()
+            || QFileInfo(folderPath).dir().canonicalPath() != trashRoot) {
+            emit recorderError(QStringLiteral("回收站目录校验失败，已取消永久删除"));
+            return false;
+        }
+        if (!QDir(folderPath).removeRecursively()) {
+            emit recorderError(QStringLiteral("无法永久删除会话"));
+            return false;
+        }
+        m_trashedSessions.removeAt(index);
+        emit trashedSessionsChanged();
+        return true;
+    }
+    emit recorderError(QStringLiteral("回收站中没有找到这个会话"));
+    return false;
+}
+
+int FlightSessionRecorder::purgeTrashOlderThan(int retentionDays)
+{
+    if (retentionDays <= 0) return 0;
+    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-retentionDays);
+    QStringList expiredIds;
+    for (const QVariant &entry : std::as_const(m_trashedSessions)) {
+        const QVariantMap metadata = entry.toMap();
+        QDateTime trashedAt = QDateTime::fromString(
+            metadata.value(QStringLiteral("trashedAt")).toString(), Qt::ISODate);
+        if (!trashedAt.isValid()) {
+            const QFileInfo folder(metadata.value(QStringLiteral("folderPath")).toString());
+            trashedAt = folder.lastModified();
+        }
+        if (trashedAt.isValid() && trashedAt < cutoff)
+            expiredIds.append(metadata.value(QStringLiteral("id")).toString());
+    }
+
+    int removed = 0;
+    for (const QString &id : std::as_const(expiredIds)) {
+        if (permanentlyDeleteSession(id)) ++removed;
+    }
+    return removed;
+}
+
+int FlightSessionRecorder::clearTrash()
+{
+    QStringList ids;
+    ids.reserve(m_trashedSessions.size());
+    for (const QVariant &entry : std::as_const(m_trashedSessions))
+        ids.append(entry.toMap().value(QStringLiteral("id")).toString());
+
+    int removed = 0;
+    for (const QString &id : std::as_const(ids)) {
+        if (permanentlyDeleteSession(id)) ++removed;
+    }
+    return removed;
+}
+
+bool FlightSessionRecorder::saveStandaloneMetadata(QVariantMap &metadata,
+                                                    const QString &folderPath) const
+{
+    metadata.insert(QStringLiteral("folderPath"), QDir::toNativeSeparators(folderPath));
+    metadata.insert(QStringLiteral("csvPath"),
+                    QDir::toNativeSeparators(QDir(folderPath).filePath(QStringLiteral("telemetry.csv"))));
+    metadata.insert(QStringLiteral("eventsPath"),
+                    QDir::toNativeSeparators(QDir(folderPath).filePath(QStringLiteral("events.log"))));
+    QSaveFile file(QDir(folderPath).filePath(QStringLiteral("session.json")));
+    const QByteArray contents = QJsonDocument(QJsonObject::fromVariantMap(metadata))
+                                    .toJson(QJsonDocument::Indented);
+    return file.open(QIODevice::WriteOnly | QIODevice::Truncate)
+           && file.write(contents) == contents.size() && file.commit();
 }
 
 void FlightSessionRecorder::loadCompletedSessions()
@@ -446,6 +970,20 @@ void FlightSessionRecorder::loadCompletedSessions()
         // Normalizing it here keeps old local data compatible with the current QML model.
         if (!metadata.contains(QStringLiteral("missionRouteName")))
             metadata.insert(QStringLiteral("missionRouteName"), QString());
+        if (!metadata.contains(QStringLiteral("displayName")))
+            metadata.insert(QStringLiteral("displayName"), QString());
+        if (!metadata.contains(QStringLiteral("notes")))
+            metadata.insert(QStringLiteral("notes"), QString());
+        if (!metadata.contains(QStringLiteral("testPlanName")))
+            metadata.insert(QStringLiteral("testPlanName"), QString());
+        if (!metadata.contains(QStringLiteral("testPlanType")))
+            metadata.insert(QStringLiteral("testPlanType"), QString());
+        if (!metadata.contains(QStringLiteral("testResult"))) {
+            metadata.insert(QStringLiteral("testResult"), QStringLiteral("not-rated"));
+            metadata.insert(QStringLiteral("testResultLabel"), QStringLiteral("未评估"));
+            metadata.insert(QStringLiteral("testResultReason"),
+                            QStringLiteral("旧会话没有测试方案结果"));
+        }
         if (metadata.value(QStringLiteral("status")).toString() == QStringLiteral("记录中")) {
             metadata.insert(QStringLiteral("status"), QStringLiteral("未完成"));
             metadata.insert(QStringLiteral("endReason"), QStringLiteral("上次会话未正常结束"));
@@ -493,7 +1031,45 @@ void FlightSessionRecorder::refreshActiveSummary()
                           ? qRound(100.0 * m_missionCompletedItems / m_missionTotalItems)
                           : 0);
     m_metadata.insert(QStringLiteral("missionInterruptionReason"), m_missionInterruptionReason);
+    m_metadata.insert(QStringLiteral("maximumTelemetryGapSeconds"),
+                      m_maxTelemetryGapMs / 1000.0);
+    m_metadata.insert(QStringLiteral("obstacleClearanceAvailable"),
+                      m_obstacleClearanceAvailable);
+    m_metadata.insert(QStringLiteral("minimumObstacleClearanceMeters"),
+                      m_minimumObstacleClearanceMeters);
+    m_metadata.insert(QStringLiteral("obstacleInfringementCount"),
+                      m_obstacleInfringementCount);
     writeMetadata();
+}
+
+void FlightSessionRecorder::loadTrashedSessions()
+{
+    m_trashedSessions.clear();
+    const QFileInfoList folders = QDir(m_trashDirectory).entryInfoList(
+        QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
+    const QDateTime expiry = QDateTime::currentDateTime().addDays(-30);
+    for (const QFileInfo &folder : folders) {
+        QFile file(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("session.json")));
+        if (!file.open(QIODevice::ReadOnly)) continue;
+        const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+        if (!document.isObject()) continue;
+        QVariantMap metadata = document.object().toVariantMap();
+        const QDateTime trashedAt = QDateTime::fromString(
+            metadata.value(QStringLiteral("trashedAt")).toString(), Qt::ISODate);
+        if (trashedAt.isValid() && trashedAt < expiry) {
+            const bool removed = QDir(folder.absoluteFilePath()).removeRecursively();
+            if (!removed) {
+                // Keep the entry visible so the user can retry instead of silently
+                // losing track of a directory that could not be cleaned up.
+                if (saveStandaloneMetadata(metadata, folder.absoluteFilePath())) {
+                    m_trashedSessions.append(metadata);
+                }
+            }
+            continue;
+        }
+        if (!saveStandaloneMetadata(metadata, folder.absoluteFilePath())) continue;
+        m_trashedSessions.append(metadata);
+    }
 }
 
 QVariantMap FlightSessionRecorder::metadataForSession(const QString &sessionId) const

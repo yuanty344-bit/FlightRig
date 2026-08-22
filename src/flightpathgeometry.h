@@ -21,9 +21,11 @@ public:
     [[nodiscard]] double widthMeters() const { return m_widthMeters; }
     [[nodiscard]] int maxVisibleLengthMeters() const { return m_maxVisibleLengthMeters; }
     void appendPoint(const QVector3D &point);
+    void setPoints(const QVector<QVector3D> &points);
     void clearPath();
     void setWidthMeters(double value);
     void setMaxVisibleLengthMeters(int value);
+    void setDashed(bool dashed);
 
 signals:
     void pointCountChanged();
@@ -37,4 +39,5 @@ private:
     double m_lengthMeters{0.0};
     double m_widthMeters{0.06};
     int m_maxVisibleLengthMeters{100};
+    bool m_dashed{false};
 };

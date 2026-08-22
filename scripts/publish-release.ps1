@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$SkipSmokeTests
+    [switch]$SkipSmokeTests,
+    [switch]$CleanBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,7 +10,17 @@ $outputDirectory = Split-Path -Parent $sourceDirectory
 $buildDirectory = Join-Path $sourceDirectory 'build-msvc'
 $releaseDirectory = Join-Path $outputDirectory 'release'
 $stagingDirectory = Join-Path $outputDirectory 'release.new'
-$archivePath = Join-Path $outputDirectory 'FlightBench-0.9.0-win64.zip'
+$cmakeListsContent = Get-Content -Raw -LiteralPath (Join-Path $sourceDirectory 'CMakeLists.txt')
+$versionMatch = [regex]::Match(
+    $cmakeListsContent,
+    'project\s*\(\s*FlightBench\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)',
+    [Text.RegularExpressions.RegexOptions]::IgnoreCase
+)
+if (-not $versionMatch.Success) {
+    throw 'Could not read the FlightBench version from CMakeLists.txt.'
+}
+$projectVersion = $versionMatch.Groups[1].Value
+$archivePath = Join-Path $outputDirectory "FlightBench-$projectVersion-win64.zip"
 
 function Read-CMakeCacheValue {
     param([string]$Name)
@@ -104,6 +115,18 @@ function Invoke-Checked {
     if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE." }
 }
 
+function Write-Stage {
+    param([string]$Message)
+    Write-Host ''
+    Write-Host ("==> " + $Message) -ForegroundColor Cyan
+}
+
+$runningFlightBench = Get-Process -Name 'FlightBench' -ErrorAction SilentlyContinue
+if ($runningFlightBench) {
+    throw 'FlightBench is still running. Close the application, then run publish-release.cmd again.'
+}
+
+Write-Stage 'Checking the MSVC, Qt, MAVSDK, CMake and Ninja toolchain'
 Import-VisualStudioEnvironment
 $qtRoot = Resolve-QtRoot
 $mavsdkDirectory = Resolve-MavsdkConfig
@@ -116,17 +139,29 @@ if ($ninja -and (Test-Path -LiteralPath $ninja)) {
     $env:PATH = (Split-Path -Parent $ninja) + ';' + $env:PATH
 }
 
+Write-Stage "Configuring FlightBench $projectVersion"
 Invoke-Checked $cmake @('-S', $sourceDirectory, '-B', $buildDirectory, '-G', 'Ninja',
                         '-DCMAKE_BUILD_TYPE=Release', "-DCMAKE_PREFIX_PATH=$qtRoot",
                         "-DMAVSDK_DIR=$mavsdkDirectory", '-DBUILD_TESTING=ON')
-Invoke-Checked $cmake @('--build', $buildDirectory, '--config', 'Release', '--target',
-                        'FlightBench', 'FlightBenchRouteLibraryTest')
+
+Write-Stage $(if ($CleanBuild) { 'Performing a clean release build' } else { 'Building changed release files' })
+$buildArguments = @('--build', $buildDirectory, '--config', 'Release')
+if ($CleanBuild) { $buildArguments += '--clean-first' }
+$buildArguments += @('--target',
+                    'FlightBench', 'FlightBenchRouteLibraryTest', 'FlightBenchTestPlanRepositoryTest',
+                    'FlightBenchReplayTest',
+                    'FlightBenchSessionRecorderTest', 'FlightBenchRouteAnalysisTest',
+                    'FlightBenchWorldMapTest', 'FlightBenchTestWorkflowTest')
+Invoke-Checked $cmake $buildArguments
 
 if (-not $SkipSmokeTests) {
+Write-Stage 'Running unit and interface smoke tests'
     $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
     Invoke-Checked $ctest @('--test-dir', $buildDirectory, '-C', 'Release', '--output-on-failure',
                             '-E', 'FlightBench\.Sitl')
 }
+
+Write-Stage 'Creating a clean Windows release directory'
 
 if ((Split-Path -Parent $releaseDirectory) -ne $outputDirectory -or
     (Split-Path -Leaf $releaseDirectory) -ne 'release') {
@@ -144,7 +179,7 @@ Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Jo
                               (Join-Path $stagingDirectory 'FlightBench.exe'))
 
 @(
-    'FlightBench 0.9.0',
+    "FlightBench $projectVersion",
     'Windows x64 / MSVC 2022',
     'Qt 6.11.x',
     'MAVSDK 3.17.x',
@@ -154,6 +189,7 @@ Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Jo
 if (Test-Path -LiteralPath $releaseDirectory) { Remove-Item -LiteralPath $releaseDirectory -Recurse -Force }
 Move-Item -LiteralPath $stagingDirectory -Destination $releaseDirectory
 if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }
+Write-Stage 'Compressing the shareable archive'
 Compress-Archive -Path (Join-Path $releaseDirectory '*') -DestinationPath $archivePath -CompressionLevel Optimal
 
 Write-Host "Release ready: $releaseDirectory" -ForegroundColor Green

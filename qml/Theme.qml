@@ -4,10 +4,14 @@ import QtCore
 
 QtObject {
     property alias mode: preferences.mode
+    property alias textScalePercent: preferences.textScalePercent
+    property alias reducedMotion: preferences.reducedMotion
     property Settings preferences: Settings {
         id: preferences
         category: "Appearance"
         property string mode: "light"
+        property int textScalePercent: 100
+        property bool reducedMotion: false
     }
 
     property SystemPalette systemPalette: SystemPalette { }
@@ -17,6 +21,15 @@ QtObject {
 
     readonly property string fontFamily: "Microsoft YaHei UI"
     readonly property string monoFontFamily: "Cascadia Mono"
+    readonly property real textScale: Math.max(0.9, Math.min(1.1, textScalePercent / 100.0))
+
+    function scaledFontSize(baseSize) {
+        return Math.round(baseSize * textScale)
+    }
+
+    function animationDuration(normalDuration) {
+        return reducedMotion ? 0 : normalDuration
+    }
 
     readonly property color canvas: darkMode ? "#0C1118" : "#EEF2F6"
     readonly property color canvasSoft: darkMode ? "#111720" : "#FBFCFE"
@@ -49,6 +62,8 @@ QtObject {
     // Single source of truth for flight path preset colors, shared by the 3D
     // scene, the mission map and the settings swatches.
     function flightPathColor(preset) {
+        if (typeof preset === "string" && /^#[0-9a-fA-F]{6}$/.test(preset))
+            return preset
         if (preset === "blue") return darkMode ? "#72A7F5" : "#1769D2"
         if (preset === "teal") return darkMode ? "#43D5A4" : "#16815F"
         if (preset === "violet") return darkMode ? "#A78BFA" : "#6D4CC2"
@@ -62,9 +77,9 @@ QtObject {
     readonly property int space8: 8
     readonly property int space12: 12
 
-    readonly property int textTiny: 11
-    readonly property int textSmall: 12
-    readonly property int textBody: 14
-    readonly property int textSubtitle: 16
-    readonly property int textTitle: 19
+    readonly property int textTiny: scaledFontSize(11)
+    readonly property int textSmall: scaledFontSize(12)
+    readonly property int textBody: scaledFontSize(14)
+    readonly property int textSubtitle: scaledFontSize(16)
+    readonly property int textTitle: scaledFontSize(19)
 }

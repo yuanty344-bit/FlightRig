@@ -8,9 +8,27 @@ Item {
     id: root
     property int currentIndex: 0
     property alias flightViewIndex: flightPage.viewIndex
+    property bool awaitingTestResult: false
 
     function openDrawer(mode) {
         utilityDrawer.openMode(mode)
+    }
+
+    Connections {
+        target: App
+        function onActiveFlightSessionChanged() {
+            if (App.flightSessionActive) root.awaitingTestResult = true
+        }
+        function onFlightSessionsChanged() {
+            if (!root.awaitingTestResult || App.flightSessionActive
+                    || !App.flightSessions || App.flightSessions.length === 0) return
+            root.awaitingTestResult = false
+            const session = App.flightSessions[0]
+            if (!session || String(session.id || "") === resultSummary.lastSessionId) return
+            resultSummary.lastSessionId = String(session.id || "")
+            resultSummary.session = App.sessionDetails(resultSummary.lastSessionId)
+            resultSummary.open()
+        }
     }
 
     ColumnLayout {
@@ -35,6 +53,7 @@ Item {
             Layout.fillHeight: true
 
             WorkbenchPage {
+                id: workbenchPage
                 anchors.fill: parent
                 visible: root.currentIndex === 0
                 onOpenEnvironment: utilityDrawer.openMode("environment")
@@ -56,11 +75,27 @@ Item {
                 onOpenSettings: utilityDrawer.openMode("settings")
                 onOpenHealth: utilityDrawer.openMode("health")
                 onOpenTelemetry: utilityDrawer.openMode("telemetry")
+                onReplayClosed: {
+                    App.stopSessionReplay()
+                    root.currentIndex = 2
+                }
             }
             RecordsPage {
+                id: recordsPage
                 anchors.fill: parent
                 visible: root.currentIndex === 2
                 onOpenHealth: utilityDrawer.openMode("health")
+                onReplayRequested: sessionId => {
+                    if (App.startSessionReplay(sessionId)) {
+                        root.currentIndex = 1
+                        flightPage.openReplay()
+                    }
+                }
+                onReusePlanRequested: sessionId => {
+                    const response = App.reuseSessionTestPlan(sessionId)
+                    if (response.success)
+                        root.currentIndex = 0
+                }
             }
         }
 
@@ -68,13 +103,22 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 68
             currentIndex: root.currentIndex
-            onNavigate: index => root.currentIndex = index
+            onNavigate: index => {
+                if (App.replayActive && index !== 1)
+                    App.stopSessionReplay()
+                root.currentIndex = index
+            }
         }
     }
 
     UtilityDrawer {
         id: utilityDrawer
         onFlightRequested: root.currentIndex = 1
+        onPlanEditRequested: {
+            utilityDrawer.close()
+            root.currentIndex = 0
+            workbenchPage.editCurrentPlan()
+        }
     }
 
     ToastHost {
@@ -82,5 +126,17 @@ Item {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 80
         z: 20
+    }
+
+    TestResultSummary {
+        id: resultSummary
+        property string lastSessionId: ""
+        onRecordsRequested: root.currentIndex = 2
+        onReplayRequested: sessionId => {
+            if (App.startSessionReplay(sessionId)) {
+                root.currentIndex = 1
+                flightPage.openReplay()
+            }
+        }
     }
 }

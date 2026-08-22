@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "xatu_weiyang",
+  "sourceScene": "city-sources/xatu_weiyang/xatu_weiyang.scene.json",
+  "provenance": "Migrated from CityInspect-archive-20260814 without regenerating runtime assets",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 970,
+      "triangles": 1752
+    },
+    "roads": {
+      "vertices": 3108,
+      "triangles": 1554
+    },
+    "green_areas": {
+      "vertices": 884,
+      "triangles": 700
+    },
+    "water": {
+      "vertices": 47,
+      "triangles": 45
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/xatu_weiyang.sdf": "3725d9fb716ab52d412f054f5214f2e3bdb6dd098c41d2e9e0a9f495826a719b",
+    "simulation/models/xatu_weiyang/model.sdf": "37041e79134692451ae99205939e6d6672b6a6a72969ee96d9eef6fd9c1590b2",
+    "simulation/models/xatu_weiyang/model.config": "091550fb2766fa02dc60c942b6ecd767c72b8ac31293081811f16b0aed86dd1f",
+    "simulation/models/xatu_weiyang/meshes/xatu.mtl": "52198a2cf77b810ad451c6110f206523f91d1d7a2a36f9a052ba9ac690462422",
+    "simulation/models/xatu_weiyang/meshes/buildings.obj": "0ac537de24b1a98e8d38f5e621e351a24d0d2be8ce6e16f43bd1ae9acbf3b79b",
+    "simulation/models/xatu_weiyang/meshes/roads.obj": "0b8bd657e1cca7c1137de382455aa564b0e6730530c21e42286f2d96ab115ed1",
+    "simulation/models/xatu_weiyang/meshes/green_areas.obj": "a85f528c3cb68111fd725c5b99d999dd8ddd120192f28a7cdb3a748b26626b1a",
+    "simulation/models/xatu_weiyang/meshes/water.obj": "c476041f21d493fc15661ab45ca028824f631b70b6a5ce9403355568b0c10455"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

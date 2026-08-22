@@ -1,0 +1,34 @@
+[
+    {
+        "id":  "xatu_weiyang",
+        "name":  "西安工业大学未央校区",
+        "description":  "校园白模，包含建筑、道路、绿地和水面",
+        "previewModelDirectory":  "xatu_weiyang/meshes",
+        "sceneType":  "campus",
+        "attribution":  "© OpenStreetMap contributors"
+    },
+    {
+        "id":  "xian_bowen_dense_city",
+        "name":  "西安博文路密集街区",
+        "description":  "高新区密集商业住宅街区，中心为博文路广场开放起点，适合城市巡检和建筑避障仿真",
+        "previewModelDirectory":  "xian_bowen_dense_city/meshes",
+        "sceneType":  "urban",
+        "attribution":  "© OpenStreetMap contributors"
+    },
+    {
+        "id":  "xian_mutasi",
+        "name":  "西安木塔寺城市公园",
+        "description":  "城市公园与周边商业住宅街区，适合建筑避障和混合航线测试",
+        "previewModelDirectory":  "xian_mutasi/meshes",
+        "sceneType":  "park",
+        "attribution":  "© OpenStreetMap contributors"
+    },
+    {
+        "id":  "xian_software_city",
+        "name":  "西安软件新城示范街区",
+        "description":  "软件新城办公、住宅与公园混合街区，适合城市巡检和建筑避障测试",
+        "previewModelDirectory":  "xian_software_city/meshes",
+        "sceneType":  "urban",
+        "attribution":  "© OpenStreetMap contributors"
+    }
+]

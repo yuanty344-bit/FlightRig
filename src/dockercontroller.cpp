@@ -27,6 +27,12 @@ DockerController::DockerController(QObject *parent)
 
 DockerController::~DockerController()
 {
+    // QProcess may emit finished while waitForFinished() runs or from its own
+    // destructor. At that point another QProcess member can already be gone,
+    // so normal operation handlers must not run during controller teardown.
+    m_monitorTimer.stop();
+    QObject::disconnect(&m_process, nullptr, this, nullptr);
+    QObject::disconnect(&m_inspectProcess, nullptr, this, nullptr);
     shutdownSynchronously();
 }
 
@@ -65,6 +71,12 @@ void DockerController::startSimulation(const QString &modelId,
     if (!m_imageAvailable) {
         setProblemCode(QStringLiteral("image-missing"));
         setStatusMessage(QStringLiteral("未找到 PX4 仿真镜像，请检查镜像后重新检测"));
+        return;
+    }
+    if (!m_containerNameAvailable) {
+        setProblemCode(QStringLiteral("container-conflict"));
+        setStatusMessage(QStringLiteral("容器 %1 已存在但未运行，请删除或更换名称")
+                             .arg(containerName));
         return;
     }
 
@@ -126,6 +138,15 @@ void DockerController::startSimulation(const QString &modelId,
     setStatusMessage(QStringLiteral("正在启动 %1 · %2…").arg(modelId, worldId));
     ++m_stateGeneration;
     run(Operation::Start, arguments);
+}
+
+void DockerController::setContainerName(const QString &containerName)
+{
+    if (containerName == m_containerName) return;
+    m_containerName = containerName;
+    ++m_stateGeneration;
+    setContainerNameAvailable(true);
+    if (m_dockerAvailable && !m_busy) inspectContainer();
 }
 
 void DockerController::stopSimulation()
@@ -264,19 +285,30 @@ void DockerController::handleInspectFinished(int exitCode, QProcess::ExitStatus 
     // A start or stop command began after this snapshot was requested. Its result is
     // authoritative, so an older inspect result must never overwrite the new state.
     if (m_activeInspectGeneration != m_stateGeneration) {
+        QTimer::singleShot(0, this, &DockerController::inspectContainer);
         return;
     }
 
+    const bool containerExists = exitStatus == QProcess::NormalExit && exitCode == 0;
     const bool wasRunning = m_simulationRunning;
-    const bool isRunning = exitStatus == QProcess::NormalExit && exitCode == 0
+    const bool isRunning = containerExists
                            && standardOutput.compare(QStringLiteral("true"),
                                                      Qt::CaseInsensitive) == 0;
+    setContainerNameAvailable(!containerExists || isRunning);
     setSimulationRunning(isRunning);
     if (isRunning && !wasRunning) {
+        setProblemCode({});
         setStatusMessage(QStringLiteral("检测到正在运行的 FlightBench 仿真容器"));
     } else if (!isRunning && wasRunning) {
         m_startedByUs = false;
         setStatusMessage(QStringLiteral("检测到仿真容器已经停止"));
+    } else if (containerExists && !isRunning) {
+        setProblemCode(QStringLiteral("container-conflict"));
+        setStatusMessage(QStringLiteral("容器 %1 已存在但未运行，请删除或更换名称")
+                             .arg(m_containerName));
+    } else if (m_problemCode == QStringLiteral("container-conflict")) {
+        setProblemCode({});
+        setStatusMessage(QStringLiteral("容器名称可用"));
     }
 }
 
@@ -335,6 +367,13 @@ void DockerController::setSimulationRunning(bool value)
     if (m_simulationRunning == value) return;
     m_simulationRunning = value;
     emit simulationRunningChanged();
+}
+
+void DockerController::setContainerNameAvailable(bool value)
+{
+    if (m_containerNameAvailable == value) return;
+    m_containerNameAvailable = value;
+    emit containerNameAvailableChanged();
 }
 
 void DockerController::setBusy(bool value)
