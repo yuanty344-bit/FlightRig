@@ -97,6 +97,7 @@ public:
     bool updateSessionDetails(const QString &sessionId,
                               const QString &displayName,
                               const QString &notes);
+    bool setSessionReport(const QString &sessionId, const QString &reportPath);
     bool deleteSession(const QString &sessionId);
     bool restoreSession(const QString &sessionId);
     bool permanentlyDeleteSession(const QString &sessionId);

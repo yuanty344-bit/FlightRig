@@ -35,8 +35,8 @@ Rectangle {
                 ThemedIcon {
                     source: "qrc:/icons/route.svg"
                     iconColor: Theme.accent
-                    width: 16
-                    height: 16
+                    Layout.preferredWidth: 16
+                    Layout.preferredHeight: 16
                 }
                 Text {
                     text: "航线执行"
@@ -47,8 +47,8 @@ Rectangle {
                 }
                 Rectangle {
                     visible: Boolean(root.analysis.estimated)
-                    width: estimateText.implicitWidth + 10
-                    height: 20
+                    Layout.preferredWidth: estimateText.implicitWidth + 10
+                    Layout.preferredHeight: 20
                     radius: 10
                     color: Theme.warningSoft
                     Text {

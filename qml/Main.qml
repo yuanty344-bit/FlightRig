@@ -9,6 +9,7 @@ ApplicationWindow {
     property alias flightViewIndex: shell.flightViewIndex
     property string drawerRequest: ""
     property string themeRequest: ""
+    property int textScaleRequest: 0
     onDrawerRequestChanged: {
         if (drawerRequest.length > 0)
             shell.openDrawer(drawerRequest)
@@ -20,6 +21,10 @@ ApplicationWindow {
             Theme.mode = "dark"
         else if (themeRequest === "system")
             Theme.mode = "system"
+    }
+    onTextScaleRequestChanged: {
+        if (textScaleRequest === 90 || textScaleRequest === 100 || textScaleRequest === 110)
+            Theme.textScalePercent = textScaleRequest
     }
     width: 900
     height: 650

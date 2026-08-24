@@ -1385,9 +1385,9 @@ Item {
                         }
                     }
                     ActionButton {
-                        Layout.preferredWidth: root.compactEditor ? 38 : 74
+                        Layout.preferredWidth: 74
                         compact: true
-                        text: root.compactEditor ? "" : "保存"
+                        text: "保存"
                         accessibleLabel: "保存航线"
                         toolTipText: "保存航线"
                         iconSource: "qrc:/icons/save.svg"
@@ -1397,9 +1397,9 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionRunning || App.missionPaused
-                        Layout.preferredWidth: root.compactEditor ? 38 : 84
+                        Layout.preferredWidth: 84
                         compact: true
-                        text: root.compactEditor ? "" : (App.missionPaused ? "继续" : "暂停")
+                        text: App.missionPaused ? "继续" : "暂停"
                         accessibleLabel: App.missionPaused ? "继续任务" : "暂停任务"
                         toolTipText: App.missionPaused ? "继续任务" : "暂停任务"
                         iconSource: App.missionPaused ? "qrc:/icons/play.svg" : "qrc:/icons/pause.svg"
@@ -1409,9 +1409,9 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionRunning || App.missionPaused
-                        Layout.preferredWidth: root.compactEditor ? 38 : 78
+                        Layout.preferredWidth: 78
                         compact: true
-                        text: root.compactEditor ? "" : "终止"
+                        text: "终止"
                         accessibleLabel: "终止任务并悬停"
                         toolTipText: "终止任务并悬停"
                         iconSource: "qrc:/icons/x.svg"
@@ -1421,9 +1421,9 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionMonitorState === "stopped" && App.inAir
-                        Layout.preferredWidth: root.compactEditor ? 38 : 78
+                        Layout.preferredWidth: 78
                         compact: true
-                        text: root.compactEditor ? "" : "返航"
+                        text: "返航"
                         accessibleLabel: "返航"
                         toolTipText: "返航"
                         iconSource: "qrc:/icons/rotate-ccw.svg"
@@ -1433,9 +1433,9 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionMonitorState === "stopped" && App.inAir
-                        Layout.preferredWidth: root.compactEditor ? 38 : 78
+                        Layout.preferredWidth: 78
                         compact: true
-                        text: root.compactEditor ? "" : "降落"
+                        text: "降落"
                         accessibleLabel: "降落"
                         toolTipText: "降落"
                         iconSource: "qrc:/icons/plane-landing.svg"
@@ -1447,9 +1447,9 @@ Item {
                         id: executeMissionButton
                         visible: !App.missionRunning && !App.missionPaused
                                  && !(App.missionMonitorState === "stopped" && App.inAir)
-                        Layout.preferredWidth: root.compactEditor ? 96 : 122
+                        Layout.preferredWidth: 122
                         compact: true
-                        text: App.missionBusy ? "处理中" : root.compactEditor ? "执行" : "上传并执行"
+                        text: App.missionBusy ? "处理中" : "上传并执行"
                         accessibleLabel: App.missionBusy ? "正在处理航线" : "上传并执行航线"
                         iconSource: "qrc:/icons/upload.svg"
                         enabled: root.canExecute

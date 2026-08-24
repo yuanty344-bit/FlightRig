@@ -4,17 +4,48 @@
 #include <QFont>
 #include <QIcon>
 #include <QImage>
+#include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QPainter>
 #include <QQmlApplicationEngine>
 #include <QQmlError>
 #include <QQuickWindow>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QTextStream>
 #include <QSvgRenderer>
 #include <QTimer>
 #include <QtQml/qqml.h>
 
 #include <memory>
+#include <cstdio>
+
+namespace {
+bool runtimeUiWarningSeen = false;
+QtMessageHandler previousMessageHandler = nullptr;
+
+void uiSmokeMessageHandler(QtMsgType type,
+                           const QMessageLogContext &context,
+                           const QString &message)
+{
+    if (type == QtWarningMsg || type == QtCriticalMsg) {
+        const QString category = QString::fromUtf8(context.category ? context.category : "");
+        if (category.startsWith(QStringLiteral("qt.qml"))
+            || category.startsWith(QStringLiteral("qt.svg"))
+            || message.startsWith(QStringLiteral("QQml"))
+            || message.startsWith(QStringLiteral("qrc:/qt/qml/"))
+            || message.contains(QStringLiteral("Context2D:"))) {
+            runtimeUiWarningSeen = true;
+        }
+    }
+    if (previousMessageHandler)
+        previousMessageHandler(type, context, message);
+    else
+        std::fprintf(stderr, "%s\n", message.toUtf8().constData());
+}
+}
 
 int main(int argc, char *argv[])
 {
@@ -28,6 +59,28 @@ int main(int argc, char *argv[])
 #endif
 
     const QStringList arguments = application.arguments();
+    const bool connectionTest = arguments.contains(QStringLiteral("--connection-test"));
+    const bool smokeTest = arguments.contains(QStringLiteral("--smoke-test"));
+    if (smokeTest) {
+        previousMessageHandler = qInstallMessageHandler(uiSmokeMessageHandler);
+    }
+    const bool isolatedTestRuntime = connectionTest || smokeTest;
+    std::unique_ptr<QTemporaryDir> isolatedTestData;
+    if (isolatedTestRuntime) {
+        QStandardPaths::setTestModeEnabled(true);
+        isolatedTestData = std::make_unique<QTemporaryDir>(
+            QDir::tempPath() + (connectionTest
+                                    ? QStringLiteral("/FlightBench-ConnectionTest-XXXXXX")
+                                    : QStringLiteral("/FlightBench-UiSmoke-XXXXXX")));
+        if (!isolatedTestData->isValid()) {
+            qCritical("TEST_RUNTIME_FAILED: unable to create isolated data directory");
+            return 3;
+        }
+        qputenv("FLIGHTBENCH_DATA_ROOT", QFile::encodeName(isolatedTestData->path()));
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                           isolatedTestData->path());
+    }
     const qsizetype exportIconIndex = arguments.indexOf(QStringLiteral("--export-icon"));
     if (exportIconIndex >= 0 && exportIconIndex + 1 < arguments.size()) {
         QSvgRenderer renderer(QStringLiteral(":/icons/flightbench-app.svg"));
@@ -50,6 +103,24 @@ int main(int argc, char *argv[])
     if (worldIndex >= 0 && worldIndex + 1 < arguments.size()) {
         controller.setSelectedWorldId(arguments.at(worldIndex + 1));
     }
+    if (connectionTest) {
+        controller.setContainerName(QStringLiteral("flightbench-test-connection-%1")
+                                        .arg(QCoreApplication::applicationPid()));
+        const QVariantMap savedPlan = controller.saveCurrentTestPlan({
+            {QStringLiteral("name"), QStringLiteral("连接诊断")},
+            {QStringLiteral("description"), QStringLiteral("自动诊断专用临时方案")},
+            {QStringLiteral("type"), QStringLiteral("free-flight")},
+            {QStringLiteral("modelId"), controller.selectedModelId()},
+            {QStringLiteral("worldId"), controller.selectedWorldId()},
+            {QStringLiteral("takeoffAltitudeMeters"), 5.0},
+            {QStringLiteral("endAction"), QStringLiteral("hold")},
+            {QStringLiteral("acceptancePreset"), QStringLiteral("standard")}});
+        if (!savedPlan.value(QStringLiteral("success")).toBool()) {
+            qCritical("CONNECTION_TEST_FAILED: unable to create isolated test plan: %s",
+                      qPrintable(savedPlan.value(QStringLiteral("message")).toString()));
+            return 3;
+        }
+    }
     const bool dynamicScenePreview = arguments.contains(QStringLiteral("--scene-preview-dynamic"));
     if (arguments.contains(QStringLiteral("--scene-preview")) && !dynamicScenePreview) {
         controller.prepareFlightScenePreview();
@@ -61,27 +132,85 @@ int main(int argc, char *argv[])
                  qPrintable(arguments.at(replayIndex + 1)));
     }
 
-    if (arguments.contains(QStringLiteral("--connection-test"))) {
+    if (connectionTest) {
+        bool startAttempted = false;
+        bool cleanupRequested = false;
+        int connectionExitCode = 2;
+        QElapsedTimer startClock;
+        QTimer connectionDeadline;
+        connectionDeadline.setSingleShot(true);
+
+        auto finishWhenStopped = [&] {
+            if (!cleanupRequested || controller.simulationRunning() || controller.busy()) return;
+            application.exit(connectionExitCode);
+        };
+        auto requestCleanup = [&](int exitCode) {
+            if (cleanupRequested) return;
+            cleanupRequested = true;
+            connectionExitCode = exitCode;
+            connectionDeadline.stop();
+            if (controller.simulationRunning()) controller.stopSimulation();
+            finishWhenStopped();
+            QTimer::singleShot(15000, &application, [&] {
+                if (!cleanupRequested) return;
+                if (controller.simulationRunning() || controller.busy()) {
+                    qCritical("CONNECTION_TEST_CLEANUP_FAILED: temporary container did not stop; container=%s",
+                              qPrintable(controller.containerName()));
+                    application.exit(connectionExitCode == 0 ? 3 : connectionExitCode);
+                }
+            });
+        };
         QObject::connect(&controller, &AppController::vehicleConnectedChanged, &application, [&] {
-            if (controller.vehicleConnected()) {
+            if (controller.vehicleConnected() && !cleanupRequested) {
                 qInfo("CONNECTION_TEST_OK: PX4 vehicle connected through MAVSDK");
-                QTimer::singleShot(500, &application, [&application] { application.exit(0); });
+                requestCleanup(0);
             }
         });
-        QObject::connect(&controller, &AppController::dockerAvailableChanged, &application, [&] {
-            if (controller.dockerAvailable() && !controller.simulationRunning()) {
-                // Let DockerController finish its container inspection before starting a new process.
-                QTimer::singleShot(800, &controller, [&controller] {
-                    if (!controller.simulationRunning() && !controller.busy()) {
-                        controller.startSimulation();
-                    }
-                });
+        auto requestStart = [&] {
+            if (startAttempted || cleanupRequested || !controller.dockerAvailable()
+                || !controller.imageAvailable() || controller.simulationRunning()
+                || controller.busy()) {
+                return;
             }
+            startAttempted = true;
+            startClock.start();
+            if (!controller.startSimulation()) {
+                qCritical("CONNECTION_TEST_FAILED: start rejected; status=%s; guidance=%s",
+                          qPrintable(controller.statusMessage()),
+                          qPrintable(controller.testRunGuidance()));
+                requestCleanup(2);
+            }
+        };
+        auto detectRejectedStart = [&] {
+            if (!startAttempted || cleanupRequested || controller.simulationRunning()
+                || controller.busy() || !startClock.isValid() || startClock.elapsed() < 750) {
+                return;
+            }
+            qCritical("CONNECTION_TEST_FAILED: Docker rejected or ended the start request; status=%s; guidance=%s",
+                      qPrintable(controller.statusMessage()),
+                      qPrintable(controller.testRunGuidance()));
+            requestCleanup(2);
+        };
+        QObject::connect(&controller, &AppController::dockerAvailableChanged,
+                         &application, requestStart);
+        QObject::connect(&controller, &AppController::imageAvailableChanged,
+                         &application, requestStart);
+        QObject::connect(&controller, &AppController::busyChanged,
+                         &application, requestStart);
+        QObject::connect(&controller, &AppController::busyChanged,
+                         &application, detectRejectedStart);
+        QObject::connect(&controller, &AppController::busyChanged,
+                         &application, finishWhenStopped);
+        QObject::connect(&controller, &AppController::simulationRunningChanged,
+                         &application, finishWhenStopped);
+        QTimer::singleShot(0, &application, requestStart);
+        QObject::connect(&connectionDeadline, &QTimer::timeout, &application, [&] {
+            qCritical("CONNECTION_TEST_FAILED: timed out waiting for PX4; status=%s; guidance=%s",
+                      qPrintable(controller.statusMessage()),
+                      qPrintable(controller.testRunGuidance()));
+            requestCleanup(2);
         });
-        QTimer::singleShot(60000, &application, [&application] {
-            qCritical("CONNECTION_TEST_FAILED: timed out waiting for PX4");
-            application.exit(2);
-        });
+        connectionDeadline.start(60000);
         return application.exec();
     }
 
@@ -89,6 +218,11 @@ int main(int argc, char *argv[])
 
     QFile diagnosticFile;
     QQmlApplicationEngine engine;
+    bool qmlWarningSeen = false;
+    QObject::connect(&engine, &QQmlEngine::warnings, &engine,
+                     [&qmlWarningSeen](const QList<QQmlError> &warnings) {
+                         if (!warnings.isEmpty()) qmlWarningSeen = true;
+                     });
     const qsizetype diagnosticIndex = arguments.indexOf(QStringLiteral("--diagnostic-log"));
     if (diagnosticIndex >= 0 && diagnosticIndex + 1 < arguments.size()) {
         diagnosticFile.setFileName(arguments.at(diagnosticIndex + 1));
@@ -148,6 +282,13 @@ int main(int argc, char *argv[])
         engine.rootObjects().constFirst()->setProperty("themeRequest", arguments.at(themeIndex + 1));
     }
 
+    const qsizetype textScaleIndex = arguments.indexOf(QStringLiteral("--text-scale"));
+    if (textScaleIndex >= 0 && textScaleIndex + 1 < arguments.size()
+        && !engine.rootObjects().isEmpty()) {
+        engine.rootObjects().constFirst()->setProperty(
+            "textScaleRequest", arguments.at(textScaleIndex + 1).toInt());
+    }
+
     if (!engine.rootObjects().isEmpty()) {
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().constFirst());
         const qsizetype widthIndex = arguments.indexOf(QStringLiteral("--window-width"));
@@ -174,8 +315,10 @@ int main(int argc, char *argv[])
         });
     }
 
-    if (arguments.contains(QStringLiteral("--smoke-test"))) {
-        QTimer::singleShot(1500, &application, [&application] { application.exit(0); });
+    if (smokeTest) {
+        QTimer::singleShot(1500, &application, [&application, &qmlWarningSeen] {
+            application.exit(qmlWarningSeen || runtimeUiWarningSeen ? 5 : 0);
+        });
     }
 
     return application.exec();

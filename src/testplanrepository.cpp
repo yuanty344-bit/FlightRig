@@ -1,4 +1,5 @@
 #include "testplanrepository.h"
+#include "storagepaths.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -8,7 +9,6 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSaveFile>
-#include <QStandardPaths>
 #include <QUuid>
 
 #include <algorithm>
@@ -148,9 +148,7 @@ TestPlanRepository::TestPlanRepository(QObject *parent, const QString &directory
     : QObject(parent)
 {
     if (directory.isEmpty()) {
-        const QString documents = QStandardPaths::writableLocation(
-            QStandardPaths::DocumentsLocation);
-        m_directory = QDir(documents).filePath(QStringLiteral("FlightBench/Plans"));
+        m_directory = StoragePaths::directory(QStringLiteral("Plans"));
     } else {
         m_directory = QDir::cleanPath(directory);
     }

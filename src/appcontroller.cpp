@@ -1,5 +1,6 @@
 #include "appcontroller.h"
 #include "preflightevaluator.h"
+#include "storagepaths.h"
 #include "px4eventtranslator.h"
 #include "testreportgenerator.h"
 #include "worldmapcatalog.h"
@@ -18,7 +19,6 @@
 #include <QGuiApplication>
 #include <QProcess>
 #include <QSettings>
-#include <QStandardPaths>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSysInfo>
@@ -275,9 +275,8 @@ AppController::AppController(QObject *parent)
                                              : m_sessionEndReason);
             if (m_autoGenerateReports && !completedSessionId.isEmpty()) {
                 const QVariantMap details = m_sessionRecorder.sessionDetails(completedSessionId);
-                const QString reportsDirectory = QDir(
-                    QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-                    .filePath(QStringLiteral("FlightBench/Reports"));
+                const QString reportsDirectory = StoragePaths::directory(
+                    QStringLiteral("Reports"));
                 QString reportError;
                 const QString reportPath = TestReportGenerator::generate(
                     details, reportsDirectory, &reportError);
@@ -285,6 +284,7 @@ AppController::AppController(QObject *parent)
                     appendDiagnostic(QStringLiteral("报告"),
                                      QStringLiteral("自动报告生成失败：%1").arg(reportError));
                 } else {
+                    m_sessionRecorder.setSessionReport(completedSessionId, reportPath);
                     appendDiagnostic(QStringLiteral("报告"),
                                      QStringLiteral("已自动生成：%1").arg(reportPath));
                 }
@@ -667,20 +667,20 @@ void AppController::refresh()
     m_docker.probe();
 }
 
-void AppController::startSimulation()
+bool AppController::startSimulation()
 {
     if (replayActive()) {
         useStatus(QStringLiteral("请先退出历史回放，再启动仿真"));
-        return;
+        return false;
     }
     if (!containerNameAvailable()) {
         useStatus(QStringLiteral("当前容器名称已被占用，请在运行环境中更换名称"));
-        return;
+        return false;
     }
     const QVariantMap preflight = preflightSummary();
     if (!preflight.value(QStringLiteral("canStart")).toBool()) {
         useStatus(preflight.value(QStringLiteral("summary")).toString());
-        return;
+        return false;
     }
     m_connectionTimedOut = false;
     m_healthTimedOut = false;
@@ -694,6 +694,7 @@ void AppController::startSimulation()
                              m_selectedWorldId,
                              worldAssetsDirectory,
                              m_containerName);
+    return true;
 }
 
 void AppController::stopSimulation()
@@ -2001,8 +2002,7 @@ QString AppController::exportSessionCsv(const QString &sessionId)
     const QString sourcePath = m_sessionRecorder.csvPathForSession(sessionId);
     if (sourcePath.isEmpty()) return {};
 
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString exportDirectory = QDir(documents).filePath(QStringLiteral("FlightBench/Exports"));
+    const QString exportDirectory = StoragePaths::directory(QStringLiteral("Exports"));
     if (!QDir().mkpath(exportDirectory)) {
         useStatus(QStringLiteral("无法创建 CSV 导出目录"));
         return {};
@@ -2124,9 +2124,7 @@ QString AppController::exportApplicationSettings()
         {QStringLiteral("telemetryHz"), m_telemetryRecordingHz},
         {QStringLiteral("autoGenerateReports"), m_autoGenerateReports},
         {QStringLiteral("trashRetentionDays"), m_trashRetentionDays}});
-    const QString exportDirectory = QDir(
-        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-        .filePath(QStringLiteral("FlightBench/Exports"));
+    const QString exportDirectory = StoragePaths::directory(QStringLiteral("Exports"));
     if (!QDir().mkpath(exportDirectory)) {
         useStatus(QStringLiteral("无法创建设置导出目录"));
         return {};
@@ -2283,15 +2281,14 @@ QString AppController::generateSessionReport(const QString &sessionId)
         useStatus(QStringLiteral("找不到要生成报告的飞行会话"));
         return {};
     }
-    const QString reportsDirectory = QDir(
-        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-        .filePath(QStringLiteral("FlightBench/Reports"));
+    const QString reportsDirectory = StoragePaths::directory(QStringLiteral("Reports"));
     QString error;
     const QString path = TestReportGenerator::generate(details, reportsDirectory, &error);
     if (path.isEmpty()) {
         useStatus(QStringLiteral("测试报告生成失败：%1").arg(error));
         return {};
     }
+    m_sessionRecorder.setSessionReport(sessionId, path);
     appendDiagnostic(QStringLiteral("报告"), QStringLiteral("已生成：%1").arg(path));
     useStatus(QStringLiteral("测试报告已生成"));
     if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path))) {
@@ -2315,9 +2312,7 @@ QString AppController::exportSessionBundle(const QString &sessionId)
                       .arg(reportError));
         return {};
     }
-    const QString exportDirectory = QDir(
-        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-        .filePath(QStringLiteral("FlightBench/Exports"));
+    const QString exportDirectory = StoragePaths::directory(QStringLiteral("Exports"));
     if (!QDir().mkpath(exportDirectory)) {
         useStatus(QStringLiteral("无法创建会话导出目录"));
         return {};
@@ -2705,9 +2700,7 @@ QString AppController::exportTestPlan(const QString &planId)
     plan.insert(QStringLiteral("version"), 2);
     QString fileName = plan.value(QStringLiteral("name"), QStringLiteral("test-plan")).toString();
     fileName.replace(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|]+")), QStringLiteral("-"));
-    const QString directory = QDir(QStandardPaths::writableLocation(
-                                       QStandardPaths::DocumentsLocation))
-                                  .filePath(QStringLiteral("FlightBench/Exports"));
+    const QString directory = StoragePaths::directory(QStringLiteral("Exports"));
     if (!QDir().mkpath(directory)) return {};
     const QString path = QDir(directory).filePath(fileName + QStringLiteral(".fbplan.json"));
     QSaveFile file(path);
@@ -2906,8 +2899,7 @@ bool AppController::openPlansFolder()
 
 QString AppController::exportDiagnosticReport()
 {
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString directoryPath = QDir(documents).filePath(QStringLiteral("FlightBench"));
+    const QString directoryPath = StoragePaths::rootDirectory();
     if (!QDir().mkpath(directoryPath)) {
         useStatus(QStringLiteral("无法创建诊断报告目录"));
         return {};

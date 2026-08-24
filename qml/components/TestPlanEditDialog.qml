@@ -287,8 +287,9 @@ Dialog {
                             compact: true
                             kind: "secondary"
                             text: root.modelName(root.modelId)
+                            allowTextElide: true
                             iconSource: "qrc:/icons/plane.svg"
-                            toolTipText: "选择飞行器和载荷"
+                            toolTipText: "选择飞行器和载荷\n当前：" + text
                             onClicked: modelPicker.showPicker(root.modelId)
                         }
                     }
@@ -300,8 +301,9 @@ Dialog {
                             compact: true
                             kind: "secondary"
                             text: root.worldName(root.worldId)
+                            allowTextElide: true
                             iconSource: "qrc:/icons/map-pinned.svg"
-                            toolTipText: "查看地图并选择仿真世界"
+                            toolTipText: "查看地图并选择仿真世界\n当前：" + text
                             onClicked: worldPicker.showPicker(root.worldId)
                         }
                     }

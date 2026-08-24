@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick3D
-import FlightBench
 
 // A ground decal for the vehicle's horizontal position. The parent places this
 // node just above the highest terrain overlay, so roads, grass and water cannot

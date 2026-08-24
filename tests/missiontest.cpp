@@ -1,9 +1,13 @@
 #include "appcontroller.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QProcess>
+#include <QSettings>
 #include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
@@ -28,14 +32,14 @@ enum class Phase {
     WaitStopped
 };
 
-bool testContainerExists()
+bool testContainerExists(const QString &containerName)
 {
     const QString dockerPath = QStandardPaths::findExecutable(QStringLiteral("docker"));
     if (dockerPath.isEmpty()) return true;
 
     QProcess inspect;
     inspect.start(dockerPath,
-                  {QStringLiteral("inspect"), QStringLiteral("flightbench-px4")});
+                  {QStringLiteral("inspect"), containerName});
     if (!inspect.waitForStarted(3000) || !inspect.waitForFinished(5000)) return true;
     return inspect.exitStatus() == QProcess::NormalExit && inspect.exitCode() == 0;
 }
@@ -80,15 +84,49 @@ int main(int argc, char *argv[])
         std::fflush(stderr);
     });
     QCoreApplication application(argc, argv);
-    AppController controller;
+    QCoreApplication::setApplicationName(QStringLiteral("FlightBenchSITLMissionTest"));
+    QCoreApplication::setOrganizationName(QStringLiteral("FlightBench"));
+    QStandardPaths::setTestModeEnabled(true);
+    QTemporaryDir temporaryData(
+        QDir::tempPath() + QStringLiteral("/FlightBench-SITLMission-XXXXXX"));
+    if (!temporaryData.isValid()) {
+        qCritical("MISSION_TEST_FAILED: unable to create isolated data directory");
+        return 3;
+    }
+    qputenv("FLIGHTBENCH_DATA_ROOT", QFile::encodeName(temporaryData.path()));
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                       temporaryData.path());
+
     const QStringList arguments = application.arguments();
     const qsizetype modelIndex = arguments.indexOf(QStringLiteral("--model"));
-    if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {
-        controller.setSelectedModelId(arguments.at(modelIndex + 1));
-    }
+    const QString modelId = modelIndex >= 0 && modelIndex + 1 < arguments.size()
+                                ? arguments.at(modelIndex + 1)
+                                : QStringLiteral("gz_x500");
     const qsizetype worldIndex = arguments.indexOf(QStringLiteral("--world"));
-    if (worldIndex >= 0 && worldIndex + 1 < arguments.size()) {
-        controller.setSelectedWorldId(arguments.at(worldIndex + 1));
+    const QString worldId = worldIndex >= 0 && worldIndex + 1 < arguments.size()
+                                ? arguments.at(worldIndex + 1)
+                                : QStringLiteral("default");
+    const QString containerName = QStringLiteral("flightbench-test-mission-%1")
+                                      .arg(QCoreApplication::applicationPid());
+
+    AppController controller;
+    controller.setContainerName(containerName);
+    controller.setSelectedModelId(modelId);
+    controller.setSelectedWorldId(worldId);
+    const QVariantMap savedPlan = controller.saveCurrentTestPlan({
+        {QStringLiteral("name"), QStringLiteral("SITL 航点自动验收")},
+        {QStringLiteral("description"), QStringLiteral("自动测试专用，数据与用户目录隔离")},
+        {QStringLiteral("type"), QStringLiteral("free-flight")},
+        {QStringLiteral("modelId"), modelId},
+        {QStringLiteral("worldId"), worldId},
+        {QStringLiteral("takeoffAltitudeMeters"), 5.0},
+        {QStringLiteral("endAction"), QStringLiteral("hold")},
+        {QStringLiteral("acceptancePreset"), QStringLiteral("standard")}});
+    if (!savedPlan.value(QStringLiteral("success")).toBool()) {
+        qCritical("MISSION_TEST_FAILED: unable to create isolated test plan: %s",
+                  qPrintable(savedPlan.value(QStringLiteral("message")).toString()));
+        return 3;
     }
 
     Phase phase = Phase::WaitDocker;
@@ -118,8 +156,9 @@ int main(int argc, char *argv[])
         if (failed) return;
         failed = true;
         failureReason = reason;
-        qCritical("MISSION_TEST_FAILED: %s; status=%s; mission=%s",
-                  qPrintable(reason), qPrintable(controller.statusMessage()),
+        qCritical("MISSION_TEST_FAILED: %s; container=%s; status=%s; guidance=%s; mission=%s",
+                  qPrintable(reason), qPrintable(containerName),
+                  qPrintable(controller.statusMessage()), qPrintable(controller.testRunGuidance()),
                   qPrintable(controller.missionStatusMessage()));
         if (!controller.simulationRunning()) {
             application.exit(2);
@@ -177,18 +216,30 @@ int main(int argc, char *argv[])
 
         switch (phase) {
         case Phase::WaitDocker:
-            if (controller.dockerAvailable() && !controller.busy()) {
-                if (controller.simulationRunning() && !startRequested) {
-                    beginCleanup(QStringLiteral("a flightbench-px4 container was already running"));
-                    break;
+            if (controller.dockerAvailable()) {
+                if (!controller.busy()) {
+                    if (controller.simulationRunning() && !startRequested) {
+                        beginCleanup(QStringLiteral("the isolated SITL container was already running"));
+                        break;
+                    }
+                    if (!startRequested) {
+                        qWarning("MISSION_TEST_STEP: starting PX4 SITL container");
+                        if (!controller.startSimulation()) {
+                            beginCleanup(QStringLiteral("preflight rejected the SITL start request"));
+                            break;
+                        }
+                        startRequested = true;
+                        phaseClock.restart();
+                    } else if (controller.simulationRunning()) {
+                        phase = Phase::WaitVehicle;
+                        phaseClock.restart();
+                    }
                 }
-                if (!startRequested) {
-                    startRequested = true;
-                    qWarning("MISSION_TEST_STEP: starting PX4 SITL container");
-                    controller.startSimulation();
-                } else if (controller.simulationRunning()) {
-                    phase = Phase::WaitVehicle;
-                    phaseClock.restart();
+                if (startRequested && !controller.simulationRunning()
+                    && !controller.busy() && phaseClock.elapsed() > 1000) {
+                    beginCleanup(QStringLiteral("Docker rejected or ended the SITL start request"));
+                } else if (startRequested && phaseClock.elapsed() > 45000) {
+                    beginCleanup(QStringLiteral("timed out waiting for the SITL container to start"));
                 }
             } else if (phaseClock.elapsed() > 30000) {
                 beginCleanup(QStringLiteral("Docker Desktop did not become ready"));
@@ -322,7 +373,7 @@ int main(int argc, char *argv[])
 
         case Phase::WaitStopped:
             if (!controller.simulationRunning() && !controller.busy()
-                && !testContainerExists()) {
+                && !testContainerExists(containerName)) {
                 if (failed) {
                     qCritical("MISSION_TEST_CLEANUP: %s", qPrintable(failureReason));
                     application.exit(2);

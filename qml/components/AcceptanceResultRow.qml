@@ -7,9 +7,9 @@ RowLayout {
     required property var result
     spacing: 10
     Layout.preferredHeight: Math.max(28, detailText.implicitHeight)
-    readonly property string state: String(result.status || "warning")
-    readonly property color stateColor: state === "pass" ? Theme.success
-                                         : state === "fail" ? Theme.danger : Theme.warning
+    readonly property string resultState: String(result.status || "warning")
+    readonly property color stateColor: resultState === "pass" ? Theme.success
+                                         : resultState === "fail" ? Theme.danger : Theme.warning
     Rectangle { Layout.preferredWidth: 7; Layout.preferredHeight: 7; radius: 4; color: root.stateColor }
     Text {
         Layout.preferredWidth: Math.min(130, Math.max(92, root.width * 0.27))
@@ -31,7 +31,8 @@ RowLayout {
         elide: Text.ElideRight
     }
     Text {
-        text: root.state === "pass" ? "通过" : root.state === "fail" ? "未通过" : "提醒"
+        text: root.resultState === "pass" ? "通过"
+              : root.resultState === "fail" ? "未通过" : "提醒"
         color: root.stateColor
         font.family: Theme.fontFamily
         font.pixelSize: Theme.textTiny

@@ -37,6 +37,7 @@ qt_add_executable(FlightBench
     src/main.cpp
     src/appcontroller.cpp
     src/appcontroller.h
+    src/storagepaths.h
     src/acceptanceevaluator.cpp
     src/acceptanceevaluator.h
     src/dockercontroller.cpp
@@ -80,6 +81,11 @@ if(WIN32)
 endif()
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+# This list is used only by the lint test.  Do not use CONFIGURE_DEPENDS here:
+# on Windows it adds a recursive VerifyGlobs.cmake scan before every Ninja
+# build, which needlessly delays normal editing and rebuilding.
+file(GLOB_RECURSE FLIGHTBENCH_QML_LINT_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml")
 
 # City maps are generated assets. They are discovered on CMake configure, so a
 # new world only needs one normal reconfigure and never edits this file.
@@ -242,6 +248,7 @@ add_executable(FlightBenchFlightTest EXCLUDE_FROM_ALL
     tests/flighttest.cpp
     src/appcontroller.cpp
     src/appcontroller.h
+    src/storagepaths.h
     src/acceptanceevaluator.cpp
     src/acceptanceevaluator.h
     src/dockercontroller.cpp
@@ -288,6 +295,7 @@ add_executable(FlightBenchMissionTest EXCLUDE_FROM_ALL
     tests/missiontest.cpp
     src/appcontroller.cpp
     src/appcontroller.h
+    src/storagepaths.h
     src/acceptanceevaluator.cpp
     src/acceptanceevaluator.h
     src/dockercontroller.cpp
@@ -339,6 +347,7 @@ add_executable(FlightBenchRouteLibraryTest EXCLUDE_FROM_ALL
     tests/routelibrarytest.cpp
     src/routelibrary.cpp
     src/routelibrary.h
+    src/storagepaths.h
 )
 
 target_include_directories(FlightBenchRouteLibraryTest PRIVATE src)
@@ -352,6 +361,7 @@ add_executable(FlightBenchTestPlanRepositoryTest EXCLUDE_FROM_ALL
     tests/testplanrepositorytest.cpp
     src/testplanrepository.cpp
     src/testplanrepository.h
+    src/storagepaths.h
 )
 
 target_include_directories(FlightBenchTestPlanRepositoryTest PRIVATE src)
@@ -435,6 +445,12 @@ if(MSVC)
 endif()
 
 if(BUILD_TESTING)
+    add_test(NAME FlightBench.QmlLint
+             COMMAND $<TARGET_FILE:Qt6::qmllint>
+                     -I "${CMAKE_CURRENT_BINARY_DIR}"
+                     ${FLIGHTBENCH_QML_LINT_FILES})
+    set_tests_properties(FlightBench.QmlLint PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME FlightBench.RouteLibrary COMMAND $<TARGET_FILE:FlightBenchRouteLibraryTest>)
     add_test(NAME FlightBench.TestPlans COMMAND $<TARGET_FILE:FlightBenchTestPlanRepositoryTest>)
     add_test(NAME FlightBench.Replay COMMAND $<TARGET_FILE:FlightBenchReplayTest>)
@@ -442,7 +458,7 @@ if(BUILD_TESTING)
     add_test(NAME FlightBench.RouteAnalysis COMMAND $<TARGET_FILE:FlightBenchRouteAnalysisTest>)
     add_test(NAME FlightBench.WorldMap COMMAND $<TARGET_FILE:FlightBenchWorldMapTest>)
     add_test(NAME FlightBench.TestWorkflow COMMAND $<TARGET_FILE:FlightBenchTestWorkflowTest>)
-    set_tests_properties(FlightBench.RouteLibrary FlightBench.TestPlans FlightBench.Replay FlightBench.SessionRecorder
+    set_tests_properties(FlightBench.QmlLint FlightBench.RouteLibrary FlightBench.TestPlans FlightBench.Replay FlightBench.SessionRecorder
         FlightBench.RouteAnalysis FlightBench.WorldMap FlightBench.TestWorkflow
         PROPERTIES LABELS "unit")
 
@@ -460,6 +476,26 @@ if(BUILD_TESTING)
              COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --page 1 --flight-view 2)
     add_test(NAME FlightBench.UiMinimum.Records
              COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --page 2)
+    add_test(NAME FlightBench.UiMinimum.Environment
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer environment)
+    add_test(NAME FlightBench.UiMinimum.Settings.Appearance
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:1 --text-scale 110)
+    add_test(NAME FlightBench.UiMinimum.Settings.Interaction
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:2 --text-scale 110)
+    add_test(NAME FlightBench.UiMinimum.Settings.Scene3D
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:3 --text-scale 110)
+    add_test(NAME FlightBench.UiMinimum.Settings.Path
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:4 --text-scale 110)
+    add_test(NAME FlightBench.UiMinimum.Settings.Records
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:5 --text-scale 110)
+    add_test(NAME FlightBench.UiMinimum.Settings.Software
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 760 --window-height 590 --drawer settings:6 --text-scale 110)
+    add_test(NAME FlightBench.UiScale125.Workbench
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 900 --window-height 650 --page 0)
+    add_test(NAME FlightBench.UiScale150.Settings
+             COMMAND $<TARGET_FILE:FlightBench> --smoke-test --window-width 900 --window-height 650 --drawer settings:6 --text-scale 110)
+    set_tests_properties(FlightBench.UiScale125.Workbench PROPERTIES ENVIRONMENT "QT_SCALE_FACTOR=1.25")
+    set_tests_properties(FlightBench.UiScale150.Settings PROPERTIES ENVIRONMENT "QT_SCALE_FACTOR=1.5")
     set_tests_properties(
         FlightBench.UiExit.Light
         FlightBench.UiExit.Dark
@@ -468,17 +504,52 @@ if(BUILD_TESTING)
         FlightBench.UiMinimum.Scene3D
         FlightBench.UiMinimum.Mission
         FlightBench.UiMinimum.Records
+        FlightBench.UiMinimum.Environment
+        FlightBench.UiMinimum.Settings.Appearance
+        FlightBench.UiMinimum.Settings.Interaction
+        FlightBench.UiMinimum.Settings.Scene3D
+        FlightBench.UiMinimum.Settings.Path
+        FlightBench.UiMinimum.Settings.Records
+        FlightBench.UiMinimum.Settings.Software
+        FlightBench.UiScale125.Workbench
+        FlightBench.UiScale150.Settings
         PROPERTIES
         LABELS "ui;smoke"
         TIMEOUT 20)
 
     add_test(NAME FlightBench.SitlFlight COMMAND $<TARGET_FILE:FlightBenchFlightTest>)
     add_test(NAME FlightBench.SitlMission COMMAND $<TARGET_FILE:FlightBenchMissionTest>)
-    set_tests_properties(FlightBench.SitlFlight FlightBench.SitlMission PROPERTIES
+    add_test(NAME FlightBench.SitlModel.Depth
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_depth)
+    add_test(NAME FlightBench.SitlModel.Vision
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_vision)
+    add_test(NAME FlightBench.SitlModel.Lidar
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_lidar_2d)
+    add_test(NAME FlightBench.SitlModel.Gimbal
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_gimbal)
+    add_test(NAME FlightBench.SitlWorld.Xatu
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500 --world xatu_weiyang)
+    set_tests_properties(
+        FlightBench.SitlFlight
+        FlightBench.SitlMission
+        FlightBench.SitlModel.Depth
+        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.Lidar
+        FlightBench.SitlModel.Gimbal
+        FlightBench.SitlWorld.Xatu
+        PROPERTIES
         LABELS "sitl;integration"
         RESOURCE_LOCK "flightbench-docker"
-        RUN_SERIAL TRUE
-        TIMEOUT 360)
+        RUN_SERIAL TRUE)
+    set_tests_properties(FlightBench.SitlFlight PROPERTIES TIMEOUT 360)
+    set_tests_properties(FlightBench.SitlMission PROPERTIES TIMEOUT 480)
+    set_tests_properties(
+        FlightBench.SitlModel.Depth
+        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.Lidar
+        FlightBench.SitlModel.Gimbal
+        FlightBench.SitlWorld.Xatu
+        PROPERTIES TIMEOUT 240)
 
     # Windows does not search Qt's installation directory when CTest launches a
     # target directly.  Keep the build tree lightweight while making every test
@@ -491,6 +562,7 @@ if(BUILD_TESTING)
         FlightBench.RouteAnalysis
         FlightBench.WorldMap
         FlightBench.TestWorkflow
+        FlightBench.QmlLint
         FlightBench.UiExit.Light
         FlightBench.UiExit.Dark
         FlightBench.UiMinimum.Workbench
@@ -498,8 +570,22 @@ if(BUILD_TESTING)
         FlightBench.UiMinimum.Scene3D
         FlightBench.UiMinimum.Mission
         FlightBench.UiMinimum.Records
+        FlightBench.UiMinimum.Environment
+        FlightBench.UiMinimum.Settings.Appearance
+        FlightBench.UiMinimum.Settings.Interaction
+        FlightBench.UiMinimum.Settings.Scene3D
+        FlightBench.UiMinimum.Settings.Path
+        FlightBench.UiMinimum.Settings.Records
+        FlightBench.UiMinimum.Settings.Software
+        FlightBench.UiScale125.Workbench
+        FlightBench.UiScale150.Settings
         FlightBench.SitlFlight
         FlightBench.SitlMission
+        FlightBench.SitlModel.Depth
+        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.Lidar
+        FlightBench.SitlModel.Gimbal
+        FlightBench.SitlWorld.Xatu
         PROPERTIES
         ENVIRONMENT_MODIFICATION
             "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")

@@ -1,13 +1,13 @@
 #include "flightsessionrecorder.h"
 #include "acceptanceevaluator.h"
 #include "routedeviationanalyzer.h"
+#include "storagepaths.h"
 
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
 #include <QSaveFile>
-#include <QStandardPaths>
 #include <QTextStream>
 
 #include <algorithm>
@@ -70,9 +70,8 @@ FlightSessionRecorder::FlightSessionRecorder(QObject *parent,
                                              const QString &sessionsDirectory)
     : QObject(parent)
 {
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     m_sessionsDirectory = sessionsDirectory.isEmpty()
-                              ? QDir(documents).filePath(QStringLiteral("FlightBench/Sessions"))
+                              ? StoragePaths::directory(QStringLiteral("Sessions"))
                               : QDir::cleanPath(QFileInfo(sessionsDirectory).absoluteFilePath());
     m_trashDirectory = QDir(QFileInfo(m_sessionsDirectory).absolutePath())
                            .filePath(QStringLiteral("Trash"));
@@ -780,6 +779,38 @@ bool FlightSessionRecorder::updateSessionDetails(const QString &sessionId,
     return false;
 }
 
+bool FlightSessionRecorder::setSessionReport(const QString &sessionId,
+                                             const QString &reportPath)
+{
+    const QFileInfo report(reportPath);
+    if (sessionId.isEmpty() || !report.isFile()) {
+        emit recorderError(QStringLiteral("无法登记测试报告：报告文件不存在"));
+        return false;
+    }
+
+    for (qsizetype index = 0; index < m_completedSessions.size(); ++index) {
+        QVariantMap metadata = m_completedSessions.at(index).toMap();
+        if (metadata.value(QStringLiteral("id")).toString() != sessionId) continue;
+        metadata.insert(QStringLiteral("reportPath"),
+                        QDir::toNativeSeparators(report.absoluteFilePath()));
+        metadata.insert(QStringLiteral("reportFileName"), report.fileName());
+        metadata.insert(QStringLiteral("reportGeneratedAt"),
+                        QDateTime::currentDateTime().toString(Qt::ISODate));
+        metadata.insert(QStringLiteral("reportFormatVersion"), 1);
+        const QString folderPath = metadata.value(QStringLiteral("folderPath")).toString();
+        if (!saveStandaloneMetadata(metadata, folderPath)) {
+            emit recorderError(QStringLiteral("无法把测试报告信息写入会话摘要"));
+            return false;
+        }
+        m_completedSessions[index] = metadata;
+        emit completedSessionsChanged();
+        return true;
+    }
+
+    emit recorderError(QStringLiteral("无法登记测试报告：没有找到对应会话"));
+    return false;
+}
+
 bool FlightSessionRecorder::deleteSession(const QString &sessionId)
 {
     if (sessionId.isEmpty() || (m_active && activeSessionId() == sessionId)) {
@@ -974,6 +1005,10 @@ void FlightSessionRecorder::loadCompletedSessions()
             metadata.insert(QStringLiteral("displayName"), QString());
         if (!metadata.contains(QStringLiteral("notes")))
             metadata.insert(QStringLiteral("notes"), QString());
+        if (!metadata.contains(QStringLiteral("reportPath")))
+            metadata.insert(QStringLiteral("reportPath"), QString());
+        if (!metadata.contains(QStringLiteral("reportGeneratedAt")))
+            metadata.insert(QStringLiteral("reportGeneratedAt"), QString());
         if (!metadata.contains(QStringLiteral("testPlanName")))
             metadata.insert(QStringLiteral("testPlanName"), QString());
         if (!metadata.contains(QStringLiteral("testPlanType")))
@@ -1047,26 +1082,12 @@ void FlightSessionRecorder::loadTrashedSessions()
     m_trashedSessions.clear();
     const QFileInfoList folders = QDir(m_trashDirectory).entryInfoList(
         QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time);
-    const QDateTime expiry = QDateTime::currentDateTime().addDays(-30);
     for (const QFileInfo &folder : folders) {
         QFile file(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("session.json")));
         if (!file.open(QIODevice::ReadOnly)) continue;
         const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
         if (!document.isObject()) continue;
         QVariantMap metadata = document.object().toVariantMap();
-        const QDateTime trashedAt = QDateTime::fromString(
-            metadata.value(QStringLiteral("trashedAt")).toString(), Qt::ISODate);
-        if (trashedAt.isValid() && trashedAt < expiry) {
-            const bool removed = QDir(folder.absoluteFilePath()).removeRecursively();
-            if (!removed) {
-                // Keep the entry visible so the user can retry instead of silently
-                // losing track of a directory that could not be cleaned up.
-                if (saveStandaloneMetadata(metadata, folder.absoluteFilePath())) {
-                    m_trashedSessions.append(metadata);
-                }
-            }
-            continue;
-        }
         if (!saveStandaloneMetadata(metadata, folder.absoluteFilePath())) continue;
         m_trashedSessions.append(metadata);
     }

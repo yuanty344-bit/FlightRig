@@ -27,9 +27,15 @@ Drawer {
                                                   + (globalReady ? 1 : 0)
                                                   + (homeAndArmReady ? 1 : 0)
     function openMode(requestedMode) {
-        if (requestedMode === "telemetry") telemetryFrozen = false
-        if (requestedMode === "settings") settingsCenter.returnHome()
-        mode = requestedMode
+        const parts = String(requestedMode).split(":")
+        const baseMode = parts[0]
+        if (baseMode === "telemetry") telemetryFrozen = false
+        if (baseMode === "settings") {
+            const requestedPage = parts.length > 1 ? Number(parts[1]) : 0
+            settingsCenter.openPage(isNaN(requestedPage)
+                                    ? 0 : Math.max(0, Math.min(6, requestedPage)))
+        }
+        mode = baseMode
         open()
     }
 

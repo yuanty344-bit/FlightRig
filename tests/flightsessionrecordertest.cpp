@@ -1,8 +1,13 @@
 #include "flightsessionrecorder.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
 #include <QTemporaryDir>
 
 int main(int argc, char *argv[])
@@ -53,32 +58,69 @@ int main(int argc, char *argv[])
     if (editedDetails.value(QStringLiteral("notes")).toString()
         != QStringLiteral("北区路线稳定。")) return 11;
 
+    const QString reportPath = QDir(temporaryRoot.path()).filePath(
+        QStringLiteral("report.html"));
+    QFile report(reportPath);
+    if (!report.open(QIODevice::WriteOnly | QIODevice::Truncate)
+        || report.write("<!doctype html><title>FlightBench</title>") <= 0) return 12;
+    report.close();
+    if (!recorder.setSessionReport(sessionId, reportPath)) return 13;
+    const QVariantMap reportDetails = recorder.sessionDetails(sessionId);
+    if (QDir::fromNativeSeparators(reportDetails.value(QStringLiteral("reportPath")).toString())
+        != QDir::fromNativeSeparators(QFileInfo(reportPath).absoluteFilePath())) return 14;
+    if (reportDetails.value(QStringLiteral("reportFileName")).toString()
+        != QStringLiteral("report.html")) return 15;
+    if (reportDetails.value(QStringLiteral("reportFormatVersion")).toInt() != 1) return 16;
+
     FlightSessionRecorder reloaded(nullptr, sessionsPath);
     const QVariantMap reloadedDetails = reloaded.sessionDetails(sessionId);
     if (reloadedDetails.value(QStringLiteral("displayName")).toString()
-        != QStringLiteral("校园巡检")) return 12;
+        != QStringLiteral("校园巡检")) return 17;
     if (reloadedDetails.value(QStringLiteral("notes")).toString()
-        != QStringLiteral("北区路线稳定。")) return 13;
+        != QStringLiteral("北区路线稳定。")) return 18;
     if (reloadedDetails.value(QStringLiteral("testResult")).toString()
-        != QStringLiteral("passed")) return 14;
-    if (!reloaded.deleteSession(sessionId)) return 15;
-    if (QFileInfo::exists(sessionPath)) return 16;
-    if (!reloaded.completedSessions().isEmpty()) return 17;
-    if (reloaded.deleteSession(QStringLiteral("../Sessions"))) return 18;
-    if (!QFileInfo::exists(sessionsPath)) return 19;
-    if (reloaded.trashedSessions().size() != 1) return 20;
-    if (!reloaded.restoreSession(sessionId)) return 21;
-    if (!QFileInfo::exists(reloaded.folderPathForSession(sessionId))) return 22;
-    if (!reloaded.deleteSession(sessionId)) return 23;
-    if (reloaded.clearTrash() != 1) return 24;
-    if (!reloaded.trashedSessions().isEmpty()) return 25;
+        != QStringLiteral("passed")) return 19;
+    if (QDir::fromNativeSeparators(
+            reloadedDetails.value(QStringLiteral("reportPath")).toString())
+        != QDir::fromNativeSeparators(QFileInfo(reportPath).absoluteFilePath())) return 20;
+    if (!reloaded.deleteSession(sessionId)) return 21;
+    if (QFileInfo::exists(sessionPath)) return 22;
+    if (!reloaded.completedSessions().isEmpty()) return 23;
+    if (reloaded.deleteSession(QStringLiteral("../Sessions"))) return 24;
+    if (!QFileInfo::exists(sessionsPath)) return 25;
+    if (reloaded.trashedSessions().size() != 1) return 26;
+    if (!reloaded.restoreSession(sessionId)) return 27;
+    if (!QFileInfo::exists(reloaded.folderPathForSession(sessionId))) return 28;
+    if (!reloaded.deleteSession(sessionId)) return 29;
+
+    const QString trashMetadataPath = QDir(sessionsPath).filePath(
+        QStringLiteral("Trash/%1/session.json").arg(sessionId));
+    QFile trashMetadataFile(trashMetadataPath);
+    if (!trashMetadataFile.open(QIODevice::ReadOnly)) return 30;
+    QJsonObject trashMetadata = QJsonDocument::fromJson(trashMetadataFile.readAll()).object();
+    trashMetadataFile.close();
+    trashMetadata.insert(QStringLiteral("trashedAt"),
+                         QDateTime::currentDateTime().addDays(-60).toString(Qt::ISODate));
+    QSaveFile oldTrashMetadata(trashMetadataPath);
+    const QByteArray oldTrashContents = QJsonDocument(trashMetadata).toJson(
+        QJsonDocument::Indented);
+    if (!oldTrashMetadata.open(QIODevice::WriteOnly | QIODevice::Truncate)
+        || oldTrashMetadata.write(oldTrashContents) != oldTrashContents.size()
+        || !oldTrashMetadata.commit()) return 31;
+
+    FlightSessionRecorder retentionRecorder(nullptr, sessionsPath);
+    if (retentionRecorder.trashedSessions().size() != 1) return 32;
+    if (retentionRecorder.purgeTrashOlderThan(0) != 0) return 33;
+    if (!QFileInfo::exists(QFileInfo(trashMetadataPath).absolutePath())) return 34;
+    if (retentionRecorder.purgeTrashOlderThan(30) != 1) return 35;
+    if (!retentionRecorder.trashedSessions().isEmpty()) return 36;
 
     const QString reviewSessionsPath = QDir(temporaryRoot.path()).filePath(
         QStringLiteral("ReviewSessions"));
     FlightSessionRecorder reviewRecorder(nullptr, reviewSessionsPath);
     if (!reviewRecorder.startSession(QStringLiteral("gz_x500"), QStringLiteral("x500"), 20.0,
                                      QStringLiteral("xatu_weiyang"), QStringLiteral("测试城市"),
-                                     QStringLiteral("test"), QStringLiteral("test/image"))) return 26;
+                                     QStringLiteral("test"), QStringLiteral("test/image"))) return 37;
     const QString reviewSessionId = reviewRecorder.activeSessionId();
     reviewRecorder.setTestPlan({
         {QStringLiteral("id"), QStringLiteral("template-city-inspection")},
@@ -97,8 +139,8 @@ int main(int argc, char *argv[])
     reviewRecorder.finishSession(QStringLiteral("严格方案测试完成"));
     const QVariantMap reviewDetails = reviewRecorder.sessionDetails(reviewSessionId);
     if (reviewDetails.value(QStringLiteral("testResult")).toString()
-        != QStringLiteral("failed")) return 27;
+        != QStringLiteral("failed")) return 38;
     if (!reviewDetails.value(QStringLiteral("testResultReason")).toString()
-             .contains(QStringLiteral("3.0 米"))) return 28;
+             .contains(QStringLiteral("3.0 米"))) return 39;
     return 0;
 }

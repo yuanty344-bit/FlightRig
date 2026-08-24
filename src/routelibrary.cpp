@@ -1,4 +1,5 @@
 #include "routelibrary.h"
+#include "storagepaths.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -9,7 +10,6 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSaveFile>
-#include <QStandardPaths>
 #include <QUuid>
 
 #include <algorithm>
@@ -35,8 +35,7 @@ QString normalizedRouteName(const QString &name)
 RouteLibrary::RouteLibrary(QObject *parent)
     : QObject(parent)
 {
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    m_directory = QDir(documents).filePath(QStringLiteral("FlightBench/Routes"));
+    m_directory = StoragePaths::directory(QStringLiteral("Routes"));
     QDir().mkpath(m_directory);
     refresh();
 }

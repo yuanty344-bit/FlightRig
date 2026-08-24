@@ -11,6 +11,9 @@ Button {
     property string accessibleLabel: ""
     property string toolTipText: ""
     property string disabledReason: ""
+    // Fixed action labels must stay readable.  Only values whose text is
+    // genuinely dynamic (for example, a long world name) opt into eliding.
+    property bool allowTextElide: false
     readonly property string effectiveToolTip: root.enabled
                                                 ? root.toolTipText
                                                 : (root.disabledReason.length > 0
@@ -26,6 +29,11 @@ Button {
 
     implicitWidth: Math.max(120, calculatedContentWidth)
     implicitHeight: Math.max(compact ? 32 : 36, buttonLabel.implicitHeight + 14)
+    Layout.minimumWidth: root.text.length === 0
+                         ? (root.compact ? 38 : 44)
+                         : (root.allowTextElide
+                            ? 80
+                            : root.calculatedContentWidth)
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     Accessible.name: accessibleLabel.length > 0 ? accessibleLabel : text
@@ -62,7 +70,7 @@ Button {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textSmall
             font.weight: Font.DemiBold
-            elide: Text.ElideRight
+            elide: root.allowTextElide ? Text.ElideRight : Text.ElideNone
         }
         Item { Layout.fillWidth: true }
     }

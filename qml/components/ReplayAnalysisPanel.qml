@@ -113,8 +113,8 @@ Rectangle {
                 ThemedIcon {
                     source: "qrc:/icons/locate-fixed.svg"
                     iconColor: Theme.accent
-                    width: 15
-                    height: 15
+                    Layout.preferredWidth: 15
+                    Layout.preferredHeight: 15
                 }
                 Text {
                     Layout.fillWidth: true

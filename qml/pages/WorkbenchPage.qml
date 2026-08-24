@@ -299,8 +299,8 @@ Item {
                             Layout.preferredHeight: (conditionCard.height - 50) / 4
                             label: String(modelData.label || "")
                             value: String(modelData.value || "")
-                            state: String(modelData.state || "pending")
-                            complete: state === "complete"
+                            statusKind: String(modelData.state || "pending")
+                            complete: statusKind === "complete"
                             dividerVisible: index < App.testPlanSteps.length - 1
                         }
                     }
@@ -359,8 +359,7 @@ Item {
                         onClicked: planEditor.prepare(root.currentPlan)
                     }
                     ActionButton {
-                        width: 92
-                        implicitWidth: 92
+                        width: implicitWidth
                         compact: true
                         text: root.noPlan ? "新建方案" : "更换方案"
                         kind: "secondary"

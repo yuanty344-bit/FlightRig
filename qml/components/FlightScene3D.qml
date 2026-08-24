@@ -13,6 +13,10 @@ Item {
     property real pressedY: 0
     property vector3d panOffset: Qt.vector3d(0, 0, 0)
     readonly property real vehicleVisualHeight: 0.32
+    // MAVSDK local-position telemetry arrives at 10 Hz.  Interpolating the
+    // rendered pose over a little more than one sample interval keeps the
+    // model, marker and follow camera fluid without altering recorded data.
+    readonly property int livePoseSmoothingMs: 125
     readonly property bool replayMode: App.replayActive
     readonly property bool positionAvailable: replayMode || App.localPositionAvailable
     readonly property vector3d scenePosition: replayMode ? App.replayPosition : App.vehicleScenePosition
@@ -114,6 +118,13 @@ Item {
                                     : root.scenePosition.y,
                                     root.scenePosition.z)
                       : root.panOffset
+            Behavior on position {
+                enabled: !root.replayMode && root.positionAvailable && root.followVehicle
+                Vector3dAnimation {
+                    duration: root.livePoseSmoothingMs
+                    easing.type: Easing.Linear
+                }
+            }
             Node {
                 eulerRotation.y: root.orbitYaw
                 Node {
@@ -195,13 +206,23 @@ Item {
             meshDirectory: root.activeWorldPreviewDirectory
         }
 
-        GroundPositionMarker3D {
+        Node {
+            id: groundMarkerAnchor
             visible: App.groundMarkerVisible && root.positionAvailable
-            x: root.scenePosition.x
-            y: root.groundMarkerSurfaceY
-            z: root.scenePosition.z
-            headingDegrees: root.sceneHeading
-            visualScale: root.groundMarkerScale
+            position: Qt.vector3d(root.scenePosition.x,
+                                  root.groundMarkerSurfaceY,
+                                  root.scenePosition.z)
+            Behavior on position {
+                enabled: !root.replayMode && root.positionAvailable
+                Vector3dAnimation {
+                    duration: root.livePoseSmoothingMs
+                    easing.type: Easing.Linear
+                }
+            }
+            GroundPositionMarker3D {
+                headingDegrees: root.sceneHeading
+                visualScale: root.groundMarkerScale
+            }
         }
 
         Model {
@@ -227,12 +248,28 @@ Item {
             } ]
         }
 
-        DroneModel3D {
+        Node {
+            id: vehicleVisualAnchor
             visible: root.positionAvailable
-            position: Qt.vector3d(root.scenePosition.x,
-                                  root.scenePosition.y + root.vehicleVisualHeight,
-                                  root.scenePosition.z)
-            rotation: root.sceneRotation
+            position: root.scenePosition
+            Behavior on position {
+                enabled: !root.replayMode && root.positionAvailable
+                Vector3dAnimation {
+                    duration: root.livePoseSmoothingMs
+                    easing.type: Easing.Linear
+                }
+            }
+            DroneModel3D {
+                y: root.vehicleVisualHeight
+                rotation: root.sceneRotation
+                Behavior on rotation {
+                    enabled: !root.replayMode && root.positionAvailable
+                    QuaternionAnimation {
+                        duration: root.livePoseSmoothingMs
+                        easing.type: Easing.Linear
+                    }
+                }
+            }
         }
     }
 
@@ -418,6 +455,39 @@ Item {
         anchors.margins: 12
         z: 4
         onExpandRequested: root.replayAnalysisRequested()
+    }
+
+    Rectangle {
+        visible: !root.positionAvailable
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 40, 300)
+        height: 64
+        radius: Theme.radiusMedium
+        color: Theme.darkMode ? "#E6171F2A" : "#F2FFFFFF"
+        border.width: 1
+        border.color: Theme.line
+        z: 5
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 3
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: App.simulationRunning ? "等待飞行器位置" : "三维场景已就绪"
+                color: Theme.textPrimary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSmall
+                font.weight: Font.Medium
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: App.simulationRunning ? "建立本地位置后将显示无人机和实时轨迹"
+                                            : "启动仿真后会在这里显示无人机"
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textTiny
+            }
+        }
     }
 
     Text {

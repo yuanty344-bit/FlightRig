@@ -359,7 +359,7 @@ public:
     [[nodiscard]] QVariantMap replayRouteAnalysis() const { return m_replayRouteAnalysis; }
 
     Q_INVOKABLE void refresh();
-    Q_INVOKABLE void startSimulation();
+    Q_INVOKABLE bool startSimulation();
     Q_INVOKABLE void stopSimulation();
     Q_INVOKABLE void abortTest();
     Q_INVOKABLE void landAndStopSimulation();
