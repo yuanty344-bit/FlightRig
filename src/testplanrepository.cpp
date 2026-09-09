@@ -15,7 +15,7 @@
 #include <cmath>
 
 namespace {
-constexpr int TestPlanFormatVersion = 2;
+constexpr int TestPlanFormatVersion = 5;
 
 bool validPlanId(const QString &planId)
 {
@@ -103,16 +103,70 @@ QVariantMap normalizedControlSettings(const QVariantMap &values)
 {
     return {
         {QStringLiteral("horizontalSpeedMetersPerSecond"),
-         boundedNumber(values, QStringLiteral("horizontalSpeedMetersPerSecond"), 1.0, 0.5, 2.0)},
+         boundedNumber(values, QStringLiteral("horizontalSpeedMetersPerSecond"), 1.0, 0.5, 5.0)},
         {QStringLiteral("verticalSpeedMetersPerSecond"),
-         boundedNumber(values, QStringLiteral("verticalSpeedMetersPerSecond"), 0.5, 0.2, 1.5)},
+         boundedNumber(values, QStringLiteral("verticalSpeedMetersPerSecond"), 0.5, 0.2, 3.0)},
         {QStringLiteral("yawRateDegreesPerSecond"),
          boundedNumber(values, QStringLiteral("yawRateDegreesPerSecond"), 30.0, 5.0, 90.0, 0)},
     };
 }
 
+QVariantMap normalizedSensorSettings(const QVariantMap &values)
+{
+    QString usage = values.value(QStringLiteral("usage"),
+                                 QStringLiteral("off")).toString();
+    if (usage != QStringLiteral("off") && usage != QStringLiteral("preview")
+        && usage != QStringLiteral("record")) {
+        usage = QStringLiteral("off");
+    }
+    QString performance = values.value(QStringLiteral("performance"),
+                                       QStringLiteral("standard")).toString();
+    if (performance != QStringLiteral("eco")
+        && performance != QStringLiteral("standard")
+        && performance != QStringLiteral("smooth")
+        && performance != QStringLiteral("auto")) {
+        performance = QStringLiteral("standard");
+    }
+    const bool acceptanceRequired = values.value(
+        QStringLiteral("acceptanceRequired"), usage == QStringLiteral("record")).toBool();
+    // Sensor update_rate is expressed in simulation time. On a typical
+    // Windows desktop Gazebo can run at about 0.6-0.8 real-time speed while
+    // rendering a city and a camera, so a requested 10 Hz stream commonly
+    // delivers 6-8 wall-clock frames per second without any data loss. The
+    // continuity rule below still catches real stalls; 6 Hz is therefore a
+    // realistic default for the standard profile.
+    const double defaultMinimumRate = performance == QStringLiteral("eco") ? 3.0
+                                      : performance == QStringLiteral("smooth") ? 9.0
+                                      : performance == QStringLiteral("auto") ? 5.0 : 6.0;
+    return {{QStringLiteral("usage"), usage},
+            {QStringLiteral("performance"), performance},
+            {QStringLiteral("acceptanceRequired"), acceptanceRequired},
+            {QStringLiteral("minimumFrameRateHz"),
+             boundedNumber(values, QStringLiteral("minimumFrameRateHz"),
+                           defaultMinimumRate, 1.0, 15.0)},
+            {QStringLiteral("maximumDataGapSeconds"),
+             boundedNumber(values, QStringLiteral("maximumDataGapSeconds"),
+                           2.0, 0.5, 30.0)},
+            {QStringLiteral("minimumObstacleDistanceMeters"),
+             boundedNumber(values, QStringLiteral("minimumObstacleDistanceMeters"),
+                           1.0, 0.2, 30.0)},
+            {QStringLiteral("requireCameraFrame"),
+             values.value(QStringLiteral("requireCameraFrame"), true).toBool()},
+            {QStringLiteral("requireVisualSurvey"),
+             values.value(QStringLiteral("requireVisualSurvey"), false).toBool()},
+            {QStringLiteral("minimumVisualKeyframes"),
+             qBound(1, values.value(QStringLiteral("minimumVisualKeyframes"), 5).toInt(), 200)},
+            {QStringLiteral("minimumVisualCoveragePercent"),
+             boundedNumber(values, QStringLiteral("minimumVisualCoveragePercent"),
+                           60.0, 10.0, 100.0)},
+            // SLAM is deliberately recorded as a capability flag. It stays off
+            // until a real map producer exists; reports must not claim otherwise.
+            {QStringLiteral("requireSlamMap"), false}};
+}
+
 QVariantMap normalizedStoredPlan(QVariantMap plan)
 {
+    const int storedVersion = plan.value(QStringLiteral("version"), 1).toInt();
     QString type = plan.value(QStringLiteral("type"), QStringLiteral("free-flight")).toString();
     QString preset = plan.value(QStringLiteral("acceptancePreset"), QStringLiteral("standard")).toString();
     if (type == QStringLiteral("city-inspection")) {
@@ -139,6 +193,21 @@ QVariantMap normalizedStoredPlan(QVariantMap plan)
                     preset, storedRules));
     plan.insert(QStringLiteral("controlSettings"), normalizedControlSettings(
                     plan.value(QStringLiteral("controlSettings")).toMap()));
+    QVariantMap storedSensorSettings = plan.value(QStringLiteral("sensorSettings")).toMap();
+    // 0.11.0 originally wrote 7 Hz as the implicit standard-mode threshold.
+    // Migrate that exact old default, while preserving every value that the
+    // user deliberately chose (including 7 Hz in a version-5 plan).
+    if (storedVersion <= 4
+        && storedSensorSettings.value(QStringLiteral("performance"),
+                                      QStringLiteral("standard")).toString()
+               == QStringLiteral("standard")
+        && qFuzzyCompare(storedSensorSettings.value(
+                             QStringLiteral("minimumFrameRateHz"), 7.0).toDouble() + 1.0,
+                         8.0)) {
+        storedSensorSettings.insert(QStringLiteral("minimumFrameRateHz"), 6.0);
+    }
+    plan.insert(QStringLiteral("sensorSettings"), normalizedSensorSettings(
+                    storedSensorSettings));
     plan.insert(QStringLiteral("requiresRoute"), type == QStringLiteral("mission"));
     return plan;
 }
@@ -185,7 +254,7 @@ QVariantMap TestPlanRepository::readUserPlan(const QString &planId) const
     const int version = storedPlan.value(QStringLiteral("version")).toInt();
     const QString storedType = storedPlan.value(QStringLiteral("type")).toString();
     if (storedPlan.value(QStringLiteral("format")).toString() != QStringLiteral("FlightBenchTestPlan")
-        || (version != 1 && version != TestPlanFormatVersion)
+        || (version < 1 || version > TestPlanFormatVersion)
         || storedPlan.value(QStringLiteral("id")).toString() != planId
         || (!validType(storedType) && storedType != QStringLiteral("city-inspection"))
         || !validEndAction(storedPlan.value(QStringLiteral("endAction")).toString())) {
@@ -326,6 +395,8 @@ QVariantMap TestPlanRepository::savePlan(const QString &planId,
                          : QVariantMap{})},
         {QStringLiteral("controlSettings"), normalizedControlSettings(
              advancedSettings.value(QStringLiteral("controlSettings")).toMap())},
+        {QStringLiteral("sensorSettings"), normalizedSensorSettings(
+             advancedSettings.value(QStringLiteral("sensorSettings")).toMap())},
         {QStringLiteral("createdAt"), previous.value(
              QStringLiteral("createdAt"), now.toString(Qt::ISODate))},
         {QStringLiteral("updatedAt"), now.toString(Qt::ISODate)},
@@ -353,7 +424,8 @@ QVariantMap TestPlanRepository::duplicatePlan(const QString &planId)
                     source.value(QStringLiteral("endAction"), QStringLiteral("hold")).toString(),
                     source.value(QStringLiteral("acceptancePreset"), QStringLiteral("standard")).toString(),
                     {{QStringLiteral("acceptanceRules"), source.value(QStringLiteral("acceptanceRules"))},
-                     {QStringLiteral("controlSettings"), source.value(QStringLiteral("controlSettings"))}});
+                     {QStringLiteral("controlSettings"), source.value(QStringLiteral("controlSettings"))},
+                     {QStringLiteral("sensorSettings"), source.value(QStringLiteral("sensorSettings"))}});
 }
 
 QVariantMap TestPlanRepository::renamePlan(const QString &planId, const QString &name)

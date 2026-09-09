@@ -151,7 +151,10 @@ $buildArguments += @('--target',
                     'FlightBench', 'FlightBenchRouteLibraryTest', 'FlightBenchTestPlanRepositoryTest',
                     'FlightBenchReplayTest',
                     'FlightBenchSessionRecorderTest', 'FlightBenchRouteAnalysisTest',
-                    'FlightBenchWorldMapTest', 'FlightBenchTestWorkflowTest')
+                    'FlightBenchWorldMapTest', 'FlightBenchTestWorkflowTest',
+                    'FlightBenchSensorServiceTest', 'FlightBenchLidarMappingTest',
+                    'FlightBenchDepthMappingTest', 'FlightBenchVisualSurveyTest',
+                    'FlightBenchGimbalInspectionTest')
 Invoke-Checked $cmake $buildArguments
 
 if (-not $SkipSmokeTests) {
@@ -172,6 +175,38 @@ New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'FlightBench.exe') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'mavsdk.dll') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $sourceDirectory 'simulation') -Destination $stagingDirectory -Recurse
+
+# ROS 2 sensor support remains optional and is deliberately not built while
+# publishing: a normal x500 release must not require Docker or network access.
+# Ship the tiny image recipe instead, so a recipient who wants LiDAR / camera
+# data can install the matching 0.12.0 image directly from the release folder.
+$releaseScriptsDirectory = Join-Path $stagingDirectory 'scripts'
+$releaseDockerDirectory = Join-Path $stagingDirectory 'docker\ros-sensor-bridge'
+New-Item -ItemType Directory -Path $releaseScriptsDirectory -Force | Out-Null
+New-Item -ItemType Directory -Path $releaseDockerDirectory -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'scripts\build-ros-sensor-image.cmd') `
+          -Destination $releaseScriptsDirectory
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'docker\ros-sensor-bridge\Dockerfile') `
+          -Destination $releaseDockerDirectory
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'docker\ros-sensor-bridge\entrypoint.sh') `
+          -Destination $releaseDockerDirectory
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'docker\ros-sensor-bridge\sensor_gateway.py') `
+          -Destination $releaseDockerDirectory
+Copy-Item -LiteralPath (Join-Path $sourceDirectory '.dockerignore') `
+          -Destination $stagingDirectory
+
+@(
+    'FlightBench 0.12.0 optional ROS 2 sensor service',
+    '',
+    'Normal PX4 simulation does not require this service.',
+    'For x500 LiDAR, Mono Camera, Depth or Gimbal sensor data:',
+    '1. Install and start Docker Desktop.',
+    '2. Double-click scripts\build-ros-sensor-image.cmd once.',
+    '3. In FlightBench, enable ROS 2 sensor data before starting simulation.',
+    '',
+    'The installer builds flightbench/ros-sensor-bridge:0.12.0 locally.',
+    'It does not start a ROS container until the user enables it in FlightBench.'
+) | Set-Content -LiteralPath (Join-Path $stagingDirectory 'ROS2-SENSOR-SETUP.txt') -Encoding UTF8
 
 $windeployqt = Join-Path $qtBin 'windeployqt.exe'
 Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Join-Path $sourceDirectory 'qml'),

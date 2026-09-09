@@ -216,7 +216,7 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
 
     m_metadata = {
         {QStringLiteral("format"), QStringLiteral("FlightBenchSession")},
-        {QStringLiteral("formatVersion"), 4},
+        {QStringLiteral("formatVersion"), 5},
         {QStringLiteral("id"), sessionId},
         {QStringLiteral("folderPath"), QDir::toNativeSeparators(folderPath)},
         {QStringLiteral("csvPath"), QDir::toNativeSeparators(csvPath)},
@@ -262,6 +262,8 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
         {QStringLiteral("testPlanAcceptancePreset"), QStringLiteral("standard")},
         {QStringLiteral("testPlanAcceptanceRules"), QVariantMap{}},
         {QStringLiteral("testPlanControlSettings"), QVariantMap{}},
+        {QStringLiteral("testPlanSensorSettings"), QVariantMap{}},
+        {QStringLiteral("sensorRecording"), QVariantMap{}},
         {QStringLiteral("testPlanBuiltIn"), false},
         {QStringLiteral("testResult"), QStringLiteral("running")},
         {QStringLiteral("testResultLabel"), QStringLiteral("进行中")},
@@ -711,12 +713,22 @@ void FlightSessionRecorder::setTestPlan(const QVariantMap &plan)
                       plan.value(QStringLiteral("acceptanceRules"), QVariantMap{}));
     m_metadata.insert(QStringLiteral("testPlanControlSettings"),
                       plan.value(QStringLiteral("controlSettings"), QVariantMap{}));
+    m_metadata.insert(QStringLiteral("testPlanSensorSettings"),
+                      plan.value(QStringLiteral("sensorSettings"), QVariantMap{}));
     m_metadata.insert(QStringLiteral("testPlanBuiltIn"),
                       plan.value(QStringLiteral("builtIn"), false));
     appendEvent(QStringLiteral("[%1] [测试方案] %2（%3）")
                     .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss")),
                          plan.value(QStringLiteral("name")).toString(),
                          plan.value(QStringLiteral("typeLabel")).toString()));
+    writeMetadata();
+    emit activeSessionChanged();
+}
+
+void FlightSessionRecorder::setSensorSummary(const QVariantMap &summary)
+{
+    if (!m_active) return;
+    m_metadata.insert(QStringLiteral("sensorRecording"), summary);
     writeMetadata();
     emit activeSessionChanged();
 }
@@ -808,6 +820,25 @@ bool FlightSessionRecorder::setSessionReport(const QString &sessionId,
     }
 
     emit recorderError(QStringLiteral("无法登记测试报告：没有找到对应会话"));
+    return false;
+}
+
+bool FlightSessionRecorder::updateSessionSensorSummary(const QString &sessionId,
+                                                        const QVariantMap &summary)
+{
+    for (qsizetype index = 0; index < m_completedSessions.size(); ++index) {
+        QVariantMap metadata = m_completedSessions.at(index).toMap();
+        if (metadata.value(QStringLiteral("id")).toString() != sessionId) continue;
+        metadata.insert(QStringLiteral("sensorRecording"), summary);
+        const QString folder = metadata.value(QStringLiteral("folderPath")).toString();
+        if (!saveStandaloneMetadata(metadata, folder)) {
+            emit recorderError(QStringLiteral("无法更新会话的视觉巡检备注"));
+            return false;
+        }
+        m_completedSessions[index] = metadata;
+        emit completedSessionsChanged();
+        return true;
+    }
     return false;
 }
 
@@ -931,6 +962,32 @@ bool FlightSessionRecorder::permanentlyDeleteSession(const QString &sessionId)
     return false;
 }
 
+bool FlightSessionRecorder::deleteSessionSensorData(const QString &sessionId)
+{
+    if (sessionId.isEmpty() || (m_active && activeSessionId() == sessionId)) return false;
+    QVariantMap metadata = metadataForSession(sessionId);
+    if (metadata.isEmpty()) return false;
+    const QString folderPath = QDir::cleanPath(
+        metadata.value(QStringLiteral("folderPath")).toString());
+    const QString sensorPath = QDir(folderPath).filePath(QStringLiteral("sensor"));
+    const QFileInfo folderInfo(folderPath);
+    const QFileInfo sensorInfo(sensorPath);
+    if (!folderInfo.exists() || !sensorInfo.exists() || !sensorInfo.isDir()
+        || !QDir::cleanPath(sensorInfo.absoluteFilePath()).startsWith(
+               QDir::cleanPath(folderInfo.absoluteFilePath()) + QDir::separator())) {
+        return false;
+    }
+    if (!QDir(sensorInfo.absoluteFilePath()).removeRecursively()) return false;
+    metadata.insert(QStringLiteral("sensorRecording"),
+                    QVariantMap{{QStringLiteral("available"), false},
+                                {QStringLiteral("deleted"), true},
+                                {QStringLiteral("statusLabel"), QStringLiteral("传感器数据已删除")}});
+    if (!saveStandaloneMetadata(metadata, folderPath)) return false;
+    loadCompletedSessions();
+    emit completedSessionsChanged();
+    return true;
+}
+
 int FlightSessionRecorder::purgeTrashOlderThan(int retentionDays)
 {
     if (retentionDays <= 0) return 0;
@@ -994,9 +1051,32 @@ void FlightSessionRecorder::loadCompletedSessions()
         QFile metadataFile(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("session.json")));
         if (!metadataFile.open(QIODevice::ReadOnly)) continue;
         const QJsonDocument document = QJsonDocument::fromJson(metadataFile.readAll());
+        metadataFile.close();
         if (!document.isObject()) continue;
         QVariantMap metadata = document.object().toVariantMap();
         if (metadata.value(QStringLiteral("id")).toString().isEmpty()) continue;
+        bool recoveredSensorSummary = false;
+        if (metadata.value(QStringLiteral("sensorRecording")).toMap().isEmpty()) {
+            const QString sensorDirectory = QDir(folder.absoluteFilePath())
+                                                .filePath(QStringLiteral("sensor"));
+            QFile manifestFile(QDir(sensorDirectory).filePath(QStringLiteral("manifest.json")));
+            if (manifestFile.open(QIODevice::ReadOnly)) {
+                const QJsonDocument manifest = QJsonDocument::fromJson(manifestFile.readAll());
+                manifestFile.close();
+                if (manifest.isObject()) {
+                    QVariantMap summary = manifest.object().toVariantMap();
+                    const QFileInfo timeline(QDir(sensorDirectory)
+                                                 .filePath(QStringLiteral("timeline.ndjson")));
+                    const bool replayable = timeline.isFile() && timeline.size() > 0;
+                    summary.insert(QStringLiteral("recorded"), replayable);
+                    summary.insert(QStringLiteral("replayable"), replayable);
+                    if (!summary.contains(QStringLiteral("recordingComplete")))
+                        summary.insert(QStringLiteral("recordingComplete"), replayable);
+                    metadata.insert(QStringLiteral("sensorRecording"), summary);
+                    recoveredSensorSummary = true;
+                }
+            }
+        }
         // Sessions created before route reuse was introduced do not contain this key.
         // Normalizing it here keeps old local data compatible with the current QML model.
         if (!metadata.contains(QStringLiteral("missionRouteName")))
@@ -1013,6 +1093,20 @@ void FlightSessionRecorder::loadCompletedSessions()
             metadata.insert(QStringLiteral("testPlanName"), QString());
         if (!metadata.contains(QStringLiteral("testPlanType")))
             metadata.insert(QStringLiteral("testPlanType"), QString());
+        if (recoveredSensorSummary
+            && !metadata.value(QStringLiteral("testPlanType")).toString().isEmpty()) {
+            const QVariantMap evaluation = AcceptanceEvaluator::evaluate(metadata);
+            metadata.insert(QStringLiteral("testResult"), evaluation.value(QStringLiteral("result")));
+            metadata.insert(QStringLiteral("testResultLabel"), evaluation.value(QStringLiteral("resultLabel")));
+            metadata.insert(QStringLiteral("testResultReason"), evaluation.value(QStringLiteral("reason")));
+            metadata.insert(QStringLiteral("acceptanceChecks"), evaluation.value(QStringLiteral("checks")));
+            metadata.insert(QStringLiteral("acceptancePassedCount"), evaluation.value(QStringLiteral("passedCount")));
+            metadata.insert(QStringLiteral("acceptanceWarningCount"), evaluation.value(QStringLiteral("warningCount")));
+            metadata.insert(QStringLiteral("acceptanceFailedCount"), evaluation.value(QStringLiteral("failedCount")));
+            metadata.insert(QStringLiteral("reportNeedsRegeneration"), true);
+            if (!saveStandaloneMetadata(metadata, folder.absoluteFilePath()))
+                metadata.insert(QStringLiteral("metadataRepairPending"), true);
+        }
         if (!metadata.contains(QStringLiteral("testResult"))) {
             metadata.insert(QStringLiteral("testResult"), QStringLiteral("not-rated"));
             metadata.insert(QStringLiteral("testResultLabel"), QStringLiteral("未评估"));
@@ -1086,6 +1180,7 @@ void FlightSessionRecorder::loadTrashedSessions()
         QFile file(QDir(folder.absoluteFilePath()).filePath(QStringLiteral("session.json")));
         if (!file.open(QIODevice::ReadOnly)) continue;
         const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+        file.close();
         if (!document.isObject()) continue;
         QVariantMap metadata = document.object().toVariantMap();
         if (!saveStandaloneMetadata(metadata, folder.absoluteFilePath())) continue;

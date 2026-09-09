@@ -10,6 +10,7 @@ class DockerController final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool dockerAvailable READ dockerAvailable NOTIFY dockerAvailableChanged)
     Q_PROPERTY(bool imageAvailable READ imageAvailable NOTIFY imageAvailableChanged)
+    Q_PROPERTY(bool networkAvailable READ networkAvailable NOTIFY networkAvailableChanged)
     Q_PROPERTY(bool simulationRunning READ simulationRunning NOTIFY simulationRunningChanged)
     Q_PROPERTY(bool containerNameAvailable READ containerNameAvailable NOTIFY containerNameAvailableChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
@@ -22,6 +23,7 @@ public:
 
     [[nodiscard]] bool dockerAvailable() const { return m_dockerAvailable; }
     [[nodiscard]] bool imageAvailable() const { return m_imageAvailable; }
+    [[nodiscard]] bool networkAvailable() const { return m_networkAvailable; }
     [[nodiscard]] bool simulationRunning() const { return m_simulationRunning; }
     [[nodiscard]] bool containerNameAvailable() const { return m_containerNameAvailable; }
     [[nodiscard]] bool busy() const { return m_busy; }
@@ -33,12 +35,14 @@ public:
     void startSimulation(const QString &modelId,
                          const QString &worldId,
                          const QString &worldAssetsDirectory,
-                         const QString &containerName);
+                         const QString &containerName,
+                         const QString &sensorPerformanceMode = QStringLiteral("standard"));
     Q_INVOKABLE void stopSimulation();
 
 signals:
     void dockerAvailableChanged();
     void imageAvailableChanged();
+    void networkAvailableChanged();
     void simulationRunningChanged();
     void containerNameAvailableChanged();
     void busyChanged();
@@ -46,12 +50,13 @@ signals:
     void problemCodeChanged();
 
 private:
-    enum class Operation { None, Probe, CheckImage, Start, Stop };
+    enum class Operation { None, Probe, CheckImage, CheckNetwork, CreateNetwork, Start, Stop };
 
     void run(Operation operation, const QStringList &arguments);
     void inspectContainer();
     void setDockerAvailable(bool value);
     void setImageAvailable(bool value);
+    void setNetworkAvailable(bool value);
     void setSimulationRunning(bool value);
     void setContainerNameAvailable(bool value);
     void setBusy(bool value);
@@ -62,9 +67,13 @@ private:
     void handleInspectFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void handleInspectError(QProcess::ProcessError error);
     void shutdownSynchronously();
+    [[nodiscard]] QString prepareSensorModelProfile(const QString &modelId,
+                                                    const QString &assetsDirectory,
+                                                    const QString &performanceMode);
 
     static constexpr auto DefaultContainerName = "flightbench-px4";
     static constexpr auto ImageName = "px4io/px4-sitl-gazebo:latest";
+    static constexpr auto NetworkName = "flightbench-net";
 
     QProcess m_process;
     QProcess m_inspectProcess;
@@ -76,6 +85,7 @@ private:
     quint64 m_activeInspectGeneration{0};
     bool m_dockerAvailable{false};
     bool m_imageAvailable{false};
+    bool m_networkAvailable{false};
     bool m_simulationRunning{false};
     bool m_containerNameAvailable{true};
     bool m_busy{false};

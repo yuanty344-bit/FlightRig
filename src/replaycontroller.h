@@ -3,11 +3,13 @@
 #include "flightpathgeometry.h"
 
 #include <QElapsedTimer>
+#include <QFile>
 #include <QObject>
 #include <QQuaternion>
 #include <QString>
 #include <QTimer>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QVector>
 #include <QVector3D>
 
@@ -53,8 +55,45 @@ public:
     [[nodiscard]] QString currentEventLabel() const;
     [[nodiscard]] QVariantList telemetrySeries() const { return m_telemetrySeries; }
     [[nodiscard]] QString errorMessage() const { return m_errorMessage; }
+    [[nodiscard]] bool sensorAvailable() const { return m_sensorAvailable; }
+    [[nodiscard]] QString sensorKind() const { return m_sensorKind; }
+    [[nodiscard]] QString rgbFrameDataUrl() const { return m_rgbFrameDataUrl; }
+    [[nodiscard]] QString depthFrameDataUrl() const { return m_depthFrameDataUrl; }
+    [[nodiscard]] QVariantList lidarPoints() const { return m_lidarPoints; }
+    [[nodiscard]] const QVariantList &lidarPointsForMapping() const { return m_lidarPoints; }
+    [[nodiscard]] double lidarNearestDistanceMeters() const { return m_lidarNearestDistanceMeters; }
+    [[nodiscard]] double lidarNearestAngleDegrees() const { return m_lidarNearestAngleDegrees; }
+    [[nodiscard]] double lidarScanHz() const { return m_lidarScanHz; }
+    [[nodiscard]] double lidarFieldOfViewDegrees() const { return m_lidarFieldOfViewDegrees; }
+    [[nodiscard]] double rgbFrameHz() const { return m_rgbFrameHz; }
+    [[nodiscard]] double depthFrameHz() const { return m_depthFrameHz; }
+    [[nodiscard]] int rgbLatencyMilliseconds() const { return m_rgbLatencyMilliseconds; }
+    [[nodiscard]] int depthLatencyMilliseconds() const { return m_depthLatencyMilliseconds; }
+    [[nodiscard]] bool rgbStreamInterrupted() const { return m_rgbStreamInterrupted; }
+    [[nodiscard]] bool depthStreamInterrupted() const { return m_depthStreamInterrupted; }
+    [[nodiscard]] double depthCenterDistanceMeters() const { return m_depthCenterDistanceMeters; }
+    [[nodiscard]] double depthNearestDistanceMeters() const { return m_depthNearestDistanceMeters; }
+    [[nodiscard]] double depthValidRatio() const { return m_depthValidRatio; }
+    [[nodiscard]] const QByteArray &depthMillimetresForMapping() const
+    {
+        return m_depthMillimetres;
+    }
+    [[nodiscard]] int depthGridWidthForMapping() const { return m_depthGridWidth; }
+    [[nodiscard]] int depthGridHeightForMapping() const { return m_depthGridHeight; }
+    [[nodiscard]] double gimbalYawDegrees() const { return m_gimbalYawDegrees; }
+    [[nodiscard]] double gimbalPitchDegrees() const { return m_gimbalPitchDegrees; }
+    [[nodiscard]] double gimbalRollDegrees() const { return m_gimbalRollDegrees; }
+    [[nodiscard]] double gimbalTargetYawDegrees() const { return m_gimbalTargetYawDegrees; }
+    [[nodiscard]] double gimbalTargetPitchDegrees() const { return m_gimbalTargetPitchDegrees; }
+    [[nodiscard]] bool gimbalFeedbackAvailable() const { return m_gimbalFeedbackAvailable; }
+    [[nodiscard]] bool gimbalMoving() const;
+    [[nodiscard]] double depthDistanceAt(double normalizedX, double normalizedY) const;
+    [[nodiscard]] bool saveCurrentCameraFrame(const QString &stream,
+                                              const QString &directory,
+                                              QString *savedPath = nullptr) const;
 
-    bool start(const QString &csvPath, const QString &eventsPath = {}, const QString &startedAtIso = {});
+    bool start(const QString &csvPath, const QString &eventsPath = {},
+               const QString &startedAtIso = {}, const QString &sessionFolder = {});
     void stop();
     void pause();
     void resume();
@@ -72,8 +111,10 @@ signals:
     void timeChanged();
     void positionChanged();
     void dataChanged();
+    void sensorDataChanged();
 
 private:
+    struct SensorSample;
     void onTick();
     void synchronizeClock();
     void updateInterpolatedState();
@@ -81,6 +122,9 @@ private:
     void updateCurrentEventIndex();
     void loadEvents(const QString &eventsPath, const QString &startedAtIso);
     void buildTelemetrySeries();
+    void loadSensorTimeline(const QString &sessionFolder);
+    void updateSensorState();
+    [[nodiscard]] QVariantMap loadSensorSample(const SensorSample &sample) const;
     [[nodiscard]] static QVector<Sample> loadSamples(const QString &csvPath, QString *errorMessage = nullptr);
 
     FlightPathGeometry m_pathGeometry;
@@ -107,4 +151,50 @@ private:
     double m_verticalSpeedMetersPerSecond{0.0};
     int m_currentEventIndex{-1};
     QString m_errorMessage;
+    struct SensorSample {
+        qint64 elapsedMs{0};
+        qint64 fileOffset{-1};
+        QVariantMap metadata;
+    };
+    QVector<SensorSample> m_rgbSamples;
+    QVector<SensorSample> m_depthSamples;
+    QVector<SensorSample> m_lidarSamples;
+    QVector<SensorSample> m_gimbalTargetSamples;
+    QVector<SensorSample> m_gimbalFeedbackSamples;
+    int m_rgbSampleIndex{-1};
+    int m_depthSampleIndex{-1};
+    int m_lidarSampleIndex{-1};
+    int m_gimbalTargetSampleIndex{-1};
+    int m_gimbalFeedbackSampleIndex{-1};
+    bool m_sensorAvailable{false};
+    QString m_sensorKind;
+    QString m_rgbFrameDataUrl;
+    QString m_depthFrameDataUrl;
+    QVariantList m_lidarPoints;
+    double m_lidarNearestDistanceMeters{0.0};
+    double m_lidarNearestAngleDegrees{0.0};
+    double m_lidarScanHz{0.0};
+    double m_lidarFieldOfViewDegrees{0.0};
+    QString m_sensorTimelinePath;
+    QString m_rgbFramePath;
+    QString m_depthFramePath;
+    double m_rgbFrameHz{0.0};
+    double m_depthFrameHz{0.0};
+    int m_rgbLatencyMilliseconds{-1};
+    int m_depthLatencyMilliseconds{-1};
+    bool m_rgbStreamInterrupted{false};
+    bool m_depthStreamInterrupted{false};
+    bool m_lidarStreamInterrupted{false};
+    double m_depthCenterDistanceMeters{0.0};
+    double m_depthNearestDistanceMeters{0.0};
+    double m_depthValidRatio{0.0};
+    double m_gimbalYawDegrees{0.0};
+    double m_gimbalPitchDegrees{0.0};
+    double m_gimbalRollDegrees{0.0};
+    double m_gimbalTargetYawDegrees{0.0};
+    double m_gimbalTargetPitchDegrees{0.0};
+    bool m_gimbalFeedbackAvailable{false};
+    QByteArray m_depthMillimetres;
+    int m_depthGridWidth{0};
+    int m_depthGridHeight{0};
 };

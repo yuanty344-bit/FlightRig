@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(FlightBench VERSION 0.10.0 LANGUAGES CXX)
+project(FlightBench VERSION 0.12.0 LANGUAGES CXX)
 
 include(CTest)
 
@@ -28,7 +28,7 @@ if(NOT MAVSDK_DIR)
     unset(_flightbench_mavsdk_dir)
 endif()
 
-find_package(Qt6 6.11 REQUIRED COMPONENTS Quick Quick3D Svg)
+find_package(Qt6 6.11 REQUIRED COMPONENTS Quick Quick3D Svg Network)
 find_package(MAVSDK 3.17 CONFIG REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.8)
@@ -44,6 +44,14 @@ qt_add_executable(FlightBench
     src/dockercontroller.h
     src/flightsessionrecorder.cpp
     src/flightsessionrecorder.h
+    src/lidarmappingcontroller.cpp
+    src/lidarmappingcontroller.h
+    src/depthmappingcontroller.cpp
+    src/depthmappingcontroller.h
+    src/visualsurveycontroller.cpp
+    src/visualsurveycontroller.h
+    src/gimbalinspectioncontroller.cpp
+    src/gimbalinspectioncontroller.h
     src/flightpathgeometry.cpp
     src/flightpathgeometry.h
     src/routelibrary.cpp
@@ -52,6 +60,9 @@ qt_add_executable(FlightBench
     src/testplanrepository.h
     src/replaycontroller.cpp
     src/replaycontroller.h
+    src/sensorservicecontroller.cpp
+    src/sensorservicecontroller.h
+    src/sensorclocksync.h
     src/preflightevaluator.cpp
     src/preflightevaluator.h
     src/px4eventtranslator.cpp
@@ -123,6 +134,12 @@ qt_add_qml_module(FlightBench
         qml/components/ReplayEventPanel.qml
         qml/components/ReplayTelemetryChart.qml
         qml/components/RouteDeviationSummary.qml
+        qml/components/LidarPanel.qml
+        qml/components/CameraPanel.qml
+        qml/components/GimbalInspectionPanel.qml
+        qml/components/DepthMapView3D.qml
+        qml/components/VisualSurveyMap.qml
+        qml/components/VisualSurveyDialog.qml
         qml/components/RuntimeEnvironmentCenter.qml
         qml/components/SimulationModelPicker.qml
         qml/components/SimulationWorldPicker.qml
@@ -153,6 +170,7 @@ qt_add_resources(FlightBench "flightbench_assets"
     BASE "resources"
     FILES
         resources/icons/circle-check.svg
+        resources/icons/camera.svg
         resources/icons/circle-alert.svg
         resources/icons/chevron-down.svg
         resources/icons/copy.svg
@@ -182,6 +200,7 @@ qt_add_resources(FlightBench "flightbench_assets"
         resources/icons/square.svg
         resources/icons/trash-2.svg
         resources/icons/upload.svg
+        resources/icons/video.svg
         resources/icons/zoom-in.svg
         resources/icons/zoom-out.svg
         resources/icons/locate-fixed.svg
@@ -200,6 +219,7 @@ qt_add_resources(FlightBench "flightbench_assets"
         resources/icons/info.svg
         resources/icons/mouse-pointer-2.svg
         resources/icons/palette.svg
+        resources/icons/radar.svg
         resources/icons/x.svg
         resources/markers/position-marker.svg
         ${FLIGHTBENCH_WORLD_MAP_ASSETS}
@@ -210,6 +230,7 @@ target_link_libraries(FlightBench PRIVATE
     Qt6::Quick
     Qt6::Quick3D
     Qt6::Svg
+    Qt6::Network
     MAVSDK::mavsdk
 )
 
@@ -255,6 +276,14 @@ add_executable(FlightBenchFlightTest EXCLUDE_FROM_ALL
     src/dockercontroller.h
     src/flightsessionrecorder.cpp
     src/flightsessionrecorder.h
+    src/lidarmappingcontroller.cpp
+    src/lidarmappingcontroller.h
+    src/depthmappingcontroller.cpp
+    src/depthmappingcontroller.h
+    src/visualsurveycontroller.cpp
+    src/visualsurveycontroller.h
+    src/gimbalinspectioncontroller.cpp
+    src/gimbalinspectioncontroller.h
     src/flightpathgeometry.cpp
     src/flightpathgeometry.h
     src/routelibrary.cpp
@@ -263,6 +292,8 @@ add_executable(FlightBenchFlightTest EXCLUDE_FROM_ALL
     src/testplanrepository.h
     src/replaycontroller.cpp
     src/replaycontroller.h
+    src/sensorservicecontroller.cpp
+    src/sensorservicecontroller.h
     src/preflightevaluator.cpp
     src/preflightevaluator.h
     src/px4eventtranslator.cpp
@@ -278,7 +309,7 @@ add_executable(FlightBenchFlightTest EXCLUDE_FROM_ALL
 )
 
 target_include_directories(FlightBenchFlightTest PRIVATE src)
-target_link_libraries(FlightBenchFlightTest PRIVATE Qt6::Core Qt6::Gui Qt6::Quick3D MAVSDK::mavsdk)
+target_link_libraries(FlightBenchFlightTest PRIVATE Qt6::Core Qt6::Gui Qt6::Quick3D Qt6::Network MAVSDK::mavsdk)
 
 if(MSVC)
     target_compile_options(FlightBenchFlightTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
@@ -302,6 +333,14 @@ add_executable(FlightBenchMissionTest EXCLUDE_FROM_ALL
     src/dockercontroller.h
     src/flightsessionrecorder.cpp
     src/flightsessionrecorder.h
+    src/lidarmappingcontroller.cpp
+    src/lidarmappingcontroller.h
+    src/depthmappingcontroller.cpp
+    src/depthmappingcontroller.h
+    src/visualsurveycontroller.cpp
+    src/visualsurveycontroller.h
+    src/gimbalinspectioncontroller.cpp
+    src/gimbalinspectioncontroller.h
     src/flightpathgeometry.cpp
     src/flightpathgeometry.h
     src/routelibrary.cpp
@@ -310,6 +349,8 @@ add_executable(FlightBenchMissionTest EXCLUDE_FROM_ALL
     src/testplanrepository.h
     src/replaycontroller.cpp
     src/replaycontroller.h
+    src/sensorservicecontroller.cpp
+    src/sensorservicecontroller.h
     src/preflightevaluator.cpp
     src/preflightevaluator.h
     src/px4eventtranslator.cpp
@@ -329,6 +370,7 @@ target_link_libraries(FlightBenchMissionTest PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Quick3D
+    Qt6::Network
     MAVSDK::mavsdk
 )
 
@@ -444,7 +486,105 @@ if(MSVC)
     target_compile_options(FlightBenchTestWorkflowTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
 endif()
 
+add_executable(FlightBenchSensorServiceTest EXCLUDE_FROM_ALL
+    tests/sensorservicecontrollertest.cpp
+    src/sensorservicecontroller.cpp
+    src/sensorservicecontroller.h
+)
+target_compile_definitions(FlightBenchSensorServiceTest PRIVATE FLIGHTBENCH_TESTING=1)
+target_include_directories(FlightBenchSensorServiceTest PRIVATE src)
+target_link_libraries(FlightBenchSensorServiceTest PRIVATE Qt6::Core Qt6::Network)
+if(MSVC)
+    target_compile_options(FlightBenchSensorServiceTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
+endif()
+
+add_executable(FlightBenchLidarMappingTest EXCLUDE_FROM_ALL
+    tests/lidarmappingcontrollertest.cpp
+    src/lidarmappingcontroller.cpp
+    src/lidarmappingcontroller.h
+)
+target_include_directories(FlightBenchLidarMappingTest PRIVATE src)
+target_link_libraries(FlightBenchLidarMappingTest PRIVATE Qt6::Core Qt6::Gui)
+if(MSVC)
+    target_compile_options(FlightBenchLidarMappingTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
+endif()
+
+add_executable(FlightBenchDepthMappingTest EXCLUDE_FROM_ALL
+    tests/depthmappingcontrollertest.cpp
+    src/depthmappingcontroller.cpp
+    src/depthmappingcontroller.h
+)
+target_include_directories(FlightBenchDepthMappingTest PRIVATE src)
+target_link_libraries(FlightBenchDepthMappingTest PRIVATE Qt6::Core Qt6::Gui Qt6::Quick3D)
+if(MSVC)
+    target_compile_options(FlightBenchDepthMappingTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
+endif()
+
+add_executable(FlightBenchVisualSurveyTest EXCLUDE_FROM_ALL
+    tests/visualsurveycontrollertest.cpp
+    src/visualsurveycontroller.cpp
+    src/visualsurveycontroller.h
+)
+target_include_directories(FlightBenchVisualSurveyTest PRIVATE src)
+target_link_libraries(FlightBenchVisualSurveyTest PRIVATE Qt6::Core Qt6::Gui)
+if(MSVC)
+    target_compile_options(FlightBenchVisualSurveyTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
+endif()
+
+add_executable(FlightBenchGimbalInspectionTest EXCLUDE_FROM_ALL
+    tests/gimbalinspectioncontrollertest.cpp
+    tests/gimbalinspection.qrc
+    src/gimbalinspectioncontroller.cpp
+    src/gimbalinspectioncontroller.h
+    src/visualsurveycontroller.cpp
+    src/visualsurveycontroller.h
+    src/worldmapcatalog.cpp
+    src/worldmapcatalog.h
+    src/testreportgenerator.cpp
+    src/testreportgenerator.h
+)
+set_target_properties(FlightBenchGimbalInspectionTest PROPERTIES AUTORCC ON)
+target_include_directories(FlightBenchGimbalInspectionTest PRIVATE src)
+target_link_libraries(FlightBenchGimbalInspectionTest PRIVATE Qt6::Core Qt6::Gui)
+if(MSVC)
+    target_compile_options(FlightBenchGimbalInspectionTest PRIVATE /W4 /permissive- /utf-8 /wd4702)
+endif()
+
 if(BUILD_TESTING)
+    # Isolated real-layout regression: load the source component and Theme,
+    # without starting AppController, Docker, or touching actual flight records.
+    find_program(FLIGHTBENCH_QML_TEST_RUNNER NAMES qmltestrunner qmltestrunner6
+                 HINTS "${Qt6_DIR}/../../../bin")
+    if(FLIGHTBENCH_QML_TEST_RUNNER)
+        foreach(_scale IN ITEMS 1 1.25 1.5)
+            add_test(NAME FlightBench.AcceptanceLayout.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_AcceptanceResultRow.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.AcceptanceLayout.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+            add_test(NAME FlightBench.GimbalLayout.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_GimbalInspectionPanel.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.GimbalLayout.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+        endforeach()
+    endif()
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME FlightBench.SensorGatewayClock
+                 COMMAND "${Python3_EXECUTABLE}"
+                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sensor_gateway_clock.py")
+        set_tests_properties(FlightBench.SensorGatewayClock PROPERTIES LABELS "unit" TIMEOUT 15)
+        add_test(NAME FlightBench.GimbalChannel
+                 COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_gimbal_channel.py")
+        set_tests_properties(FlightBench.GimbalChannel PROPERTIES LABELS "unit" TIMEOUT 15)
+    endif()
     add_test(NAME FlightBench.QmlLint
              COMMAND $<TARGET_FILE:Qt6::qmllint>
                      -I "${CMAKE_CURRENT_BINARY_DIR}"
@@ -458,8 +598,14 @@ if(BUILD_TESTING)
     add_test(NAME FlightBench.RouteAnalysis COMMAND $<TARGET_FILE:FlightBenchRouteAnalysisTest>)
     add_test(NAME FlightBench.WorldMap COMMAND $<TARGET_FILE:FlightBenchWorldMapTest>)
     add_test(NAME FlightBench.TestWorkflow COMMAND $<TARGET_FILE:FlightBenchTestWorkflowTest>)
+    add_test(NAME FlightBench.SensorService COMMAND $<TARGET_FILE:FlightBenchSensorServiceTest>)
+    add_test(NAME FlightBench.LidarMapping COMMAND $<TARGET_FILE:FlightBenchLidarMappingTest>)
+    add_test(NAME FlightBench.DepthMapping COMMAND $<TARGET_FILE:FlightBenchDepthMappingTest>)
+    add_test(NAME FlightBench.VisualSurvey COMMAND $<TARGET_FILE:FlightBenchVisualSurveyTest>)
+    add_test(NAME FlightBench.GimbalInspection COMMAND $<TARGET_FILE:FlightBenchGimbalInspectionTest>)
     set_tests_properties(FlightBench.QmlLint FlightBench.RouteLibrary FlightBench.TestPlans FlightBench.Replay FlightBench.SessionRecorder
-        FlightBench.RouteAnalysis FlightBench.WorldMap FlightBench.TestWorkflow
+        FlightBench.RouteAnalysis FlightBench.WorldMap FlightBench.TestWorkflow FlightBench.SensorService
+        FlightBench.LidarMapping FlightBench.DepthMapping FlightBench.VisualSurvey FlightBench.GimbalInspection
         PROPERTIES LABELS "unit")
 
     add_test(NAME FlightBench.UiExit.Light
@@ -521,8 +667,8 @@ if(BUILD_TESTING)
     add_test(NAME FlightBench.SitlMission COMMAND $<TARGET_FILE:FlightBenchMissionTest>)
     add_test(NAME FlightBench.SitlModel.Depth
              COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_depth)
-    add_test(NAME FlightBench.SitlModel.Vision
-             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_vision)
+    add_test(NAME FlightBench.SitlModel.MonoCamera
+             COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_mono_cam)
     add_test(NAME FlightBench.SitlModel.Lidar
              COMMAND $<TARGET_FILE:FlightBenchFlightTest> --connection-only --model gz_x500_lidar_2d)
     add_test(NAME FlightBench.SitlModel.Gimbal
@@ -533,7 +679,7 @@ if(BUILD_TESTING)
         FlightBench.SitlFlight
         FlightBench.SitlMission
         FlightBench.SitlModel.Depth
-        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.MonoCamera
         FlightBench.SitlModel.Lidar
         FlightBench.SitlModel.Gimbal
         FlightBench.SitlWorld.Xatu
@@ -545,7 +691,7 @@ if(BUILD_TESTING)
     set_tests_properties(FlightBench.SitlMission PROPERTIES TIMEOUT 480)
     set_tests_properties(
         FlightBench.SitlModel.Depth
-        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.MonoCamera
         FlightBench.SitlModel.Lidar
         FlightBench.SitlModel.Gimbal
         FlightBench.SitlWorld.Xatu
@@ -562,6 +708,11 @@ if(BUILD_TESTING)
         FlightBench.RouteAnalysis
         FlightBench.WorldMap
         FlightBench.TestWorkflow
+        FlightBench.SensorService
+        FlightBench.LidarMapping
+        FlightBench.DepthMapping
+        FlightBench.VisualSurvey
+        FlightBench.GimbalInspection
         FlightBench.QmlLint
         FlightBench.UiExit.Light
         FlightBench.UiExit.Dark
@@ -582,7 +733,7 @@ if(BUILD_TESTING)
         FlightBench.SitlFlight
         FlightBench.SitlMission
         FlightBench.SitlModel.Depth
-        FlightBench.SitlModel.Vision
+        FlightBench.SitlModel.MonoCamera
         FlightBench.SitlModel.Lidar
         FlightBench.SitlModel.Gimbal
         FlightBench.SitlWorld.Xatu

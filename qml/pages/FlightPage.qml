@@ -185,6 +185,10 @@ Item {
 
     Connections {
         target: App
+        function onSimulationRunningChanged() {
+            if (!App.simulationRunning && root.viewIndex === 3)
+                root.viewIndex = 1
+        }
         function onKeyboardControlActiveChanged() {
             if (App.keyboardControlActive) {
                 root.clearKeyboardState(false)
@@ -217,7 +221,9 @@ Item {
                 spacing: 2
                 Text {
                     Layout.fillWidth: true
-                    text: App.replayActive ? "飞行回放" : root.viewIndex === 2 ? "任务" : "飞行"
+                    text: App.replayActive ? "飞行回放"
+                          : root.viewIndex === 2 ? "任务"
+                          : root.viewIndex === 3 ? "传感器" : "飞行"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: 24
@@ -257,7 +263,7 @@ Item {
                 }
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2 && !App.replayActive
+                    visible: root.viewIndex < 2 && !App.replayActive
                     iconSource: "qrc:/icons/route.svg"
                     accessibleLabel: "打开航线规划"
                     toolTipText: "航线规划"
@@ -265,7 +271,7 @@ Item {
                 }
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2 && !App.replayActive
+                    visible: root.viewIndex < 2 && !App.replayActive
                     iconSource: "qrc:/icons/gauge.svg"
                     accessibleLabel: "打开更多遥测"
                     toolTipText: "更多遥测"
@@ -273,7 +279,7 @@ Item {
                 }
 
                 CompactIconButton {
-                    visible: root.viewIndex !== 2 && !App.replayActive
+                    visible: root.viewIndex < 2 && !App.replayActive
                     iconSource: "qrc:/icons/heart-pulse.svg"
                     accessibleLabel: "打开健康检查"
                     toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
@@ -281,8 +287,25 @@ Item {
                     onClicked: root.openHealth()
                 }
 
+                CompactIconButton {
+                    visible: ((App.replayActive && App.replaySensorAvailable)
+                              || (App.sensorServiceEnabled && App.sensorServiceSupported))
+                             && root.viewIndex !== 3
+                    iconSource: App.displayedSensorKind === "lidar-2d"
+                                ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg"
+                    accessibleLabel: "打开传感器视图"
+                    toolTipText: App.displayedSensorKind === "lidar-2d" ? "查看二维雷达" : "查看相机"
+                    normalIconColor: App.sensorServiceConnected ? Theme.success
+                                     : App.sensorServiceRunning ? Theme.accent : Theme.textSecondary
+                    onClicked: {
+                        if (root.viewIndex !== 3) root.previousViewIndex = root.viewIndex
+                        root.viewIndex = 3
+                        root.forceActiveFocus(Qt.OtherFocusReason)
+                    }
+                }
+
                 SegmentedControl {
-                    visible: root.viewIndex !== 2 && !App.replayActive
+                    visible: root.viewIndex < 2 && !App.replayActive
                     width: 124
                     options: ["仪表", "三维"]
                     currentIndex: root.viewIndex
@@ -339,6 +362,16 @@ Item {
                     toolTipText: "返回飞行"
                     onClicked: root.viewIndex = root.previousViewIndex
                 }
+
+                CompactIconButton {
+                    visible: root.viewIndex === 3 && !App.replayActive
+                    outlined: true
+                    iconSource: "qrc:/icons/x.svg"
+                    accessibleLabel: "关闭传感器视图"
+                    toolTipText: "返回飞行"
+                    onClicked: root.viewIndex = root.previousViewIndex < 2
+                                               ? root.previousViewIndex : 1
+                }
             }
         }
 
@@ -360,7 +393,11 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.right: replayEventPanel.visible ? replayEventPanel.left : parent.right
                 anchors.rightMargin: replayEventPanel.visible ? 10 : 0
-                visible: root.viewIndex === 1 || App.replayActive
+                // Historical sensor pages fully replace the 3D scene. Keeping
+                // the scene visible underneath leaked city pixels through the
+                // scrollbar gutter on the right.
+                visible: root.viewIndex === 1
+                onInspectionTargetSelected: root.viewIndex = 3
                 onReplayAnalysisRequested: {
                     root.replayEventPanelOpen = false
                     root.replayAnalysisOpen = true
@@ -369,7 +406,7 @@ Item {
 
             ReplayEventPanel {
                 id: replayEventPanel
-                visible: App.replayActive && root.replayEventPanelOpen
+                visible: App.replayActive && root.viewIndex === 1 && root.replayEventPanelOpen
                          && !root.replayAnalysisOpen
                 anchors.top: parent.top
                 anchors.right: parent.right
@@ -383,7 +420,7 @@ Item {
             }
 
             ReplayAnalysisPanel {
-                visible: App.replayActive && root.replayAnalysisOpen
+                visible: App.replayActive && root.viewIndex === 1 && root.replayAnalysisOpen
                 anchors.fill: parent
                 z: 5
                 onCloseRequested: root.replayAnalysisOpen = false
@@ -395,6 +432,55 @@ Item {
                 anchors.fill: parent
                 visible: root.viewIndex === 2 && !App.replayActive
             }
+
+            Flickable {
+                id: sensorScroller
+                anchors.fill: parent
+                visible: root.viewIndex === 3
+                clip: true
+                contentWidth: width
+                contentHeight: sensorContent.height
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+
+                ScrollBar.vertical: ScrollBar {
+                    id: sensorVerticalScrollBar
+                    policy: ScrollBar.AsNeeded
+                    width: 6
+                    contentItem: Rectangle {
+                        radius: 3
+                        color: sensorVerticalScrollBar.pressed || sensorVerticalScrollBar.hovered
+                               ? Theme.textFaint : Theme.lineStrong
+                    }
+                }
+
+                Item {
+                    id: sensorContent
+                    width: Math.max(0, sensorScroller.width
+                                    - (sensorVerticalScrollBar.visible ? 10 : 0))
+                    // 460 px still fits every radar summary card at 110% text
+                    // scale, while avoiding a few pixels of needless overflow
+                    // in a maximized 900p-class window.
+                    height: Math.max(sensorScroller.height,
+                                     App.displayedSensorKind === "gimbal-camera"
+                                     ? sensorCamera.minimumPanelHeight : 460)
+
+                    LidarPanel {
+                        anchors.fill: parent
+                        visible: App.displayedSensorKind === "lidar-2d"
+                    }
+
+                    CameraPanel {
+                        id: sensorCamera
+                        anchors.fill: parent
+                        onInspectionTargetRequested: root.viewIndex = 1
+                        viewActive: root.visible && root.viewIndex === 3
+                        visible: App.displayedSensorKind === "mono-camera"
+                                 || App.displayedSensorKind === "depth-camera"
+                                 || App.displayedSensorKind === "gimbal-camera"
+                    }
+                }
+            }
         }
 
         SurfaceCard {
@@ -403,7 +489,9 @@ Item {
             // and steals the vertical space needed by its settings pane.
             visible: root.viewIndex !== 2 && !App.replayActive
             Layout.fillWidth: true
-            Layout.preferredHeight: root.compactLayout ? 62 : 70
+            Layout.preferredHeight: App.keyboardControlActive
+                                    ? (root.compactLayout ? 68 : 76)
+                                    : (root.compactLayout ? 62 : 70)
 
             RowLayout {
                 anchors.fill: parent
@@ -414,7 +502,10 @@ Item {
                 ThemedIcon {
                     Layout.preferredWidth: 18
                     Layout.preferredHeight: 18
-                    source: root.viewIndex === 2 ? "qrc:/icons/route.svg"
+                    source: root.viewIndex === 3
+                            ? (App.displayedSensorKind === "lidar-2d"
+                               ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg")
+                            : root.viewIndex === 2 ? "qrc:/icons/route.svg"
                                                  : App.keyboardControlActive ? "qrc:/icons/keyboard.svg"
                                                                              : "qrc:/icons/plane.svg"
                     iconColor: root.missionActive || App.keyboardControlActive ? Theme.accent : Theme.textMuted
@@ -459,40 +550,81 @@ Item {
                     color: Theme.line
                 }
 
-                RowLayout {
+                Flickable {
+                    id: keyboardSpeedScroller
                     visible: App.keyboardControlActive && root.viewIndex !== 2
-                    Layout.preferredWidth: 164
+                    Layout.minimumWidth: 218
+                    Layout.preferredWidth: Math.min(438, Math.max(218, root.width * 0.31))
+                    Layout.maximumWidth: 438
+                    Layout.preferredHeight: 44
                     Layout.alignment: Qt.AlignVCenter
-                    spacing: 7
-                    Text {
-                        text: "水平"
-                        color: Theme.textMuted
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textTiny
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    NumericField {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 32
-                        Layout.alignment: Qt.AlignVCenter
-                        value: App.controlSpeedMetersPerSecond
-                        from: 0.5; to: 2.0; stepSize: 0.1; decimals: 1; unit: "m/s"
-                        accessibleName: "键盘控制水平速度"
-                        onValueEdited: value => {
-                            App.controlSpeedMetersPerSecond = value
-                            root.forceActiveFocus(Qt.OtherFocusReason)
+                    clip: true
+                    contentWidth: keyboardSpeedRow.implicitWidth
+                    contentHeight: height
+                    interactive: contentWidth > width
+                    boundsBehavior: Flickable.StopAtBounds
+                    flickableDirection: Flickable.HorizontalFlick
+
+                    RowLayout {
+                        id: keyboardSpeedRow
+                        height: 34
+                        spacing: 10
+
+                        Text {
+                            text: "水平速度"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTiny
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        NumericField {
+                            Layout.preferredWidth: 118
+                            Layout.preferredHeight: 32
+                            Layout.alignment: Qt.AlignVCenter
+                            value: App.controlSpeedMetersPerSecond
+                            from: 0.5; to: 5.0; stepSize: 0.1; decimals: 1; unit: "m/s"
+                            accessibleName: "键盘控制水平速度"
+                            onValueEdited: value => {
+                                App.controlSpeedMetersPerSecond = value
+                                root.forceActiveFocus(Qt.OtherFocusReason)
+                            }
+                        }
+
+                        Text {
+                            text: "垂直速度"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTiny
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        NumericField {
+                            Layout.preferredWidth: 118
+                            Layout.preferredHeight: 32
+                            Layout.alignment: Qt.AlignVCenter
+                            value: App.controlVerticalSpeedMetersPerSecond
+                            from: 0.2; to: 3.0; stepSize: 0.1; decimals: 1; unit: "m/s"
+                            accessibleName: "键盘控制垂直速度"
+                            onValueEdited: value => {
+                                App.controlVerticalSpeedMetersPerSecond = value
+                                root.forceActiveFocus(Qt.OtherFocusReason)
+                            }
+                        }
+
+                        CompactIconButton {
+                            outlined: true
+                            iconSource: "qrc:/icons/rotate-ccw.svg"
+                            accessibleLabel: "精确转向"
+                            toolTipText: "精确转向"
+                            enabled: !App.preciseTurnActive && !App.keyboardControlTransitioning
+                            onClicked: anglePopup.open()
                         }
                     }
-                }
 
-                CompactIconButton {
-                    visible: App.keyboardControlActive && root.viewIndex !== 2
-                    outlined: true
-                    iconSource: "qrc:/icons/rotate-ccw.svg"
-                    accessibleLabel: "精确转向"
-                    toolTipText: "精确转向"
-                    enabled: !App.preciseTurnActive && !App.keyboardControlTransitioning
-                    onClicked: anglePopup.open()
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: keyboardSpeedScroller.contentWidth > keyboardSpeedScroller.width
+                                ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                        height: 4
+                    }
                 }
 
                 ActionButton {

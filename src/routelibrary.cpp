@@ -164,12 +164,15 @@ QVariantMap RouteLibrary::saveRoute(const QString &routeId,
         const double altitude = point.value(QStringLiteral("altitudeMeters")).toDouble(&altitudeOk);
         const double speed = point.value(QStringLiteral("speedMetersPerSecond")).toDouble(&speedOk);
         const double yaw = point.value(QStringLiteral("yawDegrees"), 0.0).toDouble();
+        const double gimbalYaw = point.value(QStringLiteral("gimbalYawDegrees"), 0.0).toDouble();
+        const double gimbalPitch = point.value(QStringLiteral("gimbalPitchDegrees"), -45.0).toDouble();
         QString waypointName = point.value(QStringLiteral("name")).toString().trimmed();
         if (waypointName.size() > 24) waypointName.truncate(24);
         if (!eastOk || !northOk || !altitudeOk || !speedOk
             || !std::isfinite(east) || !std::isfinite(north)
             || !std::isfinite(altitude) || !std::isfinite(speed)
-            || !std::isfinite(yaw)) {
+            || !std::isfinite(yaw) || !std::isfinite(gimbalYaw)
+            || !std::isfinite(gimbalPitch)) {
             return result(false, QStringLiteral("航点数据不完整"));
         }
         relativeWaypoints.append(QVariantMap{
@@ -179,6 +182,10 @@ QVariantMap RouteLibrary::saveRoute(const QString &routeId,
             {QStringLiteral("altitudeMeters"), altitude},
             {QStringLiteral("speedMetersPerSecond"), speed},
             {QStringLiteral("yawDegrees"), yaw},
+            {QStringLiteral("gimbalYawDegrees"), std::clamp(gimbalYaw, -180.0, 180.0)},
+            {QStringLiteral("gimbalPitchDegrees"), std::clamp(gimbalPitch, -135.0, 45.0)},
+            {QStringLiteral("capturePhoto"),
+             point.value(QStringLiteral("capturePhoto"), false).toBool()},
         });
     }
 

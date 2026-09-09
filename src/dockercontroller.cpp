@@ -1,8 +1,11 @@
 #include "dockercontroller.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QDirIterator>
 #include <QRegularExpression>
+#include <QSaveFile>
 #include <QStandardPaths>
 #include <QTimer>
 
@@ -46,6 +49,7 @@ void DockerController::probe()
     if (m_dockerPath.isEmpty()) {
         setDockerAvailable(false);
         setImageAvailable(false);
+        setNetworkAvailable(false);
         setProblemCode(QStringLiteral("docker-missing"));
         setStatusMessage(QStringLiteral("未找到 docker.exe，请启动或安装 Docker Desktop"));
         return;
@@ -59,7 +63,8 @@ void DockerController::probe()
 void DockerController::startSimulation(const QString &modelId,
                                        const QString &worldId,
                                        const QString &worldAssetsDirectory,
-                                       const QString &containerName)
+                                       const QString &containerName,
+                                       const QString &sensorPerformanceMode)
 {
     if (m_busy || m_simulationRunning) {
         return;
@@ -71,6 +76,11 @@ void DockerController::startSimulation(const QString &modelId,
     if (!m_imageAvailable) {
         setProblemCode(QStringLiteral("image-missing"));
         setStatusMessage(QStringLiteral("未找到 PX4 仿真镜像，请检查镜像后重新检测"));
+        return;
+    }
+    if (!m_networkAvailable) {
+        setProblemCode(QStringLiteral("network-missing"));
+        setStatusMessage(QStringLiteral("FlightBench 容器网络尚未就绪，请重新检测"));
         return;
     }
     if (!m_containerNameAvailable) {
@@ -104,13 +114,43 @@ void DockerController::startSimulation(const QString &modelId,
     QStringList arguments{
         QStringLiteral("run"), QStringLiteral("--rm"), QStringLiteral("-d"),
         QStringLiteral("--name"), containerName,
+        QStringLiteral("--network"), QString::fromLatin1(NetworkName),
         QStringLiteral("-e"), QStringLiteral("HEADLESS=1"),
+        QStringLiteral("-e"), QStringLiteral("GZ_PARTITION=flightbench"),
         QStringLiteral("-e"), QStringLiteral("PX4_SIM_MODEL=%1").arg(modelId),
         QStringLiteral("-e"), QStringLiteral("PX4_GZ_WORLD=%1").arg(worldId),
     };
 
+    const QDir assets(worldAssetsDirectory);
+    if (modelId == QStringLiteral("gz_x500_lidar_2d")
+        && !QFileInfo::exists(assets.filePath(
+            QStringLiteral("models/x500_lidar_2d/model.sdf")))) {
+        setProblemCode(QStringLiteral("model-assets-missing"));
+        setStatusMessage(QStringLiteral("找不到 x500 LiDAR 360° 模型资源，请重新构建软件"));
+        return;
+    }
+    if (modelId == QStringLiteral("gz_x500_mono_cam")
+        && !QFileInfo::exists(assets.filePath(
+            QStringLiteral("models/mono_cam/model.sdf")))) {
+        setProblemCode(QStringLiteral("model-assets-missing"));
+        setStatusMessage(QStringLiteral("找不到优化后的 Mono Camera 模型资源，请重新构建软件"));
+        return;
+    }
+    if (modelId == QStringLiteral("gz_x500_depth")
+        && !QFileInfo::exists(assets.filePath(
+            QStringLiteral("models/OakD-Lite/model.sdf")))) {
+        setProblemCode(QStringLiteral("model-assets-missing"));
+        setStatusMessage(QStringLiteral("找不到优化后的 Depth Camera 模型资源，请重新构建软件"));
+        return;
+    }
+    if (modelId == QStringLiteral("gz_x500_gimbal")
+        && !QFileInfo::exists(assets.filePath(
+            QStringLiteral("models/gimbal/model.sdf")))) {
+        setProblemCode(QStringLiteral("model-assets-missing"));
+        setStatusMessage(QStringLiteral("找不到优化后的 Gimbal 模型资源，请重新构建软件"));
+        return;
+    }
     if (worldId != QStringLiteral("default")) {
-        const QDir assets(worldAssetsDirectory);
         const QString worldFile = assets.filePath(
             QStringLiteral("worlds/%1.sdf").arg(worldId));
         if (!assets.exists() || !QFileInfo::exists(worldFile)) {
@@ -119,18 +159,55 @@ void DockerController::startSimulation(const QString &modelId,
                                  .arg(worldId));
             return;
         }
+    }
+
+    // Mount FlightBench model overrides for every world. The LiDAR override
+    // expands the scanner to 360 degrees, while the camera overrides keep
+    // sensor rendering aligned with the 10 FPS preview consumed by the app.
+    // The nested stock gimbal is also resolved from this path so its original
+    // 30 FPS camera and 250 Hz camera IMU do not starve PX4 after take-off.
+    if (assets.exists()) {
         const QString mountSource = QDir::toNativeSeparators(assets.absolutePath());
+        const QString sensorProfile = prepareSensorModelProfile(
+            modelId, assets.absolutePath(), sensorPerformanceMode);
         arguments.append({
             QStringLiteral("--mount"),
             QStringLiteral("type=bind,source=%1,target=/opt/flightbench-simulation,readonly")
                 .arg(mountSource),
             QStringLiteral("-e"),
-            QStringLiteral("PX4_GZ_WORLDS=/opt/flightbench-simulation/worlds"),
-            QStringLiteral("-e"),
-            QStringLiteral("GZ_SIM_RESOURCE_PATH=/opt/flightbench-simulation/models:"
+            QStringLiteral("GZ_SIM_RESOURCE_PATH=%1/opt/flightbench-simulation/models:"
                            "/opt/px4-gazebo/share/gz/models:"
-                           "/opt/px4-gazebo/share/gz/worlds"),
+                           "/opt/px4-gazebo/share/gz/worlds")
+                .arg(sensorProfile.isEmpty()
+                         ? QString()
+                         : QStringLiteral("/opt/flightbench-sensor-profile/models:")),
         });
+        if (!sensorProfile.isEmpty()) {
+            arguments.append({
+                QStringLiteral("--mount"),
+                QStringLiteral("type=bind,source=%1,target=/opt/flightbench-sensor-profile,readonly")
+                    .arg(QDir::toNativeSeparators(sensorProfile)),
+            });
+        }
+        // PX4_GZ_WORLDS replaces the image's built-in world directory. Only
+        // point it at FlightBench assets for custom worlds; the default world
+        // must continue to resolve from the image.
+        if (worldId != QStringLiteral("default")) {
+            arguments.append({
+                QStringLiteral("-e"),
+                QStringLiteral("PX4_GZ_WORLDS=/opt/flightbench-simulation/worlds"),
+            });
+        }
+        if (modelId == QStringLiteral("gz_x500_lidar_2d")) {
+            // The PX4 entrypoint resolves the selected top-level model through
+            // PX4_GZ_MODELS before Gazebo processes nested model:// includes.
+            // Point only the LiDAR variant at our 360-degree wrapper; its x500
+            // base and visual mesh still resolve from the stock resource path.
+            arguments.append({
+                QStringLiteral("-e"),
+                QStringLiteral("PX4_GZ_MODELS=/opt/flightbench-simulation/models"),
+            });
+        }
     }
     arguments.append(QString::fromLatin1(ImageName));
 
@@ -138,6 +215,74 @@ void DockerController::startSimulation(const QString &modelId,
     setStatusMessage(QStringLiteral("正在启动 %1 · %2…").arg(modelId, worldId));
     ++m_stateGeneration;
     run(Operation::Start, arguments);
+}
+
+QString DockerController::prepareSensorModelProfile(const QString &modelId,
+                                                    const QString &assetsDirectory,
+                                                    const QString &performanceMode)
+{
+    QString payloadModel;
+    if (modelId == QStringLiteral("gz_x500_lidar_2d")) payloadModel = QStringLiteral("lidar_2d_360");
+    else if (modelId == QStringLiteral("gz_x500_mono_cam")) payloadModel = QStringLiteral("mono_cam");
+    else if (modelId == QStringLiteral("gz_x500_depth")) payloadModel = QStringLiteral("OakD-Lite");
+    else if (modelId == QStringLiteral("gz_x500_gimbal")) payloadModel = QStringLiteral("gimbal");
+    else return {};
+
+    const QString normalizedMode = performanceMode == QStringLiteral("eco")
+                                   ? QStringLiteral("eco")
+                                   : (performanceMode == QStringLiteral("smooth")
+                                      || performanceMode == QStringLiteral("auto"))
+                                     ? QStringLiteral("smooth")
+                                     : QStringLiteral("standard");
+    const int updateRate = normalizedMode == QStringLiteral("eco") ? 5
+                           : normalizedMode == QStringLiteral("smooth") ? 15 : 10;
+    const QString sourcePath = QDir(assetsDirectory).filePath(
+        QStringLiteral("models/%1").arg(payloadModel));
+    if (!QFileInfo(sourcePath).isDir()) return {};
+    const QString profileRoot = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation))
+                                    .filePath(QStringLiteral("FlightBench/sensor-profile"));
+    const QString targetPath = QDir(profileRoot).filePath(
+        QStringLiteral("models/%1").arg(payloadModel));
+    QDir targetDirectory(targetPath);
+    if (targetDirectory.exists() && !targetDirectory.removeRecursively()) return {};
+    if (!QDir().mkpath(targetPath)) return {};
+
+    QDirIterator iterator(sourcePath, QDir::Files | QDir::NoDotAndDotDot,
+                          QDirIterator::Subdirectories);
+    while (iterator.hasNext()) {
+        const QString sourceFile = iterator.next();
+        const QString relative = QDir(sourcePath).relativeFilePath(sourceFile);
+        const QString targetFile = QDir(targetPath).filePath(relative);
+        if (!QDir().mkpath(QFileInfo(targetFile).absolutePath())
+            || !QFile::copy(sourceFile, targetFile)) {
+            return {};
+        }
+    }
+
+    const QString modelFilePath = QDir(targetPath).filePath(QStringLiteral("model.sdf"));
+    QFile modelFile(modelFilePath);
+    if (!modelFile.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
+    QString contents = QString::fromUtf8(modelFile.readAll());
+    modelFile.close();
+    const QRegularExpression rateExpression(
+        QStringLiteral("<update_rate>\\s*[0-9.]+\\s*</update_rate>"));
+    const QString replacement = QStringLiteral("<update_rate>%1</update_rate>").arg(updateRate);
+    if (payloadModel == QStringLiteral("gimbal")) {
+        QRegularExpressionMatch lastMatch;
+        auto matches = rateExpression.globalMatch(contents);
+        while (matches.hasNext()) lastMatch = matches.next();
+        if (!lastMatch.hasMatch()) return {};
+        contents.replace(lastMatch.capturedStart(), lastMatch.capturedLength(), replacement);
+    } else {
+        contents.replace(rateExpression, replacement);
+    }
+    QSaveFile output(modelFilePath);
+    const QByteArray encoded = contents.toUtf8();
+    if (!output.open(QIODevice::WriteOnly | QIODevice::Truncate)
+        || output.write(encoded) != encoded.size() || !output.commit()) {
+        return {};
+    }
+    return profileRoot;
 }
 
 void DockerController::setContainerName(const QString &containerName)
@@ -186,6 +331,7 @@ void DockerController::handleFinished(int exitCode, QProcess::ExitStatus exitSta
         setDockerAvailable(success);
         if (!success) {
             setImageAvailable(false);
+            setNetworkAvailable(false);
             setProblemCode(QStringLiteral("docker-offline"));
             setStatusMessage(QStringLiteral("Docker Desktop 尚未就绪：%1")
                                  .arg(standardError.isEmpty() ? QStringLiteral("无法连接引擎") : standardError));
@@ -200,12 +346,44 @@ void DockerController::handleFinished(int exitCode, QProcess::ExitStatus exitSta
         break;
     case Operation::CheckImage:
         setImageAvailable(success);
-        if (success) {
-            setProblemCode({});
-            setStatusMessage(QStringLiteral("Docker Desktop 与 PX4 仿真镜像均已就绪"));
-        } else {
+        if (!success) {
+            setNetworkAvailable(false);
             setProblemCode(QStringLiteral("image-missing"));
             setStatusMessage(QStringLiteral("未找到 px4io/px4-sitl-gazebo:latest 镜像"));
+            inspectContainer();
+            break;
+        }
+        setProblemCode({});
+        setStatusMessage(QStringLiteral("PX4 镜像已就绪，正在检查容器网络…"));
+        run(Operation::CheckNetwork,
+            {QStringLiteral("network"), QStringLiteral("inspect"),
+             QString::fromLatin1(NetworkName), QStringLiteral("--format"),
+             QStringLiteral("{{.Id}}")});
+        break;
+    case Operation::CheckNetwork:
+        if (success) {
+            setNetworkAvailable(true);
+            setProblemCode({});
+            setStatusMessage(QStringLiteral("Docker Desktop、PX4 镜像与容器网络均已就绪"));
+            inspectContainer();
+        } else {
+            setNetworkAvailable(false);
+            setStatusMessage(QStringLiteral("正在创建 FlightBench 专用容器网络…"));
+            run(Operation::CreateNetwork,
+                {QStringLiteral("network"), QStringLiteral("create"),
+                 QString::fromLatin1(NetworkName)});
+        }
+        break;
+    case Operation::CreateNetwork:
+        setNetworkAvailable(success);
+        if (success) {
+            setProblemCode({});
+            setStatusMessage(QStringLiteral("FlightBench 运行环境已就绪"));
+        } else {
+            setProblemCode(QStringLiteral("network-failed"));
+            setStatusMessage(QStringLiteral("无法创建 FlightBench 容器网络：%1")
+                                 .arg(standardError.isEmpty()
+                                          ? QStringLiteral("未知错误") : standardError));
         }
         inspectContainer();
         break;
@@ -257,6 +435,7 @@ void DockerController::handleError(QProcess::ProcessError error)
         m_operation = Operation::None;
         setDockerAvailable(false);
         setImageAvailable(false);
+        setNetworkAvailable(false);
         setProblemCode(QStringLiteral("docker-offline"));
         setStatusMessage(QStringLiteral("无法启动 docker.exe：%1").arg(m_process.errorString()));
     }
@@ -317,6 +496,7 @@ void DockerController::handleInspectError(QProcess::ProcessError error)
     if (error == QProcess::FailedToStart) {
         setDockerAvailable(false);
         setImageAvailable(false);
+        setNetworkAvailable(false);
         setProblemCode(QStringLiteral("docker-offline"));
         setStatusMessage(QStringLiteral("无法启动 docker.exe：%1")
                              .arg(m_inspectProcess.errorString()));
@@ -367,6 +547,13 @@ void DockerController::setSimulationRunning(bool value)
     if (m_simulationRunning == value) return;
     m_simulationRunning = value;
     emit simulationRunningChanged();
+}
+
+void DockerController::setNetworkAvailable(bool value)
+{
+    if (m_networkAvailable == value) return;
+    m_networkAvailable = value;
+    emit networkAvailableChanged();
 }
 
 void DockerController::setContainerNameAvailable(bool value)

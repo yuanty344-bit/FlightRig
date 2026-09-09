@@ -8,6 +8,8 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 
+#include <array>
+
 namespace {
 bool require(bool condition, const QString &message)
 {
@@ -36,28 +38,49 @@ int main(int argc, char *argv[])
         6.5, QStringLiteral("12345678-1234-1234-1234-123456789012"),
         QStringLiteral("land"), QStringLiteral("custom"),
         {{QStringLiteral("controlSettings"),
-          QVariantMap{{QStringLiteral("horizontalSpeedMetersPerSecond"), 1.4},
-                      {QStringLiteral("verticalSpeedMetersPerSecond"), 0.7},
+          QVariantMap{{QStringLiteral("horizontalSpeedMetersPerSecond"), 4.8},
+                      {QStringLiteral("verticalSpeedMetersPerSecond"), 2.8},
                       {QStringLiteral("yawRateDegreesPerSecond"), 45.0}}},
          {QStringLiteral("acceptanceRules"),
           QVariantMap{{QStringLiteral("maxHorizontalDeviationMeters"), 2.5},
                       {QStringLiteral("minimumObstacleClearanceMeters"), 6.0},
                       {QStringLiteral("maximumTelemetryGapSeconds"), 0.6},
                       {QStringLiteral("maximumAltitudeMeters"), 80.0},
-                      {QStringLiteral("maximumDurationSeconds"), 600}}}});
+                      {QStringLiteral("maximumDurationSeconds"), 600}}},
+         {QStringLiteral("sensorSettings"),
+          QVariantMap{{QStringLiteral("usage"), QStringLiteral("record")},
+                      {QStringLiteral("performance"), QStringLiteral("auto")},
+                      {QStringLiteral("acceptanceRequired"), true},
+                      {QStringLiteral("minimumFrameRateHz"), 6.0},
+                      {QStringLiteral("maximumDataGapSeconds"), 2.5},
+                      {QStringLiteral("minimumObstacleDistanceMeters"), 1.5},
+                      {QStringLiteral("requireCameraFrame"), true},
+                      {QStringLiteral("requireSlamMap"), true}}}});
     if (!require(created.value(QStringLiteral("success")).toBool(),
                  created.value(QStringLiteral("message")).toString())) return 1;
     const QString createdId = created.value(QStringLiteral("id")).toString();
     if (!require(!repository.plan(createdId).isEmpty(),
                  QStringLiteral("新建方案未出现在仓库中"))) return 1;
     const QVariantMap createdPlan = repository.plan(createdId);
-    if (!require(createdPlan.value(QStringLiteral("version")).toInt() == 2
+    const QVariantMap createdSensorSettings = createdPlan.value(
+        QStringLiteral("sensorSettings")).toMap();
+    if (!require(createdPlan.value(QStringLiteral("version")).toInt() == 5
                      && createdPlan.value(QStringLiteral("acceptancePreset")).toString()
                             == QStringLiteral("custom")
                      && createdPlan.value(QStringLiteral("acceptanceRules")).toMap()
                             .value(QStringLiteral("maximumAltitudeMeters")).toDouble() == 80.0
                      && createdPlan.value(QStringLiteral("controlSettings")).toMap()
-                            .value(QStringLiteral("yawRateDegreesPerSecond")).toDouble() == 45.0,
+                            .value(QStringLiteral("yawRateDegreesPerSecond")).toDouble() == 45.0
+                     && createdPlan.value(QStringLiteral("controlSettings")).toMap()
+                            .value(QStringLiteral("horizontalSpeedMetersPerSecond")).toDouble() == 4.8
+                     && createdPlan.value(QStringLiteral("controlSettings")).toMap()
+                            .value(QStringLiteral("verticalSpeedMetersPerSecond")).toDouble() == 2.8
+                     && createdSensorSettings.value(QStringLiteral("usage")).toString()
+                            == QStringLiteral("record")
+                     && createdSensorSettings.value(QStringLiteral("performance")).toString()
+                            == QStringLiteral("auto")
+                     && createdSensorSettings.value(QStringLiteral("acceptanceRequired")).toBool()
+                     && !createdSensorSettings.value(QStringLiteral("requireSlamMap")).toBool(),
                  QStringLiteral("高级方案参数没有完整保存"))) return 1;
 
     const QVariantMap standardPlan = repository.savePlan(
@@ -75,6 +98,34 @@ int main(int argc, char *argv[])
     if (!require(standardRules.value(QStringLiteral("maxHorizontalDeviationMeters")).toDouble() == 8.0
                      && standardRules.value(QStringLiteral("minimumObstacleClearanceMeters")).toDouble() == 3.0,
                  QStringLiteral("标准预设被外部自定义数值覆盖"))) return 1;
+
+    struct SensorProfileDefault {
+        const char *mode;
+        double minimumRateHz;
+    };
+    const std::array<SensorProfileDefault, 4> sensorProfiles{{
+        {"eco", 3.0}, {"standard", 6.0}, {"smooth", 9.0}, {"auto", 5.0},
+    }};
+    for (const SensorProfileDefault &profile : sensorProfiles) {
+        const QVariantMap saved = repository.savePlan(
+            {}, QStringLiteral("传感器档位 %1").arg(QString::fromLatin1(profile.mode)), {},
+            QStringLiteral("free-flight"), QStringLiteral("gz_x500_mono_cam"),
+            QStringLiteral("default"), 5.0, {}, QStringLiteral("hold"),
+            QStringLiteral("standard"),
+            {{QStringLiteral("sensorSettings"),
+              QVariantMap{{QStringLiteral("usage"), QStringLiteral("preview")},
+                          {QStringLiteral("performance"), QString::fromLatin1(profile.mode)}}}});
+        if (!require(saved.value(QStringLiteral("success")).toBool(),
+                     QStringLiteral("无法保存传感器性能档位测试方案"))) return 1;
+        const QString id = saved.value(QStringLiteral("id")).toString();
+        const QVariantMap settings = repository.plan(id).value(
+            QStringLiteral("sensorSettings")).toMap();
+        if (!require(settings.value(QStringLiteral("minimumFrameRateHz")).toDouble()
+                         == profile.minimumRateHz,
+                     QStringLiteral("传感器性能档位的默认验收频率不正确"))) return 1;
+        if (!require(repository.deletePlan(id).value(QStringLiteral("success")).toBool(),
+                     QStringLiteral("无法清理传感器性能档位测试方案"))) return 1;
+    }
 
     const QVariantMap duplicated = repository.duplicatePlan(createdId);
     if (!require(duplicated.value(QStringLiteral("success")).toBool(),
@@ -110,6 +161,10 @@ int main(int argc, char *argv[])
         {QStringLiteral("routeId"), QStringLiteral("12345678-1234-1234-1234-123456789012")},
         {QStringLiteral("endAction"), QStringLiteral("land")},
         {QStringLiteral("acceptancePreset"), QStringLiteral("standard")},
+        {QStringLiteral("sensorSettings"),
+         QVariantMap{{QStringLiteral("usage"), QStringLiteral("record")},
+                     {QStringLiteral("performance"), QStringLiteral("standard")},
+                     {QStringLiteral("minimumFrameRateHz"), 7.0}}},
     };
     if (!require(legacyFile.open(QIODevice::WriteOnly | QIODevice::Truncate),
                  QStringLiteral("无法创建旧方案测试文件"))) return 1;
@@ -122,7 +177,9 @@ int main(int argc, char *argv[])
     if (!require(migrated.value(QStringLiteral("type")).toString() == QStringLiteral("mission")
                      && migrated.value(QStringLiteral("acceptancePreset")).toString()
                             == QStringLiteral("strict")
-                     && migrated.value(QStringLiteral("requiresRoute")).toBool(),
+                     && migrated.value(QStringLiteral("requiresRoute")).toBool()
+                     && migrated.value(QStringLiteral("sensorSettings")).toMap()
+                            .value(QStringLiteral("minimumFrameRateHz")).toDouble() == 6.0,
                  QStringLiteral("旧城市巡检方案没有迁移为严格航点任务"))) return 1;
     if (!require(repository.deletePlan(legacyId).value(QStringLiteral("success")).toBool(),
                  QStringLiteral("迁移后的旧方案删除失败"))) return 1;

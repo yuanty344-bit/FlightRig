@@ -21,6 +21,7 @@ public:
     [[nodiscard]] bool active() const { return m_active; }
     [[nodiscard]] QString activeSessionId() const;
     [[nodiscard]] QVariantMap activeSession() const;
+    [[nodiscard]] qint64 startedAtEpochMs() const { return m_startedAt.toMSecsSinceEpoch(); }
     [[nodiscard]] QVariantList completedSessions() const { return m_completedSessions; }
     [[nodiscard]] QVariantList trashedSessions() const { return m_trashedSessions; }
     [[nodiscard]] QString sessionsDirectory() const { return m_sessionsDirectory; }
@@ -42,6 +43,7 @@ public:
     void markTakeoffRequested();
     void markLandingRequested();
     void setTestPlan(const QVariantMap &plan);
+    void setSensorSummary(const QVariantMap &summary);
     void setMissionPlan(const QString &routeId,
                         const QString &routeName,
                         const QVariantList &relativeWaypoints,
@@ -98,9 +100,11 @@ public:
                               const QString &displayName,
                               const QString &notes);
     bool setSessionReport(const QString &sessionId, const QString &reportPath);
+    bool updateSessionSensorSummary(const QString &sessionId, const QVariantMap &summary);
     bool deleteSession(const QString &sessionId);
     bool restoreSession(const QString &sessionId);
     bool permanentlyDeleteSession(const QString &sessionId);
+    bool deleteSessionSensorData(const QString &sessionId);
     int purgeTrashOlderThan(int retentionDays);
     int clearTrash();
 

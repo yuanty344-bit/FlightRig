@@ -17,7 +17,7 @@ Dialog {
 
     function payloadLabel(modelId) {
         if (modelId.indexOf("depth") >= 0) return "深度相机"
-        if (modelId.indexOf("vision") >= 0) return "单目相机"
+        if (modelId.indexOf("mono_cam") >= 0) return "单目相机"
         if (modelId.indexOf("lidar") >= 0) return "二维激光雷达"
         if (modelId.indexOf("gimbal") >= 0) return "云台相机"
         return "标准四旋翼"
@@ -158,7 +158,8 @@ Dialog {
                                         font.weight: Font.Medium
                                     }
                                     Text {
-                                        text: root.payloadLabel(String(option.modelData.id))
+                                        text: String(option.modelData.sensorLabel
+                                                     || root.payloadLabel(String(option.modelData.id)))
                                         color: Theme.accent
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.textTiny

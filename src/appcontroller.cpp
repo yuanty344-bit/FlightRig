@@ -37,6 +37,9 @@ struct SimulationModelDefinition
     QString name;
     QString description;
     bool recommended;
+    bool visible;
+    QString sensorType;
+    QString sensorLabel;
 };
 
 struct SimulationWorldDefinition
@@ -52,15 +55,20 @@ const QList<SimulationModelDefinition> &simulationModelDefinitions()
 {
     static const QList<SimulationModelDefinition> definitions{
         {QStringLiteral("gz_x500"), QStringLiteral("x500"),
-         QStringLiteral("标准四旋翼，适合基础飞行与功能验证"), true},
+         QStringLiteral("标准四旋翼，适合基础飞行与功能验证"), true, true,
+         QStringLiteral("none"), QStringLiteral("标准四旋翼")},
         {QStringLiteral("gz_x500_depth"), QStringLiteral("x500 Depth"),
-         QStringLiteral("搭载深度相机，用于近距离感知实验"), false},
-        {QStringLiteral("gz_x500_vision"), QStringLiteral("x500 Vision"),
-         QStringLiteral("搭载视觉相机，用于图像与视觉实验"), false},
+         QStringLiteral("搭载 RGB 与深度相机，用于近距离感知实验"), false, true,
+         QStringLiteral("depth-camera"), QStringLiteral("RGB + 深度相机")},
+        {QStringLiteral("gz_x500_mono_cam"), QStringLiteral("x500 Mono Camera"),
+         QStringLiteral("搭载单目相机，用于图像采集与视觉实验"), false, true,
+         QStringLiteral("mono-camera"), QStringLiteral("单目相机")},
         {QStringLiteral("gz_x500_lidar_2d"), QStringLiteral("x500 LiDAR"),
-         QStringLiteral("搭载二维激光雷达，用于测距与避障实验"), false},
+         QStringLiteral("搭载二维激光雷达，可使用 ROS 2 实时查看扫描数据"), false, true,
+         QStringLiteral("lidar-2d"), QStringLiteral("二维激光雷达")},
         {QStringLiteral("gz_x500_gimbal"), QStringLiteral("x500 Gimbal"),
-         QStringLiteral("搭载云台相机，用于载荷与视角实验"), false},
+         QStringLiteral("搭载云台相机与相机 IMU，用于载荷与视角实验"), false, true,
+         QStringLiteral("gimbal-camera"), QStringLiteral("云台相机")},
     };
     return definitions;
 }
@@ -174,6 +182,43 @@ AppController::AppController(QObject *parent)
             this, &AppController::replayPositionChanged);
     connect(&m_replay, &ReplayController::dataChanged,
             this, &AppController::replayDataChanged);
+    connect(&m_replay, &ReplayController::sensorDataChanged, this, [this] {
+        if (m_replay.sensorKind() == QStringLiteral("lidar-2d")
+            && !m_replay.lidarPointsForMapping().isEmpty()) {
+            if (m_lastReplayMappingTimeMs >= 0
+                && m_replay.timeMs() < m_lastReplayMappingTimeMs) {
+                m_lidarMapping.clear();
+            }
+            const QVector3D position = m_replay.position();
+            m_lidarMapping.ingestScan(m_replay.lidarPointsForMapping(), position.x(), -position.z(),
+                                      m_replay.headingDegrees(), m_replay.rollDegrees(),
+                                      m_replay.pitchDegrees(), m_replay.altitudeMeters(),
+                                      m_replay.timeMs(), true);
+            m_lastReplayMappingTimeMs = m_replay.timeMs();
+        }
+        if (m_replay.sensorKind() == QStringLiteral("depth-camera")
+            && !m_replay.depthMillimetresForMapping().isEmpty()) {
+            if (m_lastReplayDepthMappingTimeMs >= 0
+                && m_replay.timeMs() < m_lastReplayDepthMappingTimeMs) {
+                m_depthMapping.clear();
+            }
+            m_depthMapping.ingestDepthFrame(
+                m_replay.depthMillimetresForMapping(),
+                m_replay.depthGridWidthForMapping(),
+                m_replay.depthGridHeightForMapping(),
+                m_replay.position(), m_replay.headingDegrees(),
+                m_replay.rollDegrees(), m_replay.pitchDegrees(),
+                m_replay.timeMs(), true);
+            m_lastReplayDepthMappingTimeMs = m_replay.timeMs();
+        }
+        emit replayDataChanged();
+        emit sensorServiceStateChanged();
+        emit lidarScanChanged();
+        emit cameraFrameChanged();
+        emit depthFrameChanged();
+        emit cameraStateChanged();
+        emit gimbalStateChanged();
+    });
     connect(&m_sessionRecorder, &FlightSessionRecorder::activeSessionChanged,
             this, &AppController::activeFlightSessionChanged);
     connect(&m_sessionRecorder, &FlightSessionRecorder::completedSessionsChanged,
@@ -196,6 +241,8 @@ AppController::AppController(QObject *parent)
             this, &AppController::selectedTestPlanChanged);
     connect(this, &AppController::selectedModelChanged,
             this, &AppController::selectedTestPlanChanged);
+    connect(this, &AppController::selectedModelChanged,
+            this, &AppController::sensorServiceStateChanged);
     connect(this, &AppController::selectedWorldChanged,
             this, &AppController::selectedTestPlanChanged);
     connect(this, &AppController::takeoffAltitudeChanged,
@@ -238,6 +285,10 @@ AppController::AppController(QObject *parent)
             this, &AppController::dockerAvailableChanged);
     connect(&m_docker, &DockerController::imageAvailableChanged,
             this, &AppController::imageAvailableChanged);
+    connect(&m_docker, &DockerController::networkAvailableChanged,
+            this, &AppController::dockerNetworkAvailableChanged);
+    connect(&m_docker, &DockerController::networkAvailableChanged,
+            this, &AppController::testRunStateChanged);
     connect(&m_docker, &DockerController::simulationRunningChanged,
             this, &AppController::simulationRunningChanged);
     connect(&m_docker, &DockerController::containerNameAvailableChanged,
@@ -253,10 +304,111 @@ AppController::AppController(QObject *parent)
     });
     connect(&m_docker, &DockerController::problemCodeChanged,
             this, &AppController::updateIssueState);
+    connect(&m_sensorService, &SensorServiceController::imageAvailableChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(&m_sensorService, &SensorServiceController::runningChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(&m_sensorService, &SensorServiceController::connectedChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(&m_sensorService, &SensorServiceController::busyChanged, this, [this] {
+        emit sensorServiceStateChanged();
+        emit busyChanged();
+    });
+    connect(&m_sensorService, &SensorServiceController::statusMessageChanged, this, [this] {
+        appendDiagnostic(QStringLiteral("ROS 2"), m_sensorService.statusMessage());
+        emit sensorServiceStateChanged();
+    });
+    connect(&m_sensorService, &SensorServiceController::problemCodeChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(this, &AppController::sensorServiceStateChanged,
+            this, &AppController::testRunStateChanged);
+    connect(&m_sensorService, &SensorServiceController::lidarScanChanged, this, [this] {
+        const qint64 scanTimestamp = m_sensorService.lidarTimestampEpochMs() > 0
+            ? m_sensorService.lidarTimestampEpochMs()
+            : QDateTime::currentMSecsSinceEpoch();
+        const MappingPoseSample pose = mappingPoseAt(scanTimestamp);
+        m_lidarMapping.ingestScan(
+            m_sensorService.lidarPointsForMapping(), pose.position.x(),
+            -pose.position.z(), pose.headingDegrees,
+            pose.rollDegrees, pose.pitchDegrees, pose.altitudeMeters,
+            scanTimestamp, pose.valid);
+        emit lidarScanChanged();
+    });
+    connect(&m_sensorService, &SensorServiceController::sensorKindChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(&m_sensorService, &SensorServiceController::cameraFrameChanged, this, [this] {
+        const qint64 timestamp = m_sensorService.rgbTimestampEpochMs() > 0
+            ? m_sensorService.rgbTimestampEpochMs() : QDateTime::currentMSecsSinceEpoch();
+        const MappingPoseSample pose = mappingPoseAt(timestamp);
+        m_visualSurvey.ingestFrame(m_sensorService.rgbJpegForSurvey(),
+            m_sensorService.rgbWidthForSurvey(), m_sensorService.rgbHeightForSurvey(),
+            timestamp, pose.position, pose.headingDegrees, pose.pitchDegrees, pose.valid);
+        if (selectedSensorType() == QStringLiteral("gimbal-camera") && !replayActive()
+            && m_sensorService.sessionRecording())
+            m_gimbalInspection.ingestFrame(m_sensorService.rgbJpegForSurvey(),
+                m_sensorService.rgbFrameSequence(), timestamp, pose.position,
+                GimbalInspectionController::aircraftOrientation(pose.headingDegrees,
+                    pose.pitchDegrees, pose.rollDegrees), pose.valid);
+        emit cameraFrameChanged();
+    });
+    auto *inspectionTimer = new QTimer(this);
+    inspectionTimer->setInterval(100);
+    connect(inspectionTimer, &QTimer::timeout, this, [this] {
+        if (replayActive()) return;
+        const auto pose = mappingPoseAt(QDateTime::currentMSecsSinceEpoch());
+        m_gimbalInspection.updatePose(pose.position, pose.headingDegrees, pose.pitchDegrees,
+            pose.rollDegrees, simulationRunning() && vehicleConnected() && pose.valid
+                && std::abs(QDateTime::currentMSecsSinceEpoch() - pose.timestampMs) <= 350
+                && selectedSensorType() == QStringLiteral("gimbal-camera")
+                && m_sensorService.running() && m_sensorService.connected(),
+            m_sensorService.gimbalFeedbackFresh(), m_sensorService.gimbalYawDegrees(),
+            m_sensorService.gimbalPitchDegrees(), m_sensorService.gimbalRollDegrees());
+    });
+    inspectionTimer->start();
+    connect(&m_gimbalInspection, &GimbalInspectionController::commandRequested, this,
+        [this](double yaw, double pitch) {
+            m_pendingGimbalCaptureIndex = -1;
+            if (replayActive() || !m_sensorService.setGimbalAngles(yaw, pitch, 0.0))
+                m_gimbalInspection.pause();
+        });
+    connect(&m_replay, &ReplayController::timeChanged, this, [this] {
+        m_gimbalInspection.seek(m_replay.timeMs());
+    });
+    connect(&m_sensorService, &SensorServiceController::depthFrameChanged, this, [this] {
+        const qint64 frameTimestamp = m_sensorService.depthTimestampEpochMs() > 0
+            ? m_sensorService.depthTimestampEpochMs()
+            : QDateTime::currentMSecsSinceEpoch();
+        const MappingPoseSample pose = mappingPoseAt(frameTimestamp);
+        m_depthMapping.ingestDepthFrame(
+            m_sensorService.depthMillimetresForMapping(),
+            m_sensorService.depthGridWidthForMapping(),
+            m_sensorService.depthGridHeightForMapping(),
+            pose.position, pose.headingDegrees, pose.rollDegrees,
+            pose.pitchDegrees, frameTimestamp, pose.valid);
+        emit depthFrameChanged();
+    });
+    connect(&m_sensorService, &SensorServiceController::cameraStateChanged,
+            this, &AppController::cameraStateChanged);
+    connect(&m_sensorService, &SensorServiceController::gimbalStateChanged,
+            this, &AppController::gimbalStateChanged);
+    connect(&m_sensorService, &SensorServiceController::recordingChanged,
+            this, &AppController::cameraRecordingChanged);
+    connect(&m_sensorService, &SensorServiceController::captureSaved,
+            this, &AppController::sensorCaptureSaved);
+    connect(&m_sensorService, &SensorServiceController::performanceModeChanged,
+            this, &AppController::sensorServiceStateChanged);
+    connect(&m_sensorService, &SensorServiceController::sessionRecordingChanged,
+            this, &AppController::sensorServiceStateChanged);
     connect(&m_docker, &DockerController::simulationRunningChanged, this, [this] {
         m_vehicle.setSitlExpected(simulationRunning());
         if (simulationRunning()) {
             resetFlightScene();
+            m_lidarMapping.clear();
+            m_depthMapping.clear();
+            m_visualSurvey.clear();
+            m_gimbalInspection.clear();
+            m_lastReplayMappingTimeMs = -1;
+            m_lastReplayDepthMappingTimeMs = -1;
             m_lastRecordedIssueCode.clear();
             if (m_sessionRecorder.startSession(
                     selectedModelId(), selectedModelName(), takeoffAltitude(),
@@ -264,10 +416,47 @@ AppController::AppController(QObject *parent)
                     QStringLiteral("px4io/px4-sitl-gazebo:latest"),
                     qtRuntimeVersion(), mavsdkVersion())) {
                 m_sessionRecorder.setTestPlan(selectedTestPlan());
+                const QVariantMap sensorSettings = selectedTestPlan()
+                    .value(QStringLiteral("sensorSettings")).toMap();
+                QString sensorUsage = sensorSettings.value(
+                    QStringLiteral("usage"), QStringLiteral("off")).toString();
+                if (m_sensorServiceEnabled && sensorServiceSupported()
+                    && sensorUsage == QStringLiteral("off")) {
+                    sensorUsage = QStringLiteral("preview");
+                }
+                const QString activeSessionFolder = m_sessionRecorder.folderPathForSession(
+                    m_sessionRecorder.activeSessionId());
+                m_sensorService.beginSessionRecording(
+                    activeSessionFolder,
+                    sensorUsage,
+                    sensorSettings.value(QStringLiteral("performance"),
+                                         QStringLiteral("standard")).toString());
+                m_visualSurvey.prepareSession(activeSessionFolder,
+                    sensorUsage == QStringLiteral("record")
+                    && selectedSensorType() == QStringLiteral("mono-camera"));
+                m_gimbalInspection.prepareSession(activeSessionFolder, selectedWorldId(),
+                    sensorUsage == QStringLiteral("record")
+                        && selectedSensorType() == QStringLiteral("gimbal-camera"),
+                    m_sessionRecorder.startedAtEpochMs());
             }
             m_connectionTimedOut = false;
             if (!vehicleConnected()) m_connectionTimeout.start();
+            if (m_sensorServiceEnabled && sensorServiceSupported()) {
+                QTimer::singleShot(500, this, [this] {
+                    if (simulationRunning() && m_sensorServiceEnabled
+                        && sensorServiceSupported()) {
+                        const QVariantMap settings = selectedTestPlan()
+                            .value(QStringLiteral("sensorSettings")).toMap();
+                        m_sensorService.start(
+                            selectedModelId(), selectedWorldId(),
+                            settings.value(QStringLiteral("performance"),
+                                           QStringLiteral("standard")).toString());
+                    }
+                });
+            }
         } else {
+            finalizeSensorSessionSummary();
+            if (m_sensorService.running()) m_sensorService.stop();
             setLandingAndStopping(false);
             const QString completedSessionId = m_sessionRecorder.activeSessionId();
             m_sessionRecorder.finishSession(
@@ -389,6 +578,7 @@ AppController::AppController(QObject *parent)
     });
     connect(&m_vehicle, &VehicleConnection::missionProgressChanged, this, [this] {
         emit missionProgressChanged();
+        updateMissionGimbalForProgress();
         updateMissionMonitor();
     });
     connect(&m_vehicle, &VehicleConnection::statusMessageChanged, this, [this] {
@@ -418,8 +608,7 @@ AppController::AppController(QObject *parent)
             m_healthTimedOut = false;
             if (simulationRunning()) m_connectionTimeout.start();
             if (m_landingAndStopping) {
-                setLandingAndStopping(false);
-                useStatus(QStringLiteral("降落并停止已取消：飞行器连接已断开"));
+                useStatus(QStringLiteral("飞行器连接暂时中断，正在等待重连并确认落地…"));
             }
         }
         updateIssueState();
@@ -568,6 +757,8 @@ AppController::AppController(QObject *parent)
     const QString savedContainerName = settings.value(
         QStringLiteral("simulation/containerName"), QStringLiteral("flightbench-px4")).toString();
     if (isValidContainerName(savedContainerName)) m_containerName = savedContainerName;
+    m_sensorServiceEnabled = settings.value(
+        QStringLiteral("simulation/sensorServiceEnabled"), false).toBool();
     m_docker.setContainerName(m_containerName);
     const QString savedTestPlanId = settings.value(
         QStringLiteral("testPlans/selectedId")).toString();
@@ -635,12 +826,14 @@ AppController::AppController(QObject *parent)
 
 AppController::~AppController()
 {
+    finalizeSensorSessionSummary();
     // Member QObjects are destroyed after this destructor body, while value
     // members such as m_diagnosticEntries are destroyed before m_docker. A
     // finishing QProcess may emit status signals during DockerController's
     // destructor, so disconnect every internal sender before any AppController
     // state can disappear.
     QObject::disconnect(&m_docker, nullptr, this, nullptr);
+    QObject::disconnect(&m_sensorService, nullptr, this, nullptr);
     QObject::disconnect(&m_vehicle, nullptr, this, nullptr);
     QObject::disconnect(&m_sessionRecorder, nullptr, this, nullptr);
     QObject::disconnect(&m_routeLibrary, nullptr, this, nullptr);
@@ -656,6 +849,79 @@ AppController::~AppController()
     m_sessionRecorder.finishSession(QStringLiteral("程序退出"));
 }
 
+void AppController::finalizeSensorSessionSummary()
+{
+    m_gimbalInspection.pause();
+    QVariantMap sensorSummary = m_sensorService.finishSessionRecording();
+    if (sensorSummary.isEmpty() || !m_sessionRecorder.active()) return;
+    const bool recording = sensorSummary.value(QStringLiteral("usage")).toString()
+                           == QStringLiteral("record");
+    const QString sessionFolder = m_sessionRecorder.folderPathForSession(
+        m_sessionRecorder.activeSessionId());
+    bool rewriteManifest = false;
+    if (recording && selectedSensorType() == QStringLiteral("lidar-2d")
+        && m_lidarMapping.available()) {
+        const QVariantMap mapSummary = m_lidarMapping.saveToDirectory(
+            QDir(sessionFolder).filePath(QStringLiteral("sensor")));
+        const bool mapSaved = mapSummary.value(QStringLiteral("saved")).toBool();
+        const bool slamMapAvailable = mapSaved
+            && mapSummary.value(QStringLiteral("formatVersion")).toInt() >= 3
+            && mapSummary.value(QStringLiteral("keyframeCount")).toInt() >= 2
+            && mapSummary.value(QStringLiteral("poseGraphConstraintCount")).toInt() >= 1;
+        sensorSummary.insert(QStringLiteral("lidarMapAvailable"), mapSaved);
+        sensorSummary.insert(QStringLiteral("slamMapAvailable"), slamMapAvailable);
+        sensorSummary.insert(QStringLiteral("lidarMap"), mapSummary);
+        sensorSummary.insert(QStringLiteral("sizeBytes"),
+            sensorSummary.value(QStringLiteral("sizeBytes")).toLongLong()
+                + mapSummary.value(QStringLiteral("sizeBytes")).toLongLong());
+        rewriteManifest = true;
+    }
+    if (recording && selectedSensorType() == QStringLiteral("depth-camera")
+        && m_depthMapping.available()) {
+        const QVariantMap mapSummary = m_depthMapping.saveToDirectory(
+            QDir(sessionFolder).filePath(QStringLiteral("sensor/depth-map")));
+        const bool mapSaved = mapSummary.value(QStringLiteral("saved")).toBool();
+        sensorSummary.insert(QStringLiteral("depthMapAvailable"), mapSaved);
+        sensorSummary.insert(QStringLiteral("depthObstacleMap"), mapSummary);
+        sensorSummary.insert(QStringLiteral("sizeBytes"),
+            sensorSummary.value(QStringLiteral("sizeBytes")).toLongLong()
+                + mapSummary.value(QStringLiteral("sizeBytes")).toLongLong());
+        rewriteManifest = true;
+    }
+    if (recording && selectedSensorType() == QStringLiteral("mono-camera")) {
+        m_visualSurvey.stop();
+        const QVariantMap surveySummary = m_visualSurvey.finishSession();
+        const bool surveyAvailable = surveySummary.value(QStringLiteral("available")).toBool();
+        sensorSummary.insert(QStringLiteral("visualSurveyAvailable"), surveyAvailable);
+        sensorSummary.insert(QStringLiteral("visualSurvey"), surveySummary);
+        if (surveyAvailable) {
+            sensorSummary.insert(QStringLiteral("sizeBytes"),
+                sensorSummary.value(QStringLiteral("sizeBytes")).toLongLong()
+                    + surveySummary.value(QStringLiteral("sizeBytes")).toLongLong());
+            rewriteManifest = true;
+        }
+    }
+    if (recording && selectedSensorType() == QStringLiteral("gimbal-camera")
+        && m_gimbalInspection.hasTarget()) {
+        const auto inspection = m_gimbalInspection.finishSession();
+        sensorSummary.insert(QStringLiteral("gimbalInspection"), inspection);
+        sensorSummary.insert(QStringLiteral("sizeBytes"),
+            sensorSummary.value(QStringLiteral("sizeBytes")).toLongLong()
+                + inspection.value(QStringLiteral("sizeBytes")).toLongLong());
+        rewriteManifest = true;
+    }
+    if (rewriteManifest) {
+        QSaveFile manifest(QDir(sessionFolder).filePath(QStringLiteral("sensor/manifest.json")));
+        const QByteArray contents = QJsonDocument(
+            QJsonObject::fromVariantMap(sensorSummary)).toJson(QJsonDocument::Indented);
+        if (!manifest.open(QIODevice::WriteOnly | QIODevice::Truncate)
+            || manifest.write(contents) != contents.size() || !manifest.commit()) {
+            sensorSummary.insert(QStringLiteral("manifestWriteFailed"), true);
+        }
+    }
+    if (!sensorSummary.isEmpty()) m_sessionRecorder.setSensorSummary(sensorSummary);
+}
+
 void AppController::refresh()
 {
     m_connectionTimedOut = false;
@@ -665,6 +931,7 @@ void AppController::refresh()
     updateIssueState();
     m_vehicle.start();
     m_docker.probe();
+    m_sensorService.probe();
 }
 
 bool AppController::startSimulation()
@@ -690,10 +957,14 @@ bool AppController::startSimulation()
     m_vehicle.start();
     const QString worldAssetsDirectory =
         QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("simulation"));
+    const QVariantMap sensorSettings = selectedTestPlan()
+        .value(QStringLiteral("sensorSettings")).toMap();
     m_docker.startSimulation(m_selectedModelId,
                              m_selectedWorldId,
                              worldAssetsDirectory,
-                             m_containerName);
+                             m_containerName,
+                             sensorSettings.value(QStringLiteral("performance"),
+                                                  QStringLiteral("standard")).toString());
     return true;
 }
 
@@ -710,6 +981,8 @@ void AppController::stopSimulation()
                          QStringLiteral("已阻止飞行中直接停止仿真"));
         return;
     }
+    finalizeSensorSessionSummary();
+    if (m_sensorService.running()) m_sensorService.stop();
     m_docker.stopSimulation();
 }
 
@@ -827,6 +1100,7 @@ void AppController::uploadAndStartMission(const QVariantList &waypoints,
     relativeWaypoints.reserve(waypoints.size());
     for (const QVariant &waypoint : waypoints) {
         QVariantMap converted = waypoint.toMap();
+        m_missionWaypointPayloads.append(converted);
         bool northOk = false;
         bool eastOk = false;
         const double sceneNorth = converted.value(QStringLiteral("northMeters"))
@@ -892,6 +1166,7 @@ void AppController::uploadAndStartMission(const QVariantList &waypoints,
                                      m_missionStartScenePosition.y(),
                                      m_missionStartScenePosition.z());
     m_vehicle.uploadAndStartMission(relativeWaypoints, endAction);
+    updateMissionGimbalForProgress();
 }
 
 void AppController::pauseMission()
@@ -969,6 +1244,7 @@ void AppController::resetFlightScene()
     m_sceneOriginEastMeters = 0.0;
     m_sceneOriginDownMeters = 0.0;
     m_vehicleScenePosition = QVector3D();
+    m_mappingPoseHistory.clear();
     if (m_flightPathAutoClear) m_flightPathGeometry.clearPath();
     emit vehicleScenePositionChanged();
 }
@@ -992,13 +1268,88 @@ void AppController::updateFlightScenePosition()
         m_vehicleScenePosition = position;
         emit vehicleScenePositionChanged();
     }
+    appendMappingPoseSample();
     if (armed() || inAir()) m_flightPathGeometry.appendPoint(position);
+}
+
+void AppController::appendMappingPoseSample()
+{
+    if (!m_sceneOriginAvailable || !m_vehicle.localPositionAvailable()) return;
+    const qint64 timestampMs = QDateTime::currentMSecsSinceEpoch();
+    MappingPoseSample sample;
+    sample.timestampMs = timestampMs;
+    sample.position = m_vehicleScenePosition;
+    sample.headingDegrees = headingDegrees();
+    sample.rollDegrees = rollDegrees();
+    sample.pitchDegrees = pitchDegrees();
+    sample.altitudeMeters = altitudeMeters();
+    sample.valid = localPositionAvailable() && localPositionOk();
+    if (!m_mappingPoseHistory.isEmpty()
+        && timestampMs <= m_mappingPoseHistory.constLast().timestampMs) {
+        m_mappingPoseHistory.last() = sample;
+    } else {
+        m_mappingPoseHistory.append(sample);
+    }
+    constexpr qint64 HistoryWindowMs = 5000;
+    while (m_mappingPoseHistory.size() > 2
+           && timestampMs - m_mappingPoseHistory.constFirst().timestampMs
+                  > HistoryWindowMs) {
+        m_mappingPoseHistory.removeFirst();
+    }
+}
+
+AppController::MappingPoseSample AppController::mappingPoseAt(qint64 timestampMs) const
+{
+    if (m_mappingPoseHistory.isEmpty()) {
+        return {timestampMs, m_vehicleScenePosition, headingDegrees(), rollDegrees(),
+                pitchDegrees(), altitudeMeters(),
+                localPositionAvailable() && localPositionOk()};
+    }
+    if (timestampMs <= m_mappingPoseHistory.constFirst().timestampMs)
+        return m_mappingPoseHistory.constFirst();
+    if (timestampMs >= m_mappingPoseHistory.constLast().timestampMs) {
+        MappingPoseSample latest = m_mappingPoseHistory.constLast();
+        // A scan that is much newer than the latest telemetry cannot be paired
+        // reliably. Keep the values for diagnostics but reject map insertion.
+        if (timestampMs - latest.timestampMs > 750) latest.valid = false;
+        return latest;
+    }
+    for (qsizetype index = 1; index < m_mappingPoseHistory.size(); ++index) {
+        const MappingPoseSample &after = m_mappingPoseHistory.at(index);
+        if (after.timestampMs < timestampMs) continue;
+        const MappingPoseSample &before = m_mappingPoseHistory.at(index - 1);
+        const double span = std::max<qint64>(1, after.timestampMs - before.timestampMs);
+        const double factor = std::clamp((timestampMs - before.timestampMs) / span,
+                                         0.0, 1.0);
+        MappingPoseSample interpolated;
+        interpolated.timestampMs = timestampMs;
+        interpolated.position = before.position * static_cast<float>(1.0 - factor)
+                                + after.position * static_cast<float>(factor);
+        const double headingDelta = std::remainder(
+            after.headingDegrees - before.headingDegrees, 360.0);
+        interpolated.headingDegrees = before.headingDegrees + headingDelta * factor;
+        interpolated.rollDegrees = before.rollDegrees
+                                   + (after.rollDegrees - before.rollDegrees) * factor;
+        interpolated.pitchDegrees = before.pitchDegrees
+                                    + (after.pitchDegrees - before.pitchDegrees) * factor;
+        interpolated.altitudeMeters = before.altitudeMeters
+                                      + (after.altitudeMeters - before.altitudeMeters) * factor;
+        interpolated.valid = before.valid && after.valid;
+        return interpolated;
+    }
+    return m_mappingPoseHistory.constLast();
 }
 
 void AppController::resetMissionMonitor()
 {
     m_missionSceneWaypoints.clear();
     m_missionWaypointSpeeds.clear();
+    m_missionWaypointPayloads.clear();
+    m_lastGimbalMissionTargetIndex = -1;
+    m_lastGimbalCaptureIndex = -1;
+    m_pendingGimbalCaptureIndex = -1;
+    m_pendingGimbalCaptureFrameSequence = 0;
+    m_pendingGimbalCaptureDeadlineMs = 0;
     m_missionEndAction.clear();
     m_missionStartScenePosition = QVector3D();
     m_missionDistanceToNextMeters = 0.0;
@@ -1016,6 +1367,74 @@ void AppController::resetMissionMonitor()
     m_missionMonitorState = QStringLiteral("idle");
     m_missionMonitorMessage.clear();
     emit missionMonitorChanged();
+}
+
+void AppController::updateMissionGimbalForProgress()
+{
+    if (m_gimbalInspection.active() || m_gimbalInspection.picking()) {
+        m_pendingGimbalCaptureIndex = -1;
+        return;
+    }
+    if (selectedSensorType() != QStringLiteral("gimbal-camera")
+        || !m_sensorService.running() || m_missionWaypointPayloads.isEmpty()) {
+        return;
+    }
+
+    const int total = static_cast<int>(m_missionWaypointPayloads.size());
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+    if (m_pendingGimbalCaptureIndex >= 0) {
+        const bool freshFrame = m_sensorService.rgbFrameSequence()
+                                > m_pendingGimbalCaptureFrameSequence;
+        const bool angleReady = m_sensorService.gimbalFeedbackAvailable()
+                                && !m_sensorService.gimbalMoving();
+        if (freshFrame && angleReady) {
+            const int captureIndex = m_pendingGimbalCaptureIndex;
+            const QVariantMap completed = m_missionWaypointPayloads.at(captureIndex).toMap();
+            const bool saved = m_sensorService.saveSnapshot(QStringLiteral("rgb"));
+            appendDiagnostic(QStringLiteral("云台"),
+                             saved
+                                 ? QStringLiteral("云台到位并收到新画面，已在航点 %1 自动截图")
+                                       .arg(completed.value(QStringLiteral("name"),
+                                                            captureIndex + 1).toString())
+                                 : QStringLiteral("航点 %1 自动截图失败：新画面无法保存")
+                                       .arg(captureIndex + 1));
+            m_lastGimbalCaptureIndex = captureIndex;
+            m_pendingGimbalCaptureIndex = -1;
+        } else if (nowMs >= m_pendingGimbalCaptureDeadlineMs) {
+            appendDiagnostic(QStringLiteral("云台"),
+                             QStringLiteral("航点 %1 自动截图取消：4 秒内未同时获得到位反馈和新画面")
+                                 .arg(m_pendingGimbalCaptureIndex + 1));
+            m_lastGimbalCaptureIndex = m_pendingGimbalCaptureIndex;
+            m_pendingGimbalCaptureIndex = -1;
+        } else {
+            return;
+        }
+    }
+    const int current = std::clamp(missionCurrentItem(), 0, total);
+    const int completedIndex = current >= total ? total - 1 : current - 1;
+    if (completedIndex >= 0 && completedIndex > m_lastGimbalCaptureIndex) {
+        const QVariantMap completed = m_missionWaypointPayloads.at(completedIndex).toMap();
+        if (completed.value(QStringLiteral("capturePhoto"), false).toBool()) {
+            m_pendingGimbalCaptureIndex = completedIndex;
+            m_pendingGimbalCaptureFrameSequence = m_sensorService.rgbFrameSequence();
+            m_pendingGimbalCaptureDeadlineMs = nowMs + 4000;
+            return;
+        }
+        m_lastGimbalCaptureIndex = completedIndex;
+    }
+
+    if (current >= total || current == m_lastGimbalMissionTargetIndex) return;
+    const QVariantMap target = m_missionWaypointPayloads.at(current).toMap();
+    const double yaw = target.value(QStringLiteral("gimbalYawDegrees"), 0.0).toDouble();
+    const double pitch = target.value(QStringLiteral("gimbalPitchDegrees"), -45.0).toDouble();
+    if (m_sensorService.setGimbalAngles(yaw, pitch, 0.0)) {
+        m_lastGimbalMissionTargetIndex = current;
+        appendDiagnostic(QStringLiteral("云台"),
+                         QStringLiteral("航点 %1 视角：水平 %2°，俯仰 %3°")
+                             .arg(current + 1)
+                             .arg(QString::number(yaw, 'f', 0),
+                                  QString::number(pitch, 'f', 0)));
+    }
 }
 
 void AppController::triggerMissionProtection(const QString &reason)
@@ -1036,6 +1455,8 @@ void AppController::triggerMissionProtection(const QString &reason)
 
 void AppController::updateMissionMonitor()
 {
+    if (selectedSensorType() == QStringLiteral("gimbal-camera"))
+        updateMissionGimbalForProgress();
     if (m_missionSceneWaypoints.isEmpty()) return;
 
     const int total = missionTotalItems() > 0
@@ -1237,6 +1658,8 @@ void AppController::tryCompleteLandingAndStop()
         useStatus(QStringLiteral("落地与锁定已确认，正在停止仿真…"));
         appendDiagnostic(QStringLiteral("安全"),
                          QStringLiteral("落地与锁定已确认，允许停止仿真"));
+        finalizeSensorSessionSummary();
+        if (m_sensorService.running()) m_sensorService.stop();
         m_docker.stopSimulation();
     });
 }
@@ -1464,11 +1887,19 @@ QVariantList AppController::simulationModels() const
 {
     QVariantList models;
     for (const auto &definition : simulationModelDefinitions()) {
+        if (!definition.visible) continue;
         QVariantMap model;
         model.insert(QStringLiteral("id"), definition.id);
         model.insert(QStringLiteral("name"), definition.name);
         model.insert(QStringLiteral("description"), definition.description);
         model.insert(QStringLiteral("recommended"), definition.recommended);
+        model.insert(QStringLiteral("sensorType"), definition.sensorType);
+        model.insert(QStringLiteral("sensorLabel"), definition.sensorLabel);
+        model.insert(QStringLiteral("sensorServiceSupported"),
+                     definition.sensorType == QStringLiteral("lidar-2d")
+                         || definition.sensorType == QStringLiteral("mono-camera")
+                         || definition.sensorType == QStringLiteral("depth-camera")
+                         || definition.sensorType == QStringLiteral("gimbal-camera"));
         models.append(model);
     }
     return models;
@@ -1536,6 +1967,286 @@ QUrl AppController::selectedWorldPreviewDirectory() const
                                   .filePath(QStringLiteral("simulation/models/%1")
                                                 .arg(definition->previewModelDirectory));
     return QUrl::fromLocalFile(QDir::cleanPath(directory));
+}
+
+QString AppController::selectedSensorType() const
+{
+    const auto *definition = findSimulationModel(m_selectedModelId);
+    return definition ? definition->sensorType : QStringLiteral("none");
+}
+
+QString AppController::selectedSensorLabel() const
+{
+    const auto *definition = findSimulationModel(m_selectedModelId);
+    return definition ? definition->sensorLabel : QStringLiteral("无额外载荷");
+}
+
+bool AppController::sensorServiceSupported() const
+{
+    const QString type = selectedSensorType();
+    return type == QStringLiteral("lidar-2d")
+           || type == QStringLiteral("mono-camera")
+           || type == QStringLiteral("depth-camera")
+           || type == QStringLiteral("gimbal-camera");
+}
+
+bool AppController::saveCameraSnapshot(const QString &stream)
+{
+    if (!replayActive()) {
+        m_lastReplayCapturePath.clear();
+        return m_sensorService.saveSnapshot(stream);
+    }
+    QString savedPath;
+    const bool saved = m_replay.saveCurrentCameraFrame(
+        stream, m_sensorService.capturesDirectory(), &savedPath);
+    if (saved) {
+        m_lastReplayCapturePath = savedPath;
+        emit sensorCaptureSaved();
+        useStatus(QStringLiteral("历史画面已保存到 Captures 文件夹"));
+    } else {
+        useStatus(QStringLiteral("当前回放时刻没有可保存的相机画面"));
+    }
+    return saved;
+}
+
+bool AppController::openSensorCapturesFolder()
+{
+    QDir directory(m_sensorService.capturesDirectory());
+    if (!directory.mkpath(QStringLiteral("."))) {
+        useStatus(QStringLiteral("无法创建传感器文件保存目录"));
+        return false;
+    }
+    const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(directory.absolutePath()));
+    useStatus(opened ? QStringLiteral("已打开 Captures 文件夹")
+                     : QStringLiteral("无法打开 Captures 文件夹"));
+    return opened;
+}
+
+QString AppController::saveLidarMap()
+{
+    if (!m_lidarMapping.available()) {
+        useStatus(QStringLiteral("当前还没有可保存的累计雷达地图"));
+        return {};
+    }
+    const QString directory = StoragePaths::directory(QStringLiteral("LidarMaps"));
+    const QString folder = QDir(directory).filePath(
+        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss")));
+    const QVariantMap result = m_lidarMapping.saveToDirectory(folder);
+    if (!result.value(QStringLiteral("saved")).toBool()) {
+        useStatus(result.value(QStringLiteral("error"),
+                               QStringLiteral("雷达地图保存失败")).toString());
+        return {};
+    }
+    useStatus(QStringLiteral("累计雷达地图已保存"));
+    return QDir::toNativeSeparators(folder);
+}
+
+QString AppController::saveDepthMap()
+{
+    if (!m_depthMapping.available()) {
+        useStatus(QStringLiteral("当前还没有经过重复确认的三维障碍地图"));
+        return {};
+    }
+    const QString directory = StoragePaths::directory(QStringLiteral("DepthMaps"));
+    const QString folder = QDir(directory).filePath(
+        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss")));
+    const QVariantMap result = m_depthMapping.saveToDirectory(folder);
+    if (!result.value(QStringLiteral("saved")).toBool()) {
+        useStatus(result.value(QStringLiteral("error"),
+                               QStringLiteral("三维障碍地图保存失败")).toString());
+        return {};
+    }
+    useStatus(QStringLiteral("DepthFusion 地图已保存为点云、CSV、OBJ 网格和俯视预览"));
+    return QDir::toNativeSeparators(folder);
+}
+
+bool AppController::loadSessionDepthMap(const QString &sessionId)
+{
+    if (sessionId.trimmed().isEmpty() || m_sessionRecorder.active()) {
+        useStatus(QStringLiteral("飞行记录进行中，暂时不能打开历史三维地图"));
+        return false;
+    }
+    const QString sessionFolder = m_sessionRecorder.folderPathForSession(sessionId);
+    if (sessionFolder.isEmpty()) {
+        useStatus(QStringLiteral("找不到所选会话目录"));
+        return false;
+    }
+    const QString mapFolder = QDir(sessionFolder).filePath(QStringLiteral("sensor/depth-map"));
+    if (!m_depthMapping.loadMap(mapFolder)) {
+        useStatus(QStringLiteral("这条会话没有可读取的 DepthFusion 地图"));
+        return false;
+    }
+    useStatus(QStringLiteral("已直接加载会话保存的三维地图，无需重新播放"));
+    return true;
+}
+
+void AppController::closeLoadedDepthMap()
+{
+    if (m_depthMapping.loadedFromDisk()) m_depthMapping.clear();
+}
+
+bool AppController::startVisualSurvey()
+{
+    if (selectedSensorType() != QStringLiteral("mono-camera")) {
+        useStatus(QStringLiteral("视觉巡检影像地图仅用于单目相机机型"));
+        return false;
+    }
+    if (!m_sessionRecorder.active() || !m_sensorService.running()) {
+        useStatus(QStringLiteral("启动仿真和相机数据服务后才能开始视觉巡检"));
+        return false;
+    }
+    const bool started = m_visualSurvey.start();
+    useStatus(started ? QStringLiteral("视觉巡检已开始，将按位置、方向和画面质量自动保存关键帧")
+                      : m_visualSurvey.statusMessage());
+    return started;
+}
+
+void AppController::stopVisualSurvey()
+{
+    m_visualSurvey.stop();
+    useStatus(QStringLiteral("视觉巡检已暂停，已保存的关键帧不会丢失"));
+}
+
+bool AppController::loadSessionVisualSurvey(const QString &sessionId)
+{
+    if (m_sessionRecorder.active() || simulationRunning()) {
+        useStatus(QStringLiteral("停止当前仿真后才能打开历史影像地图"));
+        return false;
+    }
+    const QString folder = m_sessionRecorder.folderPathForSession(sessionId);
+    if (folder.isEmpty() || !m_visualSurvey.loadFromSession(folder)) {
+        useStatus(QStringLiteral("这条会话没有可读取的视觉巡检影像地图"));
+        return false;
+    }
+    QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
+    QVariantMap sensor = details.value(QStringLiteral("sensorRecording")).toMap();
+    const QVariantMap storedSurvey = sensor.value(QStringLiteral("visualSurvey")).toMap();
+    bool summaryUpgradeFailed = false;
+    if (storedSurvey.value(QStringLiteral("qualityMetricVersion"), 1).toInt() < 2) {
+        sensor.insert(QStringLiteral("visualSurveyAvailable"), m_visualSurvey.available());
+        sensor.insert(QStringLiteral("visualSurvey"), m_visualSurvey.finishSession());
+        if (!m_sessionRecorder.updateSessionSensorSummary(sessionId, sensor)) {
+            summaryUpgradeFailed = true;
+        }
+    }
+    m_loadedVisualSurveySessionId = sessionId;
+    useStatus(summaryUpgradeFailed
+                  ? QStringLiteral("影像地图已加载，但旧版质量统计升级未能写入会话摘要")
+                  : QStringLiteral("已加载会话保存的视觉巡检影像地图"));
+    return true;
+}
+
+void AppController::closeLoadedVisualSurvey()
+{
+    if (m_visualSurvey.historical()) m_visualSurvey.clear();
+    m_loadedVisualSurveySessionId.clear();
+}
+
+bool AppController::openVisualSurveyFolder()
+{
+    const QVariantMap frame = m_visualSurvey.selectedKeyframe();
+    const QString source = frame.value(QStringLiteral("source")).toUrl().toLocalFile();
+    const QString path = source.isEmpty() ? QString() : QFileInfo(source).absolutePath();
+    if (path.isEmpty()) {
+        useStatus(QStringLiteral("当前没有可打开的影像地图目录"));
+        return false;
+    }
+    const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    useStatus(opened ? QStringLiteral("已打开视觉巡检关键帧目录")
+                     : QStringLiteral("无法打开视觉巡检关键帧目录"));
+    return opened;
+}
+
+bool AppController::exportVisualSurveyKeyframe(int index)
+{
+    m_visualSurvey.setSelectedIndex(index);
+    const QVariantMap frame = m_visualSurvey.selectedKeyframe();
+    const QString source = frame.value(QStringLiteral("source")).toUrl().toLocalFile();
+    if (source.isEmpty() || !QFileInfo::exists(source)) {
+        useStatus(QStringLiteral("找不到所选关键帧原图"));
+        return false;
+    }
+    const QString destinationDirectory = m_sensorService.capturesDirectory();
+    QDir().mkpath(destinationDirectory);
+    const QString stem = QStringLiteral("survey-%1-%2")
+        .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss")))
+        .arg(index + 1);
+    QString destination = QDir(destinationDirectory).filePath(stem + QStringLiteral(".jpg"));
+    int suffix = 2;
+    while (QFileInfo::exists(destination))
+        destination = QDir(destinationDirectory).filePath(
+            QStringLiteral("%1-%2.jpg").arg(stem).arg(suffix++));
+    const bool copied = QFile::copy(source, destination);
+    useStatus(copied ? QStringLiteral("关键帧原图已导出到 Captures 文件夹")
+                     : QStringLiteral("关键帧导出失败，请检查目标目录权限"));
+    return copied;
+}
+
+bool AppController::updateVisualSurveyKeyframe(const QString &notes, bool anomaly)
+{
+    if (!m_visualSurvey.updateSelected(notes, anomaly)) {
+        useStatus(QStringLiteral("视觉巡检备注保存失败"));
+        return false;
+    }
+    if (!m_loadedVisualSurveySessionId.isEmpty()) {
+        QVariantMap details = m_sessionRecorder.sessionDetails(m_loadedVisualSurveySessionId);
+        QVariantMap sensor = details.value(QStringLiteral("sensorRecording")).toMap();
+        sensor.insert(QStringLiteral("visualSurveyAvailable"), m_visualSurvey.available());
+        sensor.insert(QStringLiteral("visualSurvey"), m_visualSurvey.finishSession());
+        if (!m_sessionRecorder.updateSessionSensorSummary(m_loadedVisualSurveySessionId, sensor)) {
+            useStatus(QStringLiteral("原图备注已保存，但会话摘要更新失败"));
+            return false;
+        }
+    }
+    useStatus(QStringLiteral("关键帧备注与异常标记已保存"));
+    return true;
+}
+
+bool AppController::openDepthMapsFolder()
+{
+    const QString directory = StoragePaths::directory(QStringLiteral("DepthMaps"));
+    QDir().mkpath(directory);
+    const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
+    useStatus(opened ? QStringLiteral("已打开三维障碍地图文件夹")
+                     : QStringLiteral("无法打开三维障碍地图保存位置"));
+    return opened;
+}
+
+bool AppController::openLidarMapsFolder()
+{
+    const QString directory = StoragePaths::directory(QStringLiteral("LidarMaps"));
+    QDir().mkpath(directory);
+    const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
+    useStatus(opened ? QStringLiteral("已打开雷达地图文件夹")
+                     : QStringLiteral("无法打开雷达地图保存位置"));
+    return opened;
+}
+
+bool AppController::setGimbalAngles(double yawDegrees, double pitchDegrees)
+{
+    if (replayActive()) return false;
+    m_gimbalInspection.pause();
+    m_pendingGimbalCaptureIndex = -1;
+    return m_sensorService.setGimbalAngles(yawDegrees, pitchDegrees, 0.0);
+}
+
+bool AppController::setGimbalPreset(const QString &preset)
+{
+    if (replayActive()) return false;
+    m_gimbalInspection.pause();
+    m_pendingGimbalCaptureIndex = -1;
+    if (preset == QStringLiteral("front"))
+        return m_sensorService.setGimbalAngles(0.0, 0.0, 0.0);
+    if (preset == QStringLiteral("forward-down"))
+        return m_sensorService.setGimbalAngles(0.0, -45.0, 0.0);
+    if (preset == QStringLiteral("down"))
+        return m_sensorService.setGimbalAngles(0.0, -90.0, 0.0);
+    if (preset == QStringLiteral("left"))
+        return m_sensorService.setGimbalAngles(-90.0, -20.0, 0.0);
+    if (preset == QStringLiteral("right"))
+        return m_sensorService.setGimbalAngles(90.0, -20.0, 0.0);
+    useStatus(QStringLiteral("未知的云台预设视角"));
+    return false;
 }
 
 void AppController::setControlVerticalSpeedMetersPerSecond(double value)
@@ -1679,7 +2390,10 @@ QVariantList AppController::testPlanSteps() const
     const QVariantMap plan = selectedTestPlan();
     const bool planComplete = !plan.isEmpty()
                               && plan.value(QStringLiteral("complete")).toBool();
-    const bool environmentAvailable = dockerAvailable() && imageAvailable();
+    const bool sensorReady = !m_sensorServiceEnabled || !sensorServiceSupported()
+                             || sensorServiceImageAvailable();
+    const bool environmentAvailable = dockerAvailable() && imageAvailable()
+                                      && dockerNetworkAvailable() && sensorReady;
 
     auto step = [](const QString &id, const QString &label,
                    const QString &value, const QString &state) {
@@ -1701,7 +2415,9 @@ QVariantList AppController::testPlanSteps() const
         environmentState = QStringLiteral("complete");
     } else if (!environmentAvailable) {
         environmentValue = !dockerAvailable() ? QStringLiteral("Docker 未连接")
-                                               : QStringLiteral("镜像未找到");
+                           : !imageAvailable() ? QStringLiteral("PX4 镜像未找到")
+                           : !dockerNetworkAvailable() ? QStringLiteral("容器网络未就绪")
+                                                       : QStringLiteral("ROS 镜像未找到");
         environmentState = planComplete ? QStringLiteral("problem")
                                         : QStringLiteral("pending");
     } else {
@@ -1737,7 +2453,11 @@ QString AppController::testRunStage() const
     const QVariantMap plan = selectedTestPlan();
     if (plan.isEmpty() || !plan.value(QStringLiteral("complete")).toBool())
         return QStringLiteral("plan");
-    if (!dockerAvailable() || !imageAvailable()) return QStringLiteral("environment");
+    if (!dockerAvailable() || !imageAvailable() || !dockerNetworkAvailable()
+        || (m_sensorServiceEnabled && sensorServiceSupported()
+            && !sensorServiceImageAvailable())) {
+        return QStringLiteral("environment");
+    }
     if (!simulationRunning()) return QStringLiteral("ready");
     if (!vehicleConnected()) return QStringLiteral("connecting");
     if (hasIssue()) return QStringLiteral("issue");
@@ -1768,9 +2488,12 @@ QString AppController::testRunGuidance() const
     const QString stage = testRunStage();
     if (stage == QStringLiteral("plan"))
         return QStringLiteral("为当前方案选择一条已保存航线");
-    if (stage == QStringLiteral("environment"))
-        return !dockerAvailable() ? QStringLiteral("请先启动 Docker Desktop")
-                                  : QStringLiteral("请安装已支持的 PX4 SITL 镜像");
+    if (stage == QStringLiteral("environment")) {
+        if (!dockerAvailable()) return QStringLiteral("请先启动 Docker Desktop");
+        if (!imageAvailable()) return QStringLiteral("请安装已支持的 PX4 SITL 镜像");
+        if (!dockerNetworkAvailable()) return QStringLiteral("请重新检测并创建容器网络");
+        return QStringLiteral("请先生成 FlightBench ROS 2 数据服务镜像");
+    }
     if (stage == QStringLiteral("ready"))
         return QStringLiteral("环境与方案都已就绪");
     if (stage == QStringLiteral("connecting"))
@@ -1831,6 +2554,39 @@ QVariantMap AppController::preflightSummary() const
                       QStringLiteral("发现 %1 个必须处理的问题")
                           .arg(blockCount));
     }
+    QVariantList externalChecks = result.value(QStringLiteral("checks")).toList();
+    int blockCount = result.value(QStringLiteral("blockCount")).toInt();
+    if (!dockerNetworkAvailable()) {
+        externalChecks.append(QVariantMap{
+            {QStringLiteral("id"), QStringLiteral("docker-network")},
+            {QStringLiteral("label"), QStringLiteral("容器网络")},
+            {QStringLiteral("status"), QStringLiteral("block")},
+            {QStringLiteral("detail"), QStringLiteral("需要 flightbench-net 连接 PX4 与可选 ROS 2 服务")},
+            {QStringLiteral("action"), QStringLiteral("environment")},
+        });
+        ++blockCount;
+    }
+    if (m_sensorServiceEnabled && sensorServiceSupported()) {
+        const bool available = sensorServiceImageAvailable();
+        externalChecks.append(QVariantMap{
+            {QStringLiteral("id"), QStringLiteral("ros-sensor-image")},
+            {QStringLiteral("label"), QStringLiteral("ROS 2 传感器服务")},
+            {QStringLiteral("status"), available ? QStringLiteral("pass")
+                                                   : QStringLiteral("block")},
+            {QStringLiteral("detail"), available
+                 ? QStringLiteral("已选择随本次仿真启动独立 ROS 2 数据容器")
+                 : QStringLiteral("未找到 flightbench/ros-sensor-bridge:0.12.0 镜像")},
+            {QStringLiteral("action"), available ? QString() : QStringLiteral("environment")},
+        });
+        if (!available) ++blockCount;
+    }
+    result.insert(QStringLiteral("checks"), externalChecks);
+    result.insert(QStringLiteral("blockCount"), blockCount);
+    result.insert(QStringLiteral("canStart"), blockCount == 0);
+    if (blockCount > 0) {
+        result.insert(QStringLiteral("summary"),
+                      QStringLiteral("发现 %1 个必须处理的问题").arg(blockCount));
+    }
     return result;
 }
 
@@ -1873,6 +2629,28 @@ void AppController::setSelectedWorldId(const QString &worldId)
                      QStringLiteral("仿真世界已设为 %1（%2）")
                          .arg(definition->name, definition->id));
     useStatus(QStringLiteral("已选择 %1").arg(definition->name));
+}
+
+void AppController::setSensorServiceEnabled(bool enabled)
+{
+    if (m_sensorServiceEnabled == enabled) return;
+    if (simulationRunning() || busy()) {
+        useStatus(QStringLiteral("停止仿真后才能更改 ROS 2 数据服务"));
+        return;
+    }
+    if (enabled && !sensorServiceSupported()) {
+        useStatus(QStringLiteral("当前机型尚未接入 ROS 2 传感器服务"));
+        return;
+    }
+    m_sensorServiceEnabled = enabled;
+    QSettings().setValue(QStringLiteral("simulation/sensorServiceEnabled"), enabled);
+    emit sensorServicePreferenceChanged();
+    emit testRunStateChanged();
+    appendDiagnostic(QStringLiteral("ROS 2"), enabled
+                         ? QStringLiteral("本次仿真将启动可选传感器数据容器")
+                         : QStringLiteral("本次仿真不启动 ROS 2 数据容器"));
+    useStatus(enabled ? QStringLiteral("已选择启动 ROS 2 数据服务")
+                      : QStringLiteral("已选择仅启动 PX4 仿真"));
 }
 
 void AppController::setSelectedTestPlanId(const QString &planId)
@@ -1919,6 +2697,11 @@ void AppController::setSelectedTestPlanId(const QString &planId)
         control.value(QStringLiteral("verticalSpeedMetersPerSecond"), 0.5).toDouble());
     setControlYawRateDegreesPerSecond(
         control.value(QStringLiteral("yawRateDegreesPerSecond"), 30.0).toDouble());
+    const QVariantMap sensor = plan.value(QStringLiteral("sensorSettings")).toMap();
+    const QString sensorUsage = sensor.value(QStringLiteral("usage"),
+                                             QStringLiteral("off")).toString();
+    setSensorServiceEnabled(sensorServiceSupported()
+                            && sensorUsage != QStringLiteral("off"));
     if (idChanged) emit selectedTestPlanChanged();
     appendDiagnostic(QStringLiteral("测试方案"),
                      QStringLiteral("已应用：%1").arg(plan.value(QStringLiteral("name")).toString()));
@@ -2376,6 +3159,19 @@ bool AppController::deleteSession(const QString &sessionId)
     return true;
 }
 
+bool AppController::deleteSessionSensorData(const QString &sessionId)
+{
+    if (replayActive() && m_replaySessionId == sessionId) stopSessionReplay();
+    if (!m_sessionRecorder.deleteSessionSensorData(sessionId)) {
+        useStatus(QStringLiteral("没有可删除的传感器数据，或会话仍在记录中"));
+        return false;
+    }
+    appendDiagnostic(QStringLiteral("记录"),
+                     QStringLiteral("已删除会话传感器数据：%1").arg(sessionId));
+    useStatus(QStringLiteral("传感器数据已删除，遥测、事件和报告仍然保留"));
+    return true;
+}
+
 bool AppController::restoreSession(const QString &sessionId)
 {
     if (!m_sessionRecorder.restoreSession(sessionId)) return false;
@@ -2423,6 +3219,11 @@ bool AppController::startSessionReplay(const QString &sessionId)
         useStatus(QStringLiteral("停止当前仿真后才能回放历史会话"));
         return false;
     }
+    m_lastReplayCapturePath.clear();
+    m_lidarMapping.clear();
+    m_depthMapping.clear();
+    m_lastReplayMappingTimeMs = -1;
+    m_lastReplayDepthMappingTimeMs = -1;
     const QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
     if (details.isEmpty()) {
         useStatus(QStringLiteral("没有找到这个飞行会话"));
@@ -2431,13 +3232,16 @@ bool AppController::startSessionReplay(const QString &sessionId)
     const QString csvPath = details.value(QStringLiteral("csvPath")).toString();
     if (!m_replay.start(csvPath,
                         details.value(QStringLiteral("eventsPath")).toString(),
-                        details.value(QStringLiteral("startedAt")).toString())) {
+                        details.value(QStringLiteral("startedAt")).toString(),
+                        details.value(QStringLiteral("folderPath")).toString())) {
         useStatus(m_replay.errorMessage().isEmpty()
                       ? QStringLiteral("该会话缺少可回放的位置数据")
                       : m_replay.errorMessage());
         return false;
     }
     m_replaySessionId = sessionId;
+    m_gimbalInspection.loadSession(details.value(QStringLiteral("folderPath")).toString());
+    m_gimbalInspection.seek(m_replay.timeMs());
     m_replaySessionName = details.value(QStringLiteral("displayName")).toString();
     if (m_replaySessionName.isEmpty())
         m_replaySessionName = details.value(QStringLiteral("missionRouteName")).toString();
@@ -2510,6 +3314,11 @@ void AppController::stopSessionReplay()
 {
     if (!replayActive()) return;
     m_replay.stop();
+    m_gimbalInspection.clear();
+    m_lidarMapping.clear();
+    m_depthMapping.clear();
+    m_lastReplayMappingTimeMs = -1;
+    m_lastReplayDepthMappingTimeMs = -1;
     m_replaySessionId.clear();
     m_replaySessionName.clear();
     m_replayModelId.clear();
@@ -2520,6 +3329,10 @@ void AppController::stopSessionReplay()
     m_replayWorldRecorded = false;
     m_replayRouteAnalysis.clear();
     m_replayPlannedPathGeometry.clearPath();
+    if (!m_lastReplayCapturePath.isEmpty()) {
+        m_lastReplayCapturePath.clear();
+        emit sensorCaptureSaved();
+    }
     emit replayStateChanged();
     useStatus(QStringLiteral("已退出历史回放"));
 }
@@ -2616,7 +3429,8 @@ QVariantMap AppController::saveCurrentTestPlan(const QVariantMap &draft)
         draft.value(QStringLiteral("endAction"), QStringLiteral("hold")).toString(),
         draft.value(QStringLiteral("acceptancePreset"), QStringLiteral("standard")).toString(),
         {{QStringLiteral("acceptanceRules"), draft.value(QStringLiteral("acceptanceRules"))},
-         {QStringLiteral("controlSettings"), draft.value(QStringLiteral("controlSettings"))}});
+         {QStringLiteral("controlSettings"), draft.value(QStringLiteral("controlSettings"))},
+         {QStringLiteral("sensorSettings"), draft.value(QStringLiteral("sensorSettings"))}});
     const QString message = response.value(QStringLiteral("message")).toString();
     if (response.value(QStringLiteral("success")).toBool()) {
         setSelectedTestPlanId(response.value(QStringLiteral("id")).toString());
@@ -2747,7 +3561,8 @@ QVariantMap AppController::importTestPlan(const QUrl &fileUrl)
         plan.value(QStringLiteral("endAction"), QStringLiteral("hold")).toString(),
         plan.value(QStringLiteral("acceptancePreset"), QStringLiteral("standard")).toString(),
         {{QStringLiteral("acceptanceRules"), plan.value(QStringLiteral("acceptanceRules"))},
-         {QStringLiteral("controlSettings"), plan.value(QStringLiteral("controlSettings"))}});
+         {QStringLiteral("controlSettings"), plan.value(QStringLiteral("controlSettings"))},
+         {QStringLiteral("sensorSettings"), plan.value(QStringLiteral("sensorSettings"))}});
     const QString message = saved.value(QStringLiteral("message")).toString();
     useStatus(message);
     if (saved.value(QStringLiteral("success")).toBool())
@@ -2830,7 +3645,8 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
         session.value(QStringLiteral("testPlanAcceptancePreset"),
                       QStringLiteral("standard")).toString(),
         {{QStringLiteral("acceptanceRules"), session.value(QStringLiteral("testPlanAcceptanceRules"))},
-         {QStringLiteral("controlSettings"), session.value(QStringLiteral("testPlanControlSettings"))}});
+         {QStringLiteral("controlSettings"), session.value(QStringLiteral("testPlanControlSettings"))},
+         {QStringLiteral("sensorSettings"), session.value(QStringLiteral("testPlanSensorSettings"))}});
     const QString message = saved.value(QStringLiteral("message")).toString();
     if (!saved.value(QStringLiteral("success")).toBool()) {
         useStatus(message);

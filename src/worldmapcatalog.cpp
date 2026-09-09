@@ -233,6 +233,61 @@ QVariantMap WorldMapCatalog::metadata(const QString &worldId)
     };
 }
 
+QVariantMap WorldMapCatalog::raycastBuilding(const QString &worldId,
+    const QVector3D &origin, const QVector3D &direction, double maximumDistance)
+{
+    const auto &map = mapForWorld(worldId);
+    QVariantMap result{{QStringLiteral("available"), map.available},
+                       {QStringLiteral("hit"), false}};
+    const QVector3D ray = direction.normalized();
+    if (!map.available || ray.lengthSquared() < 0.5f || !std::isfinite(maximumDistance)
+        || maximumDistance <= 0.0 || !std::isfinite(origin.lengthSquared())
+        || !std::isfinite(ray.lengthSquared())) return result;
+    double nearest = maximumDistance;
+    QVector3D nearestNormal;
+    for (const auto &triangle : map.obstacles) {
+        double enter = 0.0, leave = nearest;
+        QVector3D normal;
+        bool intersects = true;
+        const auto plane = [&](const QVector3D &n, double bound) {
+            if (!intersects) return;
+            const double offset = QVector3D::dotProduct(n, origin) - bound;
+            const double slope = QVector3D::dotProduct(n, ray);
+            if (std::abs(slope) < 1e-8) {
+                if (offset > 1e-5) intersects = false;
+                return;
+            }
+            const double t = -offset / slope;
+            if (slope < 0.0 && t > enter) { enter = t; normal = n.normalized(); }
+            else if (slope > 0.0) leave = std::min(leave, t);
+            if (enter > leave + 1e-6) intersects = false;
+        };
+        const std::array<QPointF, 3> p{triangle.a, triangle.b, triangle.c};
+        const double sign = cross(p[1] - p[0], p[2] - p[0]) >= 0.0 ? 1.0 : -1.0;
+        for (int i = 0; i < 3; ++i) {
+            const QPointF edge = p[(i + 1) % 3] - p[i];
+            const double east = sign * edge.y(), north = -sign * edge.x();
+            plane(QVector3D(float(east), 0, float(-north)),
+                  east * p[i].x() + north * p[i].y());
+        }
+        plane(QVector3D(0, 1, 0), triangle.heightMeters);
+        plane(QVector3D(0, -1, 0), 0.0);
+        // Origins inside a building are unsafe too. Return a zero-distance hit
+        // for visibility checks, but callers must reject it as a picked target.
+        if (intersects && leave >= 0.0 && enter <= nearest) {
+            nearest = enter;
+            nearestNormal = normal;
+            result[QStringLiteral("hit")] = true;
+        }
+    }
+    if (result.value(QStringLiteral("hit")).toBool()) {
+        result[QStringLiteral("distance")] = nearest;
+        result[QStringLiteral("position")] = QVariant::fromValue(origin + ray * float(nearest));
+        result[QStringLiteral("normal")] = QVariant::fromValue(nearestNormal);
+    }
+    return result;
+}
+
 QVariantMap WorldMapCatalog::analyzeRoute(const QString &worldId,
                                            const QVariantList &waypoints,
                                            double startEastMeters,

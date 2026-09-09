@@ -23,10 +23,20 @@ Dialog {
     property real maximumTelemetryGapSeconds: 1.0
     property real maximumAltitudeMeters: 100.0
     property real maximumDurationMinutes: 20.0
+    property string sensorUsage: "preview"
+    property string sensorPerformance: "standard"
+    property bool sensorAcceptanceRequired: false
+    property real sensorMinimumFrameRateHz: 6.0
+    property real sensorMaximumDataGapSeconds: 2.0
+    property real sensorMinimumObstacleDistanceMeters: 1.0
+    property bool sensorRequireVisualSurvey: false
+    property int sensorMinimumVisualKeyframes: 5
+    property real sensorMinimumVisualCoveragePercent: 60
     property bool advancedExpanded: false
 
     readonly property bool editing: planId.length > 0
     readonly property bool routeRequired: planType === "mission"
+    readonly property bool sensorSupported: sensorTypeForModel(modelId) !== "none"
     signal saveRequested(var draft)
     signal routeEditRequested(var draft)
 
@@ -56,6 +66,25 @@ Dialog {
             if (String(options[i].value) === String(modelId)) return String(options[i].label)
         }
         return "选择飞行器"
+    }
+
+    function sensorTypeForModel(modelId) {
+        for (let i = 0; i < App.simulationModels.length; ++i) {
+            const model = App.simulationModels[i]
+            if (String(model.id || "") === String(modelId))
+                return String(model.sensorType || "none")
+        }
+        return "none"
+    }
+
+    function defaultSensorMinimumRate(mode) {
+        if (mode === "eco")
+            return 3.0
+        if (mode === "smooth")
+            return 9.0
+        if (mode === "auto")
+            return 5.0
+        return 6.0
     }
 
     function worldName(worldId) {
@@ -109,6 +138,20 @@ Dialog {
         endAction = String(value.endAction || (planType === "mission" ? "land" : "hold"))
         takeoffAltitudeMeters = Number(value.takeoffAltitudeMeters || App.takeoffAltitude || 5.0)
         acceptancePreset = legacyCity ? "strict" : String(value.acceptancePreset || "standard")
+        const sensors = value.sensorSettings || ({})
+        sensorUsage = String(sensors.usage || (sensorSupported ? "preview" : "off"))
+        sensorPerformance = String(sensors.performance || "standard")
+        sensorAcceptanceRequired = Boolean(sensors.acceptanceRequired
+                                            !== undefined
+                                            ? sensors.acceptanceRequired
+                                            : sensorUsage === "record")
+        sensorMinimumFrameRateHz = Number(sensors.minimumFrameRateHz || 6.0)
+        sensorMaximumDataGapSeconds = Number(sensors.maximumDataGapSeconds || 2.0)
+        sensorMinimumObstacleDistanceMeters = Number(
+            sensors.minimumObstacleDistanceMeters || 1.0)
+        sensorRequireVisualSurvey = Boolean(sensors.requireVisualSurvey || false)
+        sensorMinimumVisualKeyframes = Number(sensors.minimumVisualKeyframes || 5)
+        sensorMinimumVisualCoveragePercent = Number(sensors.minimumVisualCoveragePercent || 60)
 
         var control = value.controlSettings || ({})
         horizontalSpeedMetersPerSecond = Number(control.horizontalSpeedMetersPerSecond
@@ -149,6 +192,22 @@ Dialog {
             routeId: routeRequired ? routeId : "",
             endAction: routeRequired ? endAction : "hold",
             acceptancePreset: acceptancePreset,
+            sensorSettings: {
+                usage: sensorSupported ? sensorUsage : "off",
+                performance: sensorPerformance,
+                acceptanceRequired: sensorSupported && sensorUsage !== "off"
+                                    ? sensorAcceptanceRequired : false,
+                minimumFrameRateHz: sensorMinimumFrameRateHz,
+                maximumDataGapSeconds: sensorMaximumDataGapSeconds,
+                minimumObstacleDistanceMeters: sensorMinimumObstacleDistanceMeters,
+                requireCameraFrame: sensorTypeForModel(modelId) !== "lidar-2d",
+                requireVisualSurvey: sensorTypeForModel(modelId) === "mono-camera"
+                                     && sensorUsage === "record"
+                                     ? sensorRequireVisualSurvey : false,
+                minimumVisualKeyframes: sensorMinimumVisualKeyframes,
+                minimumVisualCoveragePercent: sensorMinimumVisualCoveragePercent,
+                requireSlamMap: false
+            },
             controlSettings: {
                 horizontalSpeedMetersPerSecond: horizontalSpeedMetersPerSecond,
                 verticalSpeedMetersPerSecond: verticalSpeedMetersPerSecond,
@@ -309,6 +368,74 @@ Dialog {
                     }
                 }
 
+                ColumnLayout {
+                    visible: root.sensorSupported
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text {
+                        text: "传感器数据"
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textTiny
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        SelectField {
+                            Layout.fillWidth: true
+                            model: [
+                                { label: "不使用 · 仅启动 PX4", value: "off" },
+                                { label: "仅预览 · 不写入会话", value: "preview" },
+                                { label: "预览并记录 · 可同步回放", value: "record" }
+                            ]
+                            selectedValue: root.sensorUsage
+                            onValuePicked: value => root.sensorUsage = String(value || "off")
+                        }
+                        SelectField {
+                            visible: root.sensorUsage !== "off"
+                            Layout.preferredWidth: 188
+                            model: [
+                                { label: "节能 · 请求 5 FPS", value: "eco" },
+                                { label: "标准 · 请求 10 FPS", value: "standard" },
+                                { label: "流畅 · 请求 15 FPS", value: "smooth" },
+                                { label: "自动 · 优先稳定", value: "auto" }
+                            ]
+                            selectedValue: root.sensorPerformance
+                            onValuePicked: value => {
+                                root.sensorPerformance = String(value || "standard")
+                                // Each performance mode has a matching practical
+                                // wall-clock acceptance threshold. Carrying the
+                                // previous mode's number across would make Eco
+                                // impossible to pass and Smooth unnecessarily lax.
+                                root.sensorMinimumFrameRateHz = root.defaultSensorMinimumRate(
+                                    root.sensorPerformance)
+                            }
+                        }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: root.sensorUsage === "record"
+                              ? "画面或扫描会随飞行时间轴保存；记录量取决于性能模式。"
+                              : root.sensorUsage === "preview"
+                                ? "启动可选 ROS 2 容器，只显示实时数据，不占用会话存储。"
+                                : "不会启动 ROS 2 数据容器。"
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textTiny
+                        wrapMode: Text.WordWrap
+                    }
+                    SelectField {
+                        visible: root.sensorUsage !== "off"
+                        Layout.fillWidth: true
+                        model: [
+                            { label: "不参与测试结论 · 只观察数据", value: "observe" },
+                            { label: "必须正常 · 纳入测试验收", value: "required" }
+                        ]
+                        selectedValue: root.sensorAcceptanceRequired ? "required" : "observe"
+                        onValuePicked: value => root.sensorAcceptanceRequired = value === "required"
+                    }
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 10
@@ -446,22 +573,22 @@ Dialog {
                         spacing: 8
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 4
-                            Text { text: "水平"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { text: "水平速度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                             NumericField {
                                 Layout.fillWidth: true
                                 value: root.horizontalSpeedMetersPerSecond
-                                from: 0.5; to: 2.0; stepSize: 0.1; decimals: 1; unit: "m/s"
+                                from: 0.5; to: 5.0; stepSize: 0.1; decimals: 1; unit: "m/s"
                                 accessibleName: "键盘水平速度"
                                 onValueEdited: value => root.horizontalSpeedMetersPerSecond = value
                             }
                         }
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 4
-                            Text { text: "垂直"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { text: "垂直速度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                             NumericField {
                                 Layout.fillWidth: true
                                 value: root.verticalSpeedMetersPerSecond
-                                from: 0.2; to: 1.5; stepSize: 0.1; decimals: 1; unit: "m/s"
+                                from: 0.2; to: 3.0; stepSize: 0.1; decimals: 1; unit: "m/s"
                                 accessibleName: "键盘垂直速度"
                                 onValueEdited: value => root.verticalSpeedMetersPerSecond = value
                             }
@@ -507,6 +634,46 @@ Dialog {
                         NumericField { Layout.preferredWidth: 150; enabled: root.acceptancePreset === "custom"; value: root.maximumAltitudeMeters; from: 1; to: 100; stepSize: 1; decimals: 0; unit: "m"; accessibleName: "最大允许高度"; onValueEdited: value => root.maximumAltitudeMeters = value }
                         Text { text: "最长测试时间"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
                         NumericField { Layout.preferredWidth: 150; enabled: root.acceptancePreset === "custom"; value: root.maximumDurationMinutes; from: 1; to: 120; stepSize: 1; decimals: 0; unit: "min"; accessibleName: "最长测试时间"; onValueEdited: value => root.maximumDurationMinutes = value }
+                    }
+
+                    ColumnLayout {
+                        visible: root.sensorSupported && root.sensorUsage !== "off"
+                                 && root.sensorAcceptanceRequired
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text {
+                            text: "传感器验收阈值"
+                            color: Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textSmall
+                            font.weight: Font.Medium
+                        }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 2
+                            columnSpacing: 12
+                            rowSpacing: 8
+                            Text { text: "最低平均频率"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            NumericField { Layout.preferredWidth: 150; value: root.sensorMinimumFrameRateHz; from: 1; to: 15; stepSize: 1; decimals: 0; unit: "Hz"; accessibleName: "传感器最低平均频率"; onValueEdited: value => root.sensorMinimumFrameRateHz = value }
+                            Text { text: "最长数据中断"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            NumericField { Layout.preferredWidth: 150; value: root.sensorMaximumDataGapSeconds; from: 0.5; to: 30; stepSize: 0.5; decimals: 1; unit: "s"; accessibleName: "传感器最长数据中断"; onValueEdited: value => root.sensorMaximumDataGapSeconds = value }
+                            Text { visible: root.sensorTypeForModel(root.modelId) === "lidar-2d" || root.sensorTypeForModel(root.modelId) === "depth-camera"; text: "最近障碍下限"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            NumericField { visible: root.sensorTypeForModel(root.modelId) === "lidar-2d" || root.sensorTypeForModel(root.modelId) === "depth-camera"; Layout.preferredWidth: 150; value: root.sensorMinimumObstacleDistanceMeters; from: 0.2; to: 30; stepSize: 0.1; decimals: 1; unit: "m"; accessibleName: "传感器最近障碍下限"; onValueEdited: value => root.sensorMinimumObstacleDistanceMeters = value }
+                            Text { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record"; text: "要求视觉巡检地图"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            Switch { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record"; checked: root.sensorRequireVisualSurvey; onToggled: root.sensorRequireVisualSurvey = checked }
+                            Text { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record" && root.sensorRequireVisualSurvey; text: "最少关键帧"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            NumericField { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record" && root.sensorRequireVisualSurvey; Layout.preferredWidth: 150; value: root.sensorMinimumVisualKeyframes; from: 1; to: 200; stepSize: 1; decimals: 0; unit: "张"; accessibleName: "视觉巡检最少关键帧"; onValueEdited: value => root.sensorMinimumVisualKeyframes = value }
+                            Text { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record" && root.sensorRequireVisualSurvey; text: "最低采集覆盖"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall }
+                            NumericField { visible: root.sensorTypeForModel(root.modelId) === "mono-camera" && root.sensorUsage === "record" && root.sensorRequireVisualSurvey; Layout.preferredWidth: 150; value: root.sensorMinimumVisualCoveragePercent; from: 10; to: 100; stepSize: 5; decimals: 0; unit: "%"; accessibleName: "视觉巡检最低采集覆盖"; onValueEdited: value => root.sensorMinimumVisualCoveragePercent = value }
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: "请求 FPS 按仿真时间设置；这里验收 Windows 实际收到的平均频率，并另行检查数据中断。相机方案还会检查有效画面。"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTiny
+                            wrapMode: Text.WordWrap
+                        }
                     }
                 }
             }

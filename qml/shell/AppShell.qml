@@ -91,6 +91,13 @@ Item {
                         flightPage.openReplay()
                     }
                 }
+                onReplayAtRequested: (sessionId, elapsedMs) => {
+                    if (App.startSessionReplay(sessionId)) {
+                        App.seekReplay(elapsedMs)
+                        root.currentIndex = 1
+                        flightPage.openReplay()
+                    }
+                }
                 onReusePlanRequested: sessionId => {
                     const response = App.reuseSessionTestPlan(sessionId)
                     if (response.success)

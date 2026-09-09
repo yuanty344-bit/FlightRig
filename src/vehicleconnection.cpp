@@ -30,9 +30,9 @@ constexpr quint8 CompleteCoreTelemetryMask = PositionTelemetryFlag | VelocityTel
                                               | AttitudeTelemetryFlag | HeadingTelemetryFlag;
 constexpr double RadiansToDegrees = 180.0 / std::numbers::pi_v<double>;
 constexpr double MinimumControlSpeed = 0.5;
-constexpr double MaximumControlSpeed = 2.0;
+constexpr double MaximumControlSpeed = 5.0;
 constexpr double MinimumVerticalControlSpeed = 0.2;
-constexpr double MaximumVerticalControlSpeed = 1.5;
+constexpr double MaximumVerticalControlSpeed = 3.0;
 constexpr double MinimumYawControlRate = 5.0;
 constexpr double MaximumYawControlRate = 90.0;
 constexpr qint64 CoreTelemetryTimeoutMs = 1500;
@@ -288,7 +288,11 @@ struct VehicleConnection::Impl
                     });
                 }
             });
-            scaledImuHandle = telemetry->subscribe_scaled_imu([this](Telemetry::Imu value) {
+            // PX4 SITL publishes the primary vehicle IMU as HIGHRES_IMU. The
+            // Scaled IMU stream is absent on the normal x500, Mono, Depth and
+            // LiDAR airframes (and on Gimbal it may describe the payload IMU),
+            // which left the aircraft angular-rate rows empty or misleading.
+            imuHandle = telemetry->subscribe_imu([this](Telemetry::Imu value) {
                 const auto &angular = value.angular_velocity_frd;
                 if (std::isfinite(angular.forward_rad_s) && std::isfinite(angular.right_rad_s)
                     && std::isfinite(angular.down_rad_s)) {
@@ -319,7 +323,7 @@ struct VehicleConnection::Impl
             telemetry->set_rate_position_velocity_ned_async(10.0, ignoreRateResult);
             telemetry->set_rate_attitude_euler_async(10.0, ignoreRateResult);
             telemetry->set_rate_attitude_quaternion_async(10.0, ignoreRateResult);
-            telemetry->set_rate_scaled_imu_async(5.0, ignoreRateResult);
+            telemetry->set_rate_imu_async(10.0, ignoreRateResult);
             telemetry->set_rate_battery_async(1.0, ignoreRateResult);
             telemetry->set_rate_gps_info_async(1.0, ignoreRateResult);
 
@@ -370,7 +374,7 @@ struct VehicleConnection::Impl
     std::optional<Telemetry::AttitudeEulerHandle> attitudeEulerHandle;
     std::optional<Telemetry::AttitudeQuaternionHandle> attitudeQuaternionHandle;
     std::optional<Telemetry::HeadingHandle> headingHandle;
-    std::optional<Telemetry::ScaledImuHandle> scaledImuHandle;
+    std::optional<Telemetry::ImuHandle> imuHandle;
     std::optional<Telemetry::BatteryHandle> batteryHandle;
     std::optional<Telemetry::GpsInfoHandle> gpsInfoHandle;
     std::atomic_bool shuttingDown{false};
@@ -495,7 +499,7 @@ VehicleConnection::~VehicleConnection()
         if (m_impl->attitudeEulerHandle) m_impl->telemetry->unsubscribe_attitude_euler(*m_impl->attitudeEulerHandle);
         if (m_impl->attitudeQuaternionHandle) m_impl->telemetry->unsubscribe_attitude_quaternion(*m_impl->attitudeQuaternionHandle);
         if (m_impl->headingHandle) m_impl->telemetry->unsubscribe_heading(*m_impl->headingHandle);
-        if (m_impl->scaledImuHandle) m_impl->telemetry->unsubscribe_scaled_imu(*m_impl->scaledImuHandle);
+        if (m_impl->imuHandle) m_impl->telemetry->unsubscribe_imu(*m_impl->imuHandle);
         if (m_impl->batteryHandle) m_impl->telemetry->unsubscribe_battery(*m_impl->batteryHandle);
         if (m_impl->gpsInfoHandle) m_impl->telemetry->unsubscribe_gps_info(*m_impl->gpsInfoHandle);
     }
@@ -539,6 +543,16 @@ void VehicleConnection::setSitlExpected(bool expected)
     m_sitlExpected = expected;
     if (!expected) {
         abortKeyboardControl();
+        // A stopped simulation is definitive. Clear values that are preserved
+        // during a brief heartbeat loss so the next session never inherits an
+        // old armed, airborne, altitude, or mode state.
+        setReady(false);
+        setArmed(false);
+        setInAir(false);
+        setAltitudeMeters(0.0);
+        resetTelemetry();
+        setFlightMode(QStringLiteral("未知"));
+        setHealth(false, false, false, false, false, false, false);
     } else if (m_impl->listenerStarted) {
         m_impl->attachFirstAutopilot();
     }
@@ -1359,9 +1373,10 @@ void VehicleConnection::setConnected(bool value)
         ++m_readyGeneration;
         m_readyCandidatePending = false;
         setReady(false);
-        setArmed(false);
-        setInAir(false);
-        setAltitudeMeters(0.0);
+        // A MAVSDK heartbeat timeout means the current flight state is
+        // unknown, not that the vehicle has landed. Preserve the last armed,
+        // in-air, and altitude values until telemetry returns or the
+        // simulation is definitively stopped by setSitlExpected(false).
         resetTelemetry();
         setFlightMode(QStringLiteral("未知"));
         setHealth(false, false, false, false, false, false, false);

@@ -1,12 +1,17 @@
 #pragma once
 
 #include "dockercontroller.h"
+#include "depthmappingcontroller.h"
 #include "flightpathgeometry.h"
 #include "flightsessionrecorder.h"
+#include "lidarmappingcontroller.h"
 #include "routelibrary.h"
 #include "replaycontroller.h"
+#include "sensorservicecontroller.h"
 #include "testplanrepository.h"
 #include "vehicleconnection.h"
+#include "visualsurveycontroller.h"
+#include "gimbalinspectioncontroller.h"
 
 #include <QObject>
 #include <QQuaternion>
@@ -16,6 +21,7 @@
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QVector>
 #include <QVector3D>
 
 class AppController final : public QObject
@@ -23,6 +29,7 @@ class AppController final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool dockerAvailable READ dockerAvailable NOTIFY dockerAvailableChanged)
     Q_PROPERTY(bool imageAvailable READ imageAvailable NOTIFY imageAvailableChanged)
+    Q_PROPERTY(bool dockerNetworkAvailable READ dockerNetworkAvailable NOTIFY dockerNetworkAvailableChanged)
     Q_PROPERTY(bool simulationRunning READ simulationRunning NOTIFY simulationRunningChanged)
     Q_PROPERTY(bool vehicleConnected READ vehicleConnected NOTIFY vehicleConnectedChanged)
     Q_PROPERTY(bool vehicleReady READ vehicleReady NOTIFY vehicleReadyChanged)
@@ -82,6 +89,55 @@ class AppController final : public QObject
     Q_PROPERTY(QString selectedModelId READ selectedModelId WRITE setSelectedModelId NOTIFY selectedModelChanged)
     Q_PROPERTY(QString selectedModelName READ selectedModelName NOTIFY selectedModelChanged)
     Q_PROPERTY(QString selectedModelDescription READ selectedModelDescription NOTIFY selectedModelChanged)
+    Q_PROPERTY(QString selectedSensorType READ selectedSensorType NOTIFY selectedModelChanged)
+    Q_PROPERTY(QString selectedSensorLabel READ selectedSensorLabel NOTIFY selectedModelChanged)
+    Q_PROPERTY(bool sensorServiceSupported READ sensorServiceSupported NOTIFY selectedModelChanged)
+    Q_PROPERTY(bool sensorServiceEnabled READ sensorServiceEnabled WRITE setSensorServiceEnabled NOTIFY sensorServicePreferenceChanged)
+    Q_PROPERTY(bool sensorServiceImageAvailable READ sensorServiceImageAvailable NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(bool sensorServiceRunning READ sensorServiceRunning NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(bool sensorServiceConnected READ sensorServiceConnected NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(bool sensorServiceBusy READ sensorServiceBusy NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString sensorServiceStatus READ sensorServiceStatus NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString sensorServiceProblemCode READ sensorServiceProblemCode NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString sensorPerformanceMode READ sensorPerformanceMode NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString sensorEffectivePerformanceMode READ sensorEffectivePerformanceMode NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(int sensorTargetFramesPerSecond READ sensorTargetFramesPerSecond NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(bool sensorSessionRecording READ sensorSessionRecording NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QVariantList lidarScanPoints READ lidarScanPoints NOTIFY lidarScanChanged)
+    Q_PROPERTY(double lidarNearestDistanceMeters READ lidarNearestDistanceMeters NOTIFY lidarScanChanged)
+    Q_PROPERTY(double lidarNearestAngleDegrees READ lidarNearestAngleDegrees NOTIFY lidarScanChanged)
+    Q_PROPERTY(double lidarScanHz READ lidarScanHz NOTIFY lidarScanChanged)
+    Q_PROPERTY(double lidarFieldOfViewDegrees READ lidarFieldOfViewDegrees NOTIFY lidarScanChanged)
+    Q_PROPERTY(LidarMappingController *lidarMapping READ lidarMapping CONSTANT)
+    Q_PROPERTY(DepthMappingController *depthMapping READ depthMapping CONSTANT)
+    Q_PROPERTY(VisualSurveyController *visualSurvey READ visualSurvey CONSTANT)
+    Q_PROPERTY(GimbalInspectionController *gimbalInspection READ gimbalInspection CONSTANT)
+    Q_PROPERTY(QString sensorServiceKind READ sensorServiceKind NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString displayedSensorKind READ displayedSensorKind NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(bool replaySensorAvailable READ replaySensorAvailable NOTIFY sensorServiceStateChanged)
+    Q_PROPERTY(QString cameraRgbFrame READ cameraRgbFrame NOTIFY cameraFrameChanged)
+    Q_PROPERTY(QString cameraDepthFrame READ cameraDepthFrame NOTIFY depthFrameChanged)
+    Q_PROPERTY(bool cameraRgbReady READ cameraRgbReady NOTIFY cameraFrameChanged)
+    Q_PROPERTY(bool cameraDepthReady READ cameraDepthReady NOTIFY depthFrameChanged)
+    Q_PROPERTY(double cameraRgbFrameHz READ cameraRgbFrameHz NOTIFY cameraFrameChanged)
+    Q_PROPERTY(double cameraDepthFrameHz READ cameraDepthFrameHz NOTIFY depthFrameChanged)
+    Q_PROPERTY(int cameraRgbLatencyMilliseconds READ cameraRgbLatencyMilliseconds NOTIFY cameraFrameChanged)
+    Q_PROPERTY(int cameraDepthLatencyMilliseconds READ cameraDepthLatencyMilliseconds NOTIFY depthFrameChanged)
+    Q_PROPERTY(bool cameraRgbStreamInterrupted READ cameraRgbStreamInterrupted NOTIFY cameraStateChanged)
+    Q_PROPERTY(bool cameraDepthStreamInterrupted READ cameraDepthStreamInterrupted NOTIFY cameraStateChanged)
+    Q_PROPERTY(double depthCenterDistanceMeters READ depthCenterDistanceMeters NOTIFY depthFrameChanged)
+    Q_PROPERTY(double depthNearestDistanceMeters READ depthNearestDistanceMeters NOTIFY depthFrameChanged)
+    Q_PROPERTY(double depthValidRatio READ depthValidRatio NOTIFY depthFrameChanged)
+    Q_PROPERTY(double gimbalYawDegrees READ gimbalYawDegrees NOTIFY gimbalStateChanged)
+    Q_PROPERTY(double gimbalPitchDegrees READ gimbalPitchDegrees NOTIFY gimbalStateChanged)
+    Q_PROPERTY(double gimbalRollDegrees READ gimbalRollDegrees NOTIFY gimbalStateChanged)
+    Q_PROPERTY(double gimbalTargetYawDegrees READ gimbalTargetYawDegrees NOTIFY gimbalStateChanged)
+    Q_PROPERTY(double gimbalTargetPitchDegrees READ gimbalTargetPitchDegrees NOTIFY gimbalStateChanged)
+    Q_PROPERTY(bool gimbalFeedbackAvailable READ gimbalFeedbackAvailable NOTIFY gimbalStateChanged)
+    Q_PROPERTY(bool gimbalMoving READ gimbalMoving NOTIFY gimbalStateChanged)
+    Q_PROPERTY(bool cameraRecording READ cameraRecording NOTIFY cameraRecordingChanged)
+    Q_PROPERTY(QString sensorCapturesDirectory READ sensorCapturesDirectory CONSTANT)
+    Q_PROPERTY(QString lastSensorCapturePath READ lastSensorCapturePath NOTIFY sensorCaptureSaved)
     Q_PROPERTY(QString selectedWorldId READ selectedWorldId WRITE setSelectedWorldId NOTIFY selectedWorldChanged)
     Q_PROPERTY(QString selectedWorldName READ selectedWorldName NOTIFY selectedWorldChanged)
     Q_PROPERTY(QString selectedWorldDescription READ selectedWorldDescription NOTIFY selectedWorldChanged)
@@ -186,12 +242,13 @@ public:
 
     [[nodiscard]] bool dockerAvailable() const { return m_docker.dockerAvailable(); }
     [[nodiscard]] bool imageAvailable() const { return m_docker.imageAvailable(); }
+    [[nodiscard]] bool dockerNetworkAvailable() const { return m_docker.networkAvailable(); }
     [[nodiscard]] bool simulationRunning() const { return m_docker.simulationRunning(); }
     [[nodiscard]] bool vehicleConnected() const { return m_vehicle.connected(); }
     [[nodiscard]] bool vehicleReady() const { return m_vehicle.ready(); }
     [[nodiscard]] bool armed() const { return m_vehicle.armed(); }
     [[nodiscard]] bool inAir() const { return m_vehicle.inAir(); }
-    [[nodiscard]] bool busy() const { return m_docker.busy() || m_vehicle.busy() || m_vehicle.missionBusy() || m_landingAndStopping; }
+    [[nodiscard]] bool busy() const { return m_docker.busy() || m_sensorService.busy() || m_vehicle.busy() || m_vehicle.missionBusy() || m_landingAndStopping; }
     [[nodiscard]] bool gyrometerOk() const { return m_vehicle.gyrometerOk(); }
     [[nodiscard]] bool accelerometerOk() const { return m_vehicle.accelerometerOk(); }
     [[nodiscard]] bool magnetometerOk() const { return m_vehicle.magnetometerOk(); }
@@ -239,6 +296,174 @@ public:
     [[nodiscard]] QString selectedModelId() const { return m_selectedModelId; }
     [[nodiscard]] QString selectedModelName() const;
     [[nodiscard]] QString selectedModelDescription() const;
+    [[nodiscard]] QString selectedSensorType() const;
+    [[nodiscard]] QString selectedSensorLabel() const;
+    [[nodiscard]] bool sensorServiceSupported() const;
+    [[nodiscard]] bool sensorServiceEnabled() const { return m_sensorServiceEnabled; }
+    [[nodiscard]] bool sensorServiceImageAvailable() const
+    {
+        return m_sensorService.imageAvailable();
+    }
+    [[nodiscard]] bool sensorServiceRunning() const
+    {
+        return replayActive() ? m_replay.sensorAvailable() : m_sensorService.running();
+    }
+    [[nodiscard]] bool sensorServiceConnected() const
+    {
+        return replayActive() ? m_replay.sensorAvailable() : m_sensorService.connected();
+    }
+    [[nodiscard]] bool sensorServiceBusy() const { return m_sensorService.busy(); }
+    [[nodiscard]] QString sensorServiceStatus() const
+    {
+        return replayActive() ? QStringLiteral("正在显示会话中的传感器记录")
+                              : m_sensorService.statusMessage();
+    }
+    [[nodiscard]] QString sensorServiceProblemCode() const { return m_sensorService.problemCode(); }
+    [[nodiscard]] QVariantList lidarScanPoints() const
+    {
+        return replayActive() ? m_replay.lidarPoints() : m_sensorService.lidarPoints();
+    }
+    [[nodiscard]] double lidarNearestDistanceMeters() const
+    {
+        return replayActive() ? m_replay.lidarNearestDistanceMeters()
+                              : m_sensorService.lidarNearestDistanceMeters();
+    }
+    [[nodiscard]] double lidarNearestAngleDegrees() const
+    {
+        return replayActive() ? m_replay.lidarNearestAngleDegrees()
+                              : m_sensorService.lidarNearestAngleDegrees();
+    }
+    [[nodiscard]] double lidarScanHz() const
+    {
+        return replayActive() ? m_replay.lidarScanHz() : m_sensorService.lidarScanHz();
+    }
+    [[nodiscard]] double lidarFieldOfViewDegrees() const
+    {
+        return replayActive() ? m_replay.lidarFieldOfViewDegrees()
+                              : m_sensorService.lidarFieldOfViewDegrees();
+    }
+    [[nodiscard]] LidarMappingController *lidarMapping() { return &m_lidarMapping; }
+    [[nodiscard]] DepthMappingController *depthMapping() { return &m_depthMapping; }
+    [[nodiscard]] VisualSurveyController *visualSurvey() { return &m_visualSurvey; }
+    [[nodiscard]] GimbalInspectionController *gimbalInspection() { return &m_gimbalInspection; }
+    [[nodiscard]] QString sensorServiceKind() const { return displayedSensorKind(); }
+    [[nodiscard]] QString sensorPerformanceMode() const
+    {
+        return m_sensorService.performanceMode();
+    }
+    [[nodiscard]] QString sensorEffectivePerformanceMode() const
+    {
+        return m_sensorService.effectivePerformanceMode();
+    }
+    [[nodiscard]] int sensorTargetFramesPerSecond() const
+    {
+        return m_sensorService.targetFramesPerSecond();
+    }
+    [[nodiscard]] bool sensorSessionRecording() const
+    {
+        return m_sensorService.sessionRecording();
+    }
+    [[nodiscard]] QString displayedSensorKind() const
+    {
+        return replayActive() ? m_replay.sensorKind() : selectedSensorType();
+    }
+    [[nodiscard]] bool replaySensorAvailable() const { return m_replay.sensorAvailable(); }
+    [[nodiscard]] QString cameraRgbFrame() const
+    {
+        return replayActive() ? m_replay.rgbFrameDataUrl() : m_sensorService.rgbFrameDataUrl();
+    }
+    [[nodiscard]] QString cameraDepthFrame() const
+    {
+        return replayActive() ? m_replay.depthFrameDataUrl() : m_sensorService.depthFrameDataUrl();
+    }
+    [[nodiscard]] bool cameraRgbReady() const
+    {
+        return replayActive() ? !m_replay.rgbFrameDataUrl().isEmpty() : m_sensorService.rgbFrameReady();
+    }
+    [[nodiscard]] bool cameraDepthReady() const
+    {
+        return replayActive() ? !m_replay.depthFrameDataUrl().isEmpty() : m_sensorService.depthFrameReady();
+    }
+    [[nodiscard]] double cameraRgbFrameHz() const
+    {
+        return replayActive() ? m_replay.rgbFrameHz() : m_sensorService.rgbFrameHz();
+    }
+    [[nodiscard]] double cameraDepthFrameHz() const
+    {
+        return replayActive() ? m_replay.depthFrameHz() : m_sensorService.depthFrameHz();
+    }
+    [[nodiscard]] int cameraRgbLatencyMilliseconds() const
+    {
+        return replayActive() ? m_replay.rgbLatencyMilliseconds()
+                              : m_sensorService.rgbLatencyMilliseconds();
+    }
+    [[nodiscard]] int cameraDepthLatencyMilliseconds() const
+    {
+        return replayActive() ? m_replay.depthLatencyMilliseconds()
+                              : m_sensorService.depthLatencyMilliseconds();
+    }
+    [[nodiscard]] bool cameraRgbStreamInterrupted() const
+    {
+        return replayActive() ? m_replay.rgbStreamInterrupted()
+                              : m_sensorService.rgbStreamInterrupted();
+    }
+    [[nodiscard]] bool cameraDepthStreamInterrupted() const
+    {
+        return replayActive() ? m_replay.depthStreamInterrupted()
+                              : m_sensorService.depthStreamInterrupted();
+    }
+    [[nodiscard]] double depthCenterDistanceMeters() const
+    {
+        return replayActive() ? m_replay.depthCenterDistanceMeters()
+                              : m_sensorService.depthCenterDistanceMeters();
+    }
+    [[nodiscard]] double depthNearestDistanceMeters() const
+    {
+        return replayActive() ? m_replay.depthNearestDistanceMeters()
+                              : m_sensorService.depthNearestDistanceMeters();
+    }
+    [[nodiscard]] double depthValidRatio() const
+    {
+        return replayActive() ? m_replay.depthValidRatio() : m_sensorService.depthValidRatio();
+    }
+    [[nodiscard]] double gimbalYawDegrees() const
+    {
+        return replayActive() ? m_replay.gimbalYawDegrees() : m_sensorService.gimbalYawDegrees();
+    }
+    [[nodiscard]] double gimbalPitchDegrees() const
+    {
+        return replayActive() ? m_replay.gimbalPitchDegrees() : m_sensorService.gimbalPitchDegrees();
+    }
+    [[nodiscard]] double gimbalRollDegrees() const
+    {
+        return replayActive() ? m_replay.gimbalRollDegrees() : m_sensorService.gimbalRollDegrees();
+    }
+    [[nodiscard]] double gimbalTargetYawDegrees() const
+    {
+        return replayActive() ? m_replay.gimbalTargetYawDegrees()
+                              : m_sensorService.gimbalTargetYawDegrees();
+    }
+    [[nodiscard]] double gimbalTargetPitchDegrees() const
+    {
+        return replayActive() ? m_replay.gimbalTargetPitchDegrees()
+                              : m_sensorService.gimbalTargetPitchDegrees();
+    }
+    [[nodiscard]] bool gimbalFeedbackAvailable() const
+    {
+        return replayActive() ? m_replay.gimbalFeedbackAvailable()
+                              : m_sensorService.gimbalFeedbackAvailable();
+    }
+    [[nodiscard]] bool gimbalMoving() const
+    {
+        return replayActive() ? m_replay.gimbalMoving() : m_sensorService.gimbalMoving();
+    }
+    [[nodiscard]] bool cameraRecording() const { return m_sensorService.recording(); }
+    [[nodiscard]] QString sensorCapturesDirectory() const { return m_sensorService.capturesDirectory(); }
+    [[nodiscard]] QString lastSensorCapturePath() const
+    {
+        return m_lastReplayCapturePath.isEmpty() ? m_sensorService.lastCapturePath()
+                                                 : m_lastReplayCapturePath;
+    }
     [[nodiscard]] QString selectedWorldId() const { return m_selectedWorldId; }
     [[nodiscard]] QString selectedWorldName() const;
     [[nodiscard]] QString selectedWorldDescription() const;
@@ -408,6 +633,7 @@ public:
     Q_INVOKABLE bool deleteSession(const QString &sessionId);
     Q_INVOKABLE bool restoreSession(const QString &sessionId);
     Q_INVOKABLE bool permanentlyDeleteSession(const QString &sessionId);
+    Q_INVOKABLE bool deleteSessionSensorData(const QString &sessionId);
     Q_INVOKABLE bool startSessionReplay(const QString &sessionId);
     Q_INVOKABLE bool setReplayWorldId(const QString &worldId);
     Q_INVOKABLE void stopSessionReplay();
@@ -441,6 +667,38 @@ public:
     Q_INVOKABLE QVariantMap reuseSessionTestPlan(const QString &sessionId);
     Q_INVOKABLE QVariantMap autoFixSelectedPlanRoute();
     Q_INVOKABLE bool openPlansFolder();
+    Q_INVOKABLE double depthDistanceAt(double normalizedX, double normalizedY) const
+    {
+        return replayActive() ? m_replay.depthDistanceAt(normalizedX, normalizedY)
+                              : m_sensorService.depthDistanceAt(normalizedX, normalizedY);
+    }
+    Q_INVOKABLE bool saveCameraSnapshot(const QString &stream);
+    Q_INVOKABLE bool startCameraRecording(const QString &stream)
+    {
+        return m_sensorService.startRecording(stream);
+    }
+    Q_INVOKABLE bool stopCameraRecording() { return m_sensorService.stopRecording(); }
+    Q_INVOKABLE bool setGimbalAngles(double yawDegrees, double pitchDegrees);
+    Q_INVOKABLE bool setGimbalPreset(const QString &preset);
+    Q_INVOKABLE bool openSensorCapturesFolder();
+    Q_INVOKABLE QString saveLidarMap();
+    Q_INVOKABLE bool openLidarMapsFolder();
+    Q_INVOKABLE QString saveDepthMap();
+    Q_INVOKABLE bool openDepthMapsFolder();
+    Q_INVOKABLE bool loadSessionDepthMap(const QString &sessionId);
+    Q_INVOKABLE void closeLoadedDepthMap();
+    Q_INVOKABLE bool startVisualSurvey();
+    Q_INVOKABLE void stopVisualSurvey();
+    Q_INVOKABLE bool loadSessionVisualSurvey(const QString &sessionId);
+    Q_INVOKABLE void closeLoadedVisualSurvey();
+    Q_INVOKABLE bool openVisualSurveyFolder();
+    Q_INVOKABLE bool exportVisualSurveyKeyframe(int index);
+    Q_INVOKABLE bool updateVisualSurveyKeyframe(const QString &notes, bool anomaly);
+    Q_INVOKABLE QVariantMap analyzeDepthMapRoute(const QVariantList &waypoints,
+                                                 double clearanceMeters = 1.0) const
+    {
+        return m_depthMapping.analyzeRoute(waypoints, clearanceMeters);
+    }
     Q_INVOKABLE QVariantMap analyzeMissionRouteSafety(const QVariantList &waypoints,
                                                       double startEastMeters,
                                                       double startNorthMeters,
@@ -450,6 +708,7 @@ public:
     void setControlVerticalSpeedMetersPerSecond(double value);
     void setControlYawRateDegreesPerSecond(double value);
     void setSelectedModelId(const QString &modelId);
+    void setSensorServiceEnabled(bool enabled);
     void setSelectedWorldId(const QString &worldId);
     void setSelectedTestPlanId(const QString &planId);
     void setContainerName(const QString &name);
@@ -478,6 +737,7 @@ public:
 signals:
     void dockerAvailableChanged();
     void imageAvailableChanged();
+    void dockerNetworkAvailableChanged();
     void simulationRunningChanged();
     void vehicleConnectedChanged();
     void vehicleReadyChanged();
@@ -508,6 +768,15 @@ signals:
     void gpsAvailableChanged();
     void takeoffAltitudeChanged();
     void selectedModelChanged();
+    void sensorServicePreferenceChanged();
+    void sensorServiceStateChanged();
+    void lidarScanChanged();
+    void cameraFrameChanged();
+    void depthFrameChanged();
+    void cameraStateChanged();
+    void gimbalStateChanged();
+    void cameraRecordingChanged();
+    void sensorCaptureSaved();
     void selectedWorldChanged();
     void containerNameChanged();
     void containerNameAvailabilityChanged();
@@ -543,19 +812,40 @@ private:
     void appendDiagnostic(const QString &source, const QString &message);
     void updateIssueState();
     void tryCompleteLandingAndStop();
+    void finalizeSensorSessionSummary();
     void setLandingAndStopping(bool value);
     void resetFlightScene();
     void updateFlightScenePosition();
+    struct MappingPoseSample {
+        qint64 timestampMs{0};
+        QVector3D position;
+        double headingDegrees{0.0};
+        double rollDegrees{0.0};
+        double pitchDegrees{0.0};
+        double altitudeMeters{0.0};
+        bool valid{false};
+    };
+    void appendMappingPoseSample();
+    [[nodiscard]] MappingPoseSample mappingPoseAt(qint64 timestampMs) const;
     void updateMissionMonitor();
+    void updateMissionGimbalForProgress();
     void resetMissionMonitor();
     void triggerMissionProtection(const QString &reason);
     void refreshSessionStorageUsage();
 
     DockerController m_docker;
+    SensorServiceController m_sensorService;
+    LidarMappingController m_lidarMapping;
+    DepthMappingController m_depthMapping;
+    VisualSurveyController m_visualSurvey;
+    GimbalInspectionController m_gimbalInspection;
     VehicleConnection m_vehicle;
     FlightPathGeometry m_flightPathGeometry;
     FlightSessionRecorder m_sessionRecorder;
     ReplayController m_replay;
+    qint64 m_lastReplayMappingTimeMs{-1};
+    qint64 m_lastReplayDepthMappingTimeMs{-1};
+    QString m_loadedVisualSurveySessionId;
     FlightPathGeometry m_replayPlannedPathGeometry;
     QVariantMap m_replayRouteAnalysis;
     RouteLibrary m_routeLibrary;
@@ -575,9 +865,16 @@ private:
     double m_sceneOriginEastMeters{0.0};
     double m_sceneOriginDownMeters{0.0};
     QVector3D m_vehicleScenePosition;
+    QVector<MappingPoseSample> m_mappingPoseHistory;
     QVector3D m_missionStartScenePosition;
     QVector<QVector3D> m_missionSceneWaypoints;
     QVector<double> m_missionWaypointSpeeds;
+    QVariantList m_missionWaypointPayloads;
+    int m_lastGimbalMissionTargetIndex{-1};
+    int m_lastGimbalCaptureIndex{-1};
+    int m_pendingGimbalCaptureIndex{-1};
+    quint64 m_pendingGimbalCaptureFrameSequence{0};
+    qint64 m_pendingGimbalCaptureDeadlineMs{0};
     QString m_missionEndAction;
     double m_missionDistanceToNextMeters{0.0};
     double m_missionCrossTrackErrorMeters{0.0};
@@ -604,6 +901,7 @@ private:
     QString m_selectedWorldId{QStringLiteral("default")};
     QString m_containerName{QStringLiteral("flightbench-px4")};
     QString m_selectedTestPlanId;
+    bool m_sensorServiceEnabled{false};
     bool m_flightPathVisible{true};
     bool m_flightPathAutoClear{true};
     QString m_flightPathColorPreset{QStringLiteral("orange")};
@@ -630,6 +928,7 @@ private:
     QString m_replayModelName;
     QString m_replayWorldId;
     QString m_replayWorldName;
+    QString m_lastReplayCapturePath;
     QString m_sessionEndReason;
     QUrl m_replayWorldPreviewDirectory;
     bool m_replayWorldRecorded{false};

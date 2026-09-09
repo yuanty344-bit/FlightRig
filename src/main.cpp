@@ -4,6 +4,7 @@
 #include <QFont>
 #include <QIcon>
 #include <QImage>
+#include <QKeyEvent>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -25,6 +26,109 @@
 namespace {
 bool runtimeUiWarningSeen = false;
 QtMessageHandler previousMessageHandler = nullptr;
+
+// Capture flight-control keys before the focused QML item sees them.  Space
+// is also Qt's standard "activate button" key, so relying on one page Item to
+// keep focus made vertical control intermittent after interacting with the 3D
+// view or its toolbar.  Keyboard flight mode deliberately owns these keys;
+// other modes keep normal Qt keyboard behaviour.
+class FlightKeyboardEventFilter final : public QObject
+{
+public:
+    explicit FlightKeyboardEventFilter(AppController *controller,
+                                       QObject *parent = nullptr)
+        : QObject(parent), m_controller(controller)
+    {
+        QObject::connect(m_controller, &AppController::keyboardControlActiveChanged,
+                         this, [this] {
+            if (!m_controller->keyboardControlActive()) clearLocalState();
+        });
+    }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (event->type() == QEvent::ApplicationDeactivate) {
+            if (m_controller->keyboardControlActive()) {
+                clearLocalState();
+                m_controller->releaseKeyboardControl();
+            }
+            return QObject::eventFilter(watched, event);
+        }
+
+        if (!m_controller->keyboardControlActive()
+            || m_controller->keyboardControlTransitioning()
+            || (event->type() != QEvent::KeyPress
+                && event->type() != QEvent::KeyRelease)) {
+            return QObject::eventFilter(watched, event);
+        }
+
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+        const int key = keyEvent->key();
+        const bool pressed = event->type() == QEvent::KeyPress;
+        const bool controlKey = key == Qt::Key_W || key == Qt::Key_S
+                                || key == Qt::Key_A || key == Qt::Key_D
+                                || key == Qt::Key_Space || key == Qt::Key_C
+                                || key == Qt::Key_Q || key == Qt::Key_E;
+
+        if (keyEvent->isAutoRepeat())
+            return controlKey || key == Qt::Key_Escape || key == Qt::Key_L;
+
+        if (key == Qt::Key_Escape) {
+            if (pressed) {
+                clearLocalState();
+                m_controller->releaseKeyboardControl();
+                m_controller->stopKeyboardControl();
+            }
+            return true;
+        }
+        if (key == Qt::Key_L) {
+            if (pressed) {
+                clearLocalState();
+                m_controller->releaseKeyboardControl();
+                m_controller->land();
+            }
+            return true;
+        }
+        if (!controlKey) return QObject::eventFilter(watched, event);
+
+        if (key == Qt::Key_W) m_forward = pressed;
+        else if (key == Qt::Key_S) m_backward = pressed;
+        else if (key == Qt::Key_A) m_left = pressed;
+        else if (key == Qt::Key_D) m_right = pressed;
+        else if (key == Qt::Key_Space) m_up = pressed;
+        else if (key == Qt::Key_C) m_down = pressed;
+        else if (key == Qt::Key_Q) m_yawLeft = pressed;
+        else if (key == Qt::Key_E) m_yawRight = pressed;
+
+        m_controller->setKeyboardControlAxes((m_forward ? 1.0 : 0.0)
+                                                 - (m_backward ? 1.0 : 0.0),
+                                             (m_right ? 1.0 : 0.0)
+                                                 - (m_left ? 1.0 : 0.0),
+                                             (m_up ? 1.0 : 0.0)
+                                                 - (m_down ? 1.0 : 0.0),
+                                             (m_yawRight ? 1.0 : 0.0)
+                                                 - (m_yawLeft ? 1.0 : 0.0));
+        return true;
+    }
+
+private:
+    void clearLocalState()
+    {
+        m_forward = m_backward = m_left = m_right = false;
+        m_up = m_down = m_yawLeft = m_yawRight = false;
+    }
+
+    AppController *m_controller{nullptr};
+    bool m_forward{false};
+    bool m_backward{false};
+    bool m_left{false};
+    bool m_right{false};
+    bool m_up{false};
+    bool m_down{false};
+    bool m_yawLeft{false};
+    bool m_yawRight{false};
+};
 
 void uiSmokeMessageHandler(QtMsgType type,
                            const QMessageLogContext &context,
@@ -94,6 +198,8 @@ int main(int argc, char *argv[])
 
     std::unique_ptr<AppController> controllerOwner(createAppController());
     AppController &controller = *controllerOwner;
+    FlightKeyboardEventFilter flightKeyboardFilter(&controller, &application);
+    application.installEventFilter(&flightKeyboardFilter);
 
     const qsizetype modelIndex = arguments.indexOf(QStringLiteral("--model"));
     if (modelIndex >= 0 && modelIndex + 1 < arguments.size()) {

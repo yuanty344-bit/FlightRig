@@ -33,6 +33,8 @@ Item {
     property bool viewManuallyAdjusted: false
     property var missionSafety: ({ available: false, safe: true,
                                    riskyWaypointIndices: [], riskySegmentIndices: [] })
+    property var depthRouteSafety: ({ available: false, safe: true,
+                                      collisionCount: 0, collisionPoints: [] })
     readonly property var worldMap: App.selectedWorldMap || ({ available: false })
     readonly property bool worldMapAvailable: Boolean(worldMap.available)
     readonly property url worldMapSource: worldMapAvailable
@@ -40,14 +42,17 @@ Item {
                                                      ? worldMap.darkSource
                                                      : worldMap.lightSource)
                                                   : ""
-    readonly property bool missionRouteSafe: !missionSafety.available
-                                               || Boolean(missionSafety.safe)
+    readonly property bool missionRouteSafe: (!missionSafety.available
+                                               || Boolean(missionSafety.safe))
+                                              && (!depthRouteSafety.available
+                                                  || Boolean(depthRouteSafety.safe))
     readonly property bool editingLocked: App.missionBusy || App.missionRunning || App.missionPaused
     readonly property real mapScale: pixelsPerMeter
     readonly property real vehicleEast: App.vehicleScenePosition.x
     readonly property real vehicleNorth: -App.vehicleScenePosition.z
     readonly property bool selectionValid: selectedIndex >= 0
                                                    && selectedIndex < missionModel.count
+    readonly property bool gimbalMission: App.selectedSensorType === "gimbal-camera"
     readonly property real routeDistance: calculateDistance()
     readonly property real actualTrackDistance: calculateActualTrackDistance()
     readonly property real averageSpeed: calculateAverageSpeed()
@@ -142,6 +147,7 @@ Item {
         missionSafety = App.analyzeMissionRouteSafety(missionData(),
                                                       startEast, startNorth,
                                                       startAltitude)
+        depthRouteSafety = App.analyzeDepthMapRoute(missionData(), 1.0)
         routeCanvas.requestPaint()
     }
 
@@ -330,13 +336,21 @@ Item {
 
     function appendDefaultMission() {
         missionModel.append({ name: "入口", eastMeters: 20, northMeters: 18,
-                              altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: 45 })
+                              altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: 45,
+                              gimbalYawDegrees: 0, gimbalPitchDegrees: -45,
+                              capturePhoto: false })
         missionModel.append({ name: "教学楼", eastMeters: 46, northMeters: 36,
-                              altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 45 })
+                              altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 45,
+                              gimbalYawDegrees: 0, gimbalPitchDegrees: -45,
+                              capturePhoto: false })
         missionModel.append({ name: "巡检点", eastMeters: 62, northMeters: 4,
-                              altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 135 })
+                              altitudeMeters: 8, speedMetersPerSecond: 4, yawDegrees: 135,
+                              gimbalYawDegrees: 0, gimbalPitchDegrees: -45,
+                              capturePhoto: false })
         missionModel.append({ name: "返程点", eastMeters: 30, northMeters: -24,
-                              altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: -135 })
+                              altitudeMeters: 6, speedMetersPerSecond: 3, yawDegrees: -135,
+                              gimbalYawDegrees: 0, gimbalPitchDegrees: -45,
+                              capturePhoto: false })
         selectedIndex = 1
         scheduleSafetyAnalysis()
     }
@@ -350,6 +364,10 @@ Item {
                     for (var index = 0; index < saved.length; ++index) {
                         var savedPoint = saved[index]
                         savedPoint.name = String(savedPoint.name || ("航点 " + (index + 1)))
+                        savedPoint.gimbalYawDegrees = Number(savedPoint.gimbalYawDegrees || 0)
+                        savedPoint.gimbalPitchDegrees = savedPoint.gimbalPitchDegrees === undefined
+                                                          ? -45 : Number(savedPoint.gimbalPitchDegrees)
+                        savedPoint.capturePhoto = Boolean(savedPoint.capturePhoto)
                         missionModel.append(savedPoint)
                     }
                 }
@@ -374,7 +392,11 @@ Item {
                           eastMeters: Number(point.eastMeters),
                           altitudeMeters: Number(point.altitudeMeters),
                           speedMetersPerSecond: Number(point.speedMetersPerSecond),
-                          yawDegrees: Number(point.yawDegrees) })
+                          yawDegrees: Number(point.yawDegrees),
+                          gimbalYawDegrees: Number(point.gimbalYawDegrees || 0),
+                          gimbalPitchDegrees: point.gimbalPitchDegrees === undefined
+                                               ? -45 : Number(point.gimbalPitchDegrees),
+                          capturePhoto: Boolean(point.capturePhoto) })
         }
         return result
     }
@@ -443,6 +465,10 @@ Item {
         for (var index = 0; index < response.waypoints.length; ++index) {
             var loadedPoint = response.waypoints[index]
             loadedPoint.name = String(loadedPoint.name || ("航点 " + (index + 1)))
+            loadedPoint.gimbalYawDegrees = Number(loadedPoint.gimbalYawDegrees || 0)
+            loadedPoint.gimbalPitchDegrees = loadedPoint.gimbalPitchDegrees === undefined
+                                                 ? -45 : Number(loadedPoint.gimbalPitchDegrees)
+            loadedPoint.capturePhoto = Boolean(loadedPoint.capturePhoto)
             missionModel.append(loadedPoint)
         }
         currentRouteId = response.id
@@ -513,7 +539,10 @@ Item {
                               northMeters: Math.round(northAt(pixelY) * 10) / 10,
                               altitudeMeters: 8,
                               speedMetersPerSecond: 4,
-                              yawDegrees: 0 })
+                              yawDegrees: 0,
+                              gimbalYawDegrees: 0,
+                              gimbalPitchDegrees: -45,
+                              capturePhoto: false })
         selectedIndex = missionModel.count - 1
         dirty = true
         scheduleSafetyAnalysis()
@@ -555,6 +584,8 @@ Item {
             return "等待 GPS 全局定位"
         if (App.keyboardControlActive)
             return "请先退出键盘飞行控制"
+        if (depthRouteSafety.available && !depthRouteSafety.safe)
+            return "航线与已建三维障碍过近，请移动红色碰撞位置附近的航点"
         if (!missionRouteSafe)
             return String(missionSafety.message || "航线可能穿过建筑")
         if (editingLocked)
@@ -659,6 +690,19 @@ Item {
     Timer {
         id: savedNotice
         interval: 1800
+    }
+
+    Connections {
+        target: App.depthMapping
+        function onMapChanged() {
+            if (root.visible)
+                root.scheduleSafetyAnalysis()
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible)
+            scheduleSafetyAnalysis()
     }
 
     Timer {
@@ -831,6 +875,29 @@ Item {
                                         3.5, 0, Math.PI * 2)
                             context.fill()
                             context.stroke()
+                        }
+
+                        // DepthFusion uses the same local east/north frame as the
+                        // mission editor. Mark every route sample whose 3D clearance
+                        // is below the configured metre, independently of the static
+                        // building-outline safety check above.
+                        if (root.depthRouteSafety.available
+                                && root.depthRouteSafety.collisionPoints) {
+                            context.setLineDash([])
+                            for (var collisionIndex = 0;
+                                 collisionIndex < root.depthRouteSafety.collisionPoints.length;
+                                 ++collisionIndex) {
+                                var collision = root.depthRouteSafety.collisionPoints[collisionIndex]
+                                var collisionX = root.mapX(Number(collision.eastMeters || 0))
+                                var collisionY = root.mapY(Number(collision.northMeters || 0))
+                                context.fillStyle = Theme.danger
+                                context.strokeStyle = Theme.surface
+                                context.lineWidth = 2
+                                context.beginPath()
+                                context.arc(collisionX, collisionY, 6, 0, Math.PI * 2)
+                                context.fill()
+                                context.stroke()
+                            }
                         }
 
                         if (App.flightPathVisible && root.actualPoints.length > 1) {
@@ -1189,6 +1256,18 @@ Item {
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textTiny
                             font.weight: root.missionRouteSafe ? Font.Normal : Font.Medium
+                        }
+                        Text {
+                            visible: root.depthRouteSafety.available
+                                     && !root.depthRouteSafety.safe
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "DepthFusion 碰撞 "
+                                  + Number(root.depthRouteSafety.collisionCount || 0)
+                                  + " 段"
+                            color: Theme.danger
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTiny
+                            font.weight: Font.Medium
                         }
                         Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
@@ -1577,6 +1656,90 @@ Item {
                 WaypointNumberRow { label: "相对高度"; roleName: "altitudeMeters"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).altitudeMeters : 8; minimum: 1; maximum: 100; step: 0.1; decimalPlaces: 1; unitText: "m" }
                 WaypointNumberRow { label: "飞行速度"; roleName: "speedMetersPerSecond"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).speedMetersPerSecond : 4; minimum: 0.5; maximum: 10; step: 0.1; decimalPlaces: 1; unitText: "m/s" }
                 WaypointNumberRow { label: "航向角"; roleName: "yawDegrees"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).yawDegrees : 0; minimum: -180; maximum: 180; step: 1; decimalPlaces: 0; unitText: "°" }
+                Rectangle {
+                    visible: root.gimbalMission
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: Theme.line
+                }
+                Text {
+                    visible: root.gimbalMission
+                    text: "云台与拍摄"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textTiny
+                }
+                WaypointNumberRow {
+                    visible: root.gimbalMission
+                    label: "水平视角"
+                    roleName: "gimbalYawDegrees"
+                    currentValue: root.selectionValid
+                                  ? Number(missionModel.get(root.selectedIndex).gimbalYawDegrees || 0) : 0
+                    minimum: -180; maximum: 180; step: 5; decimalPlaces: 0; unitText: "°"
+                }
+                WaypointNumberRow {
+                    visible: root.gimbalMission
+                    label: "俯仰视角"
+                    roleName: "gimbalPitchDegrees"
+                    currentValue: root.selectionValid
+                                  && missionModel.get(root.selectedIndex).gimbalPitchDegrees !== undefined
+                                  ? Number(missionModel.get(root.selectedIndex).gimbalPitchDegrees) : -45
+                    minimum: -135; maximum: 45; step: 5; decimalPlaces: 0; unitText: "°"
+                }
+                Rectangle {
+                    visible: root.gimbalMission
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 38
+                    radius: Theme.radiusMedium
+                    color: Theme.surfaceRaised
+                    border.width: 1
+                    border.color: Theme.line
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 8
+                        Text {
+                            Layout.fillWidth: true
+                            text: "到达后截图"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textSmall
+                        }
+                        Rectangle {
+                            id: captureSwitch
+                            readonly property bool checked: root.selectionValid
+                                                            && Boolean(missionModel.get(root.selectedIndex).capturePhoto)
+                            Layout.preferredWidth: 38
+                            Layout.preferredHeight: 22
+                            radius: 11
+                            color: checked ? Theme.accent : Theme.lineStrong
+                            opacity: root.selectionValid && !root.editingLocked ? 1 : 0.5
+                            Accessible.role: Accessible.CheckBox
+                            Accessible.name: "到达航点后自动截图"
+                            Accessible.checked: checked
+
+                            Rectangle {
+                                width: 16
+                                height: 16
+                                radius: 8
+                                y: 3
+                                x: captureSwitch.checked ? captureSwitch.width - width - 3 : 3
+                                color: Theme.accentContent
+                                Behavior on x {
+                                    NumberAnimation { duration: Theme.animationDuration(100) }
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: root.selectionValid && !root.editingLocked
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.setPointValue("capturePhoto",
+                                                               !captureSwitch.checked)
+                            }
+                        }
+                    }
+                }
                 Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
                 Text { text: "位置（相对起飞点）"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                 WaypointNumberRow { label: "向东"; roleName: "eastMeters"; currentValue: root.selectionValid ? missionModel.get(root.selectedIndex).eastMeters : 0; minimum: -2000; maximum: 2000; step: 0.1; decimalPlaces: 1; unitText: "m" }

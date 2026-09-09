@@ -24,10 +24,19 @@ Item {
                                           || dateFilterDays > 0
     signal openHealth()
     signal replayRequested(string sessionId)
+    signal replayAtRequested(string sessionId, int elapsedMs)
     signal reusePlanRequested(string sessionId)
 
     function numberText(value, suffix) {
         return Number(value || 0).toFixed(1) + suffix
+    }
+
+    function storageText(bytes) {
+        const value = Number(bytes || 0)
+        if (value >= 1073741824) return (value / 1073741824).toFixed(1) + " GB"
+        if (value >= 1048576) return (value / 1048576).toFixed(1) + " MB"
+        if (value >= 1024) return (value / 1024).toFixed(1) + " KB"
+        return value.toFixed(0) + " B"
     }
 
     function statusColor(status) {
@@ -618,6 +627,192 @@ Item {
                         }
 
                         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
+                        Rectangle {
+                            id: sensorSummary
+                            readonly property var sensor: root.selectedSession.sensorRecording || ({})
+                            visible: Boolean(sensor.available || sensor.deleted
+                                             || String(sensor.statusLabel || "").length > 0)
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: visible
+                                                    ? (Boolean(sensor.lidarMapAvailable)
+                                                       || Boolean(sensor.depthMapAvailable)
+                                                       || Boolean(sensor.visualSurveyAvailable) ? 128 : 94)
+                                                    : 0
+                            Layout.topMargin: visible ? 12 : 0
+                            radius: Theme.radiusMedium
+                            color: Theme.surfaceRaised
+                            border.width: 1
+                            border.color: Theme.line
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 10
+                                spacing: 10
+                                ThemedIcon {
+                                    Layout.preferredWidth: 19
+                                    Layout.preferredHeight: 19
+                                    source: String(sensorSummary.sensor.kind || "").indexOf("lidar") >= 0
+                                            ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg"
+                                    iconColor: sensorSummary.sensor.available ? Theme.accent : Theme.textFaint
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 3
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: sensorSummary.sensor.replayable
+                                              ? (sensorSummary.sensor.recordingComplete === false
+                                                 ? "传感器数据 · 部分数据可回放"
+                                                 : "传感器数据 · 可同步回放")
+                                              : sensorSummary.sensor.available
+                                                ? "传感器数据 · 仅预览统计" : "传感器数据"
+                                        color: sensorSummary.sensor.replayable
+                                               && sensorSummary.sensor.recordingComplete === false
+                                               ? Theme.warning : Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textSmall
+                                        font.weight: Font.Medium
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: sensorSummary.sensor.deleted
+                                              ? "已单独删除，飞行遥测与报告仍保留"
+                                              : Number(sensorSummary.sensor.rgbFrameCount || 0)
+                                                + Number(sensorSummary.sensor.depthFrameCount || 0)
+                                                + " 帧画面 · "
+                                                + Number(sensorSummary.sensor.lidarScanCount || 0)
+                                                + " 次扫描 · "
+                                                + root.storageText(sensorSummary.sensor.sizeBytes)
+                                        color: Theme.textMuted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        visible: Boolean(sensorSummary.sensor.available)
+                                                 && !Boolean(sensorSummary.sensor.deleted)
+                                        Layout.fillWidth: true
+                                        text: "可用率 "
+                                              + Number(sensorSummary.sensor.dataAvailabilityPercent || 0).toFixed(0)
+                                              + "% · 平均 "
+                                              + Number(sensorSummary.sensor.averageFrameRateHz || 0).toFixed(1)
+                                              + " Hz · 最长中断 "
+                                              + Number(sensorSummary.sensor.maximumDataGapSeconds || 0).toFixed(1)
+                                              + " s"
+                                              + (Number(sensorSummary.sensor.nearestObstacleMeters || 0) > 0
+                                                 ? " · 最近障碍 "
+                                                   + Number(sensorSummary.sensor.nearestObstacleMeters).toFixed(1)
+                                                   + " m" : "")
+                                        color: Theme.textMuted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        visible: Boolean(sensorSummary.sensor.lidarMapAvailable)
+                                        Layout.fillWidth: true
+                                        text: Number((sensorSummary.sensor.lidarMap || {}).formatVersion || 1) >= 3
+                                              ? "位姿图 SLAM · "
+                                                + Number((sensorSummary.sensor.lidarMap || {}).keyframeCount || 0)
+                                                + " 个关键帧 · "
+                                                + Number((sensorSummary.sensor.lidarMap || {}).loopClosureCount || 0)
+                                                + " 次回环 · 匹配置信度 "
+                                                + Math.round(Number((sensorSummary.sensor.lidarMap || {}).localizationConfidence || 0) * 100)
+                                                + "% · 已随会话保存"
+                                              : "累计地图 · "
+                                              + Number((sensorSummary.sensor.lidarMap || {}).exploredAreaSquareMeters || 0).toFixed(1)
+                                              + " m² · 分辨率 "
+                                              + Number((sensorSummary.sensor.lidarMap || {}).resolutionMeters || 0.25).toFixed(2)
+                                              + " m · 已随会话保存"
+                                        color: Theme.accent
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        visible: Boolean(sensorSummary.sensor.depthMapAvailable)
+                                        Layout.fillWidth: true
+                                        text: Number((sensorSummary.sensor.depthObstacleMap || {}).formatVersion || 1) >= 2
+                                              ? "DepthFusion 三维表面 · "
+                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
+                                                + " 个稳定体素 · 置信度 "
+                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).mapConfidencePercent || 0).toFixed(0)
+                                                + "% · "
+                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).meshTriangleCount || 0)
+                                                + " 个三角面 · 已随会话保存"
+                                              : "前向三维障碍图 · "
+                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
+                                              + " 个确认体素 · "
+                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).widthMeters || 0).toFixed(1)
+                                              + " × "
+                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).depthMeters || 0).toFixed(1)
+                                              + " × "
+                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).heightMeters || 0).toFixed(1)
+                                              + " m · 已随会话保存"
+                                        color: Theme.accent
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        visible: Boolean(sensorSummary.sensor.visualSurveyAvailable)
+                                        Layout.fillWidth: true
+                                        readonly property var survey: sensorSummary.sensor.visualSurvey || ({})
+                                        text: "视觉巡检影像地图 · "
+                                              + Number(survey.keyframeCount || 0) + " 张关键帧 · "
+                                              + Number(survey.goodKeyframeCount || 0) + " 张清晰 · 采集覆盖 "
+                                              + Number(survey.spatialCoveragePercent !== undefined
+                                                      ? survey.spatialCoveragePercent
+                                                       : survey.coveragePercent || 0).toFixed(0)
+                                              + "%"
+                                              + (String(survey.coverageDefinition || "")
+                                                 === "legacy-candidate-frame-estimate"
+                                                 ? "（旧记录估算）" : "")
+                                              + " · 已随会话保存"
+                                        color: Theme.accent
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                                CompactIconButton {
+                                    visible: Boolean(sensorSummary.sensor.visualSurveyAvailable)
+                                             && !Boolean(sensorSummary.sensor.deleted)
+                                    iconSource: "qrc:/icons/map-pinned.svg"
+                                    accessibleLabel: "打开视觉巡检影像地图"
+                                    toolTipText: "查看关键帧、位置与备注"
+                                    enabled: !App.flightSessionActive && !App.simulationRunning
+                                    disabledReason: "停止当前仿真后才能打开历史影像地图"
+                                    onClicked: {
+                                        if (App.loadSessionVisualSurvey(root.selectedSessionId))
+                                            visualSurveyDialog.open()
+                                    }
+                                }
+                                CompactIconButton {
+                                    visible: Boolean(sensorSummary.sensor.depthMapAvailable)
+                                             && !Boolean(sensorSummary.sensor.deleted)
+                                    iconSource: "qrc:/icons/box.svg"
+                                    accessibleLabel: "打开保存的三维地图"
+                                    toolTipText: "直接查看 DepthFusion 地图"
+                                    enabled: !App.flightSessionActive && !App.simulationRunning
+                                    disabledReason: "停止当前仿真后才能打开历史三维地图"
+                                    onClicked: {
+                                        if (App.loadSessionDepthMap(root.selectedSessionId))
+                                            depthMapDialog.open()
+                                    }
+                                }
+                                CompactIconButton {
+                                    visible: Boolean(sensorSummary.sensor.replayable)
+                                             && root.selectedSessionId !== String(App.activeFlightSession.id || "")
+                                    iconSource: "qrc:/icons/trash-2.svg"
+                                    accessibleLabel: "仅删除本次传感器数据"
+                                    toolTipText: "删除传感器数据"
+                                    danger: true
+                                    onClicked: deleteSensorDataDialog.open()
+                                }
+                            }
+                        }
                         RouteDeviationSummary {
                             visible: Boolean(root.selectedSession.routeAnalysis
                                              && root.selectedSession.routeAnalysis.available)
@@ -809,6 +1004,82 @@ Item {
 
     SessionTrashDialog { id: trashDialog }
 
+    VisualSurveyDialog {
+        id: visualSurveyDialog
+        sessionId: root.selectedSessionId
+        onReplayRequested: (sessionId, elapsedMs) => root.replayAtRequested(sessionId, elapsedMs)
+    }
+
+    Dialog {
+        id: depthMapDialog
+        parent: root
+        anchors.centerIn: parent
+        width: Math.min(root.width - 36, 1180)
+        height: Math.min(root.height - 36, 760)
+        modal: true
+        padding: 0
+        closePolicy: Dialog.CloseOnEscape
+        onClosed: App.closeLoadedDepthMap()
+        background: Rectangle {
+            radius: Theme.radiusLarge
+            color: Theme.surface
+            border.width: 1
+            border.color: Theme.lineStrong
+        }
+        contentItem: ColumnLayout {
+            spacing: 0
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 72
+                color: "transparent"
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 22
+                    anchors.rightMargin: 14
+                    spacing: 12
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Text {
+                            text: "会话 DepthFusion 三维地图"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textTitle
+                            font.weight: Font.DemiBold
+                        }
+                        Text {
+                            text: App.depthMapping.confirmedVoxelCount + " 个稳定体素 · "
+                                  + App.depthMapping.chunkCount + " 个分块 · 置信度 "
+                                  + App.depthMapping.mapConfidencePercent.toFixed(0) + "% · 历史最小净空 "
+                                  + (App.depthMapping.minimumObservedCorridorMeters > 0
+                                     ? App.depthMapping.minimumObservedCorridorMeters.toFixed(1) + " m"
+                                     : "未记录")
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textSmall
+                        }
+                    }
+                    CompactIconButton {
+                        iconSource: "qrc:/icons/x.svg"
+                        accessibleLabel: "关闭三维地图"
+                        toolTipText: "关闭"
+                        onClicked: depthMapDialog.close()
+                    }
+                }
+            }
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
+            Loader {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: 14
+                active: depthMapDialog.opened
+                sourceComponent: Component {
+                    DepthMapView3D { }
+                }
+            }
+        }
+    }
+
     Popup {
         id: sessionActionsPopup
         parent: root
@@ -944,6 +1215,48 @@ Item {
                             Qt.callLater(root.ensureSelection)
                         } else {
                             root.selectSession(sessionId)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: deleteSensorDataDialog
+        anchors.centerIn: parent
+        width: Math.min(430, root.width - 40)
+        modal: true
+        padding: 20
+        background: Rectangle {
+            radius: Theme.radiusLarge
+            color: Theme.surfaceRaised
+            border.width: 1
+            border.color: Theme.lineStrong
+        }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text { text: "删除传感器数据？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
+            Text {
+                Layout.fillWidth: true
+                text: "将删除相机画面、深度帧或 LiDAR 扫描。飞行遥测、事件、结论和 HTML 报告会继续保留。此操作无法恢复。"
+                color: Theme.textSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textBody
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ActionButton { Layout.preferredWidth: 82; text: "取消"; kind: "secondary"; onClicked: deleteSensorDataDialog.close() }
+                ActionButton {
+                    Layout.preferredWidth: 116
+                    text: "删除数据"
+                    kind: "danger"
+                    onClicked: {
+                        if (App.deleteSessionSensorData(root.selectedSessionId)) {
+                            root.selectedSession = App.sessionDetails(root.selectedSessionId)
+                            deleteSensorDataDialog.close()
                         }
                     }
                 }

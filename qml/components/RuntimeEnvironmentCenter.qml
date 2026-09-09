@@ -16,9 +16,21 @@ Item {
     property double runtimeClockMs: Date.now()
 
     readonly property var currentPlan: App.selectedTestPlan || ({})
+    readonly property var currentSensorSettings: currentPlan.sensorSettings || ({})
     readonly property bool hasPlan: String(currentPlan.id || "").length > 0
     readonly property bool planComplete: hasPlan && Boolean(currentPlan.complete)
+    readonly property bool sensorBlockingIssue: App.sensorServiceEnabled
+                                                 && App.sensorServiceSupported
+                                                 && !App.sensorServiceImageAvailable
+    readonly property bool sensorRuntimeIssue: App.sensorServiceEnabled
+                                                && App.sensorServiceSupported
+                                                && App.simulationRunning
+                                                && (App.sensorServiceProblemCode === "sensor-start-failed"
+                                                    || App.sensorServiceProblemCode === "sensor-container-stopped"
+                                                    || App.sensorServiceProblemCode === "docker-offline")
     readonly property bool environmentReady: App.dockerAvailable && App.imageAvailable
+                                             && App.dockerNetworkAvailable
+                                             && !root.sensorBlockingIssue
     readonly property bool environmentIssue: App.issueCode === "docker-missing"
                                                 || App.issueCode === "docker-offline"
                                                 || App.issueCode === "image-missing"
@@ -26,9 +38,12 @@ Item {
                                                 || App.issueCode === "start-failed"
                                                 || App.issueCode === "stop-failed"
                                                 || App.issueCode === "model-invalid"
+                                                || App.issueCode === "model-assets-missing"
                                                 || App.issueCode === "world-invalid"
                                                 || App.issueCode === "world-assets-missing"
                                                 || App.issueCode === "container-name-invalid"
+                                                || App.issueCode === "network-missing"
+                                                || App.issueCode === "network-failed"
     readonly property bool starting: App.busy && !App.simulationRunning
     readonly property bool connecting: App.simulationRunning && !App.vehicleConnected
     readonly property bool runningReady: App.simulationRunning && App.vehicleConnected
@@ -41,7 +56,7 @@ Item {
     }
 
     function stateTitle() {
-        if (environmentIssue) return "环境需要处理"
+        if (environmentIssue || sensorBlockingIssue || sensorRuntimeIssue) return "环境需要处理"
         if (App.landingAndStopping) return "正在降落并停止"
         if (runningReady) return "仿真运行中"
         if (connecting) return "正在建立连接"
@@ -52,6 +67,8 @@ Item {
 
     function stateSummary() {
         if (environmentIssue) return App.issueMessage
+        if (sensorBlockingIssue) return "已选择 ROS 2 数据服务，但本机尚未生成对应镜像。"
+        if (sensorRuntimeIssue) return App.sensorServiceStatus
         if (App.landingAndStopping) return "请保持仿真运行，飞行器落地并锁定后会自动停止。"
         if (runningReady) return App.selectedModelName + " · " + App.selectedWorldName
         if (connecting) return "PX4 已启动，正在等待 MAVSDK 收到飞行器心跳。"
@@ -61,7 +78,7 @@ Item {
     }
 
     function stateColor() {
-        if (environmentIssue) return Theme.warning
+        if (environmentIssue || sensorBlockingIssue || sensorRuntimeIssue) return Theme.warning
         if (runningReady) return Theme.success
         if (starting || connecting || App.landingAndStopping) return Theme.accent
         if (environmentReady) return Theme.success
@@ -71,16 +88,42 @@ Item {
     function readyCount() {
         return (App.dockerAvailable ? 1 : 0)
                 + (App.imageAvailable ? 1 : 0)
-                + (App.simulationRunning ? 1 : 0)
-                + (App.vehicleConnected ? 1 : 0)
+                + (App.dockerNetworkAvailable ? 1 : 0)
+                + (App.sensorServiceEnabled && App.sensorServiceSupported
+                   ? (App.sensorServiceImageAvailable ? 1 : 0) : 0)
     }
 
     function modelPayload(modelId) {
         if (modelId.indexOf("depth") >= 0) return "深度相机"
-        if (modelId.indexOf("vision") >= 0) return "单目相机"
+        if (modelId.indexOf("mono_cam") >= 0) return "单目相机"
         if (modelId.indexOf("lidar") >= 0) return "二维激光雷达"
         if (modelId.indexOf("gimbal") >= 0) return "云台相机"
         return "标准四旋翼"
+    }
+
+    function sensorDataReady() {
+        if (App.selectedSensorType === "lidar-2d") return App.lidarScanPoints.length > 0
+        if (App.selectedSensorType === "depth-camera")
+            return App.cameraRgbReady || App.cameraDepthReady
+        return App.cameraRgbReady
+    }
+
+    function sensorUsageLabel() {
+        const usage = String(root.currentSensorSettings.usage || "off")
+        if (!App.sensorServiceEnabled) return "不启动"
+        if (usage === "record") return "预览并记录"
+        return "仅预览"
+    }
+
+    function sensorPerformanceLabel() {
+        const mode = String(root.currentSensorSettings.performance || "standard")
+        const labels = { eco: "节能", standard: "标准", smooth: "流畅", auto: "自动" }
+        const effective = App.sensorEffectivePerformanceMode === "eco" ? "节能"
+                        : App.sensorEffectivePerformanceMode === "smooth" ? "流畅" : "标准"
+        if (mode === "auto" && App.sensorServiceRunning)
+            return "自动（当前" + effective + " · " + App.sensorTargetFramesPerSecond + " FPS）"
+        return String(labels[mode] || "标准") + " · "
+                + (mode === "eco" ? "5" : mode === "smooth" ? "15" : "10") + " FPS"
     }
 
     function formatRuntime() {
@@ -97,6 +140,8 @@ Item {
         if (!planComplete) return "请先完善当前测试方案"
         if (!App.dockerAvailable) return "请先启动 Docker Desktop"
         if (!App.imageAvailable) return "本机没有找到 PX4 SITL 镜像"
+        if (!App.dockerNetworkAvailable) return "FlightBench 容器网络尚未就绪"
+        if (root.sensorBlockingIssue) return "请先生成 ROS 2 数据服务镜像"
         if (!App.containerNameAvailable) return "这个容器名称已经被占用"
         if (App.busy) return "正在执行另一项操作"
         return ""
@@ -292,7 +337,9 @@ Item {
                             Text {
                                 visible: !root.environmentIssue && !App.simulationRunning
                                 Layout.fillWidth: true
-                                text: root.readyCount() + " / 2 项基础检查通过"
+                                text: root.readyCount() + " / "
+                                      + (App.sensorServiceEnabled && App.sensorServiceSupported ? "4" : "3")
+                                      + " 项基础检查通过"
                                 color: Theme.textFaint
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.textTiny
@@ -464,6 +511,26 @@ Item {
                         iconSource: App.imageAvailable ? "qrc:/icons/package.svg" : "qrc:/icons/circle-alert.svg"
                     }
                     ServiceRow {
+                        visible: App.sensorServiceSupported
+                        Layout.fillWidth: true
+                        label: "ROS 2 数据服务"
+                        value: !App.sensorServiceEnabled ? "未启用"
+                               : App.sensorServiceConnected && root.sensorDataReady()
+                                 ? "数据正常"
+                               : App.sensorServiceRunning
+                                 ? (App.sensorServiceConnected ? "等待数据" : "连接中")
+                               : root.sensorRuntimeIssue ? "启动失败"
+                               : App.sensorServiceImageAvailable ? "随仿真启动" : "镜像未找到"
+                        statusKind: !App.sensorServiceEnabled ? "pending"
+                                    : App.sensorServiceConnected && root.sensorDataReady()
+                                      ? "complete"
+                                    : App.sensorServiceRunning ? "current"
+                                    : root.sensorRuntimeIssue ? "problem"
+                                    : App.sensorServiceImageAvailable ? "complete" : "problem"
+                        iconSource: App.selectedSensorType === "lidar-2d"
+                                    ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg"
+                    }
+                    ServiceRow {
                         Layout.fillWidth: true
                         label: "MAVSDK 通信"
                         value: "UDP 14540"
@@ -496,39 +563,142 @@ Item {
                     ServiceRow { Layout.fillWidth: true; label: "检查资源"; value: "已完成"; statusKind: "complete" }
                     ServiceRow { Layout.fillWidth: true; label: "创建容器"; value: root.starting ? "进行中" : "已完成"; statusKind: root.starting ? "current" : "complete" }
                     ServiceRow { Layout.fillWidth: true; label: "启动 PX4"; value: App.simulationRunning ? "已完成" : "等待"; statusKind: App.simulationRunning ? "complete" : "pending" }
+                    ServiceRow {
+                        visible: App.sensorServiceEnabled && App.sensorServiceSupported
+                        Layout.fillWidth: true
+                        label: "启动 ROS 2"
+                        value: App.sensorServiceConnected && root.sensorDataReady()
+                               ? "数据正常"
+                               : App.sensorServiceRunning ? "等待话题" : "等待"
+                        statusKind: App.sensorServiceConnected && root.sensorDataReady()
+                                    ? "complete"
+                                    : App.sensorServiceRunning ? "current" : "pending"
+                    }
                     ServiceRow { Layout.fillWidth: true; label: "建立连接"; value: App.vehicleConnected ? "已完成" : App.simulationRunning ? "进行中" : "等待"; statusKind: App.vehicleConnected ? "complete" : App.simulationRunning ? "current" : "pending"; dividerVisible: false }
+                }
+
+                ColumnLayout {
+                    visible: App.sensorServiceSupported
+                    Layout.fillWidth: true
+                    spacing: 0
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 52
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: rosServiceToggleSlot.left
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            Text {
+                                width: parent.width
+                                text: "ROS 2 传感器数据"
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textSmall
+                                font.weight: Font.Medium
+                            }
+                            Text {
+                                width: parent.width
+                                text: App.sensorServiceEnabled
+                                      ? "随本次仿真启动独立数据容器"
+                                      : "关闭时只启动 PX4 仿真容器"
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textTiny
+                                elide: Text.ElideRight
+                            }
+                        }
+                        Item {
+                            id: rosServiceToggleSlot
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 48
+                            height: 24
+                            SmallToggle {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                checked: App.sensorServiceEnabled
+                                accessibleName: "启动 ROS 2 传感器数据服务"
+                                enabled: !App.simulationRunning && !App.busy
+                                onToggled: App.sensorServiceEnabled = !App.sensorServiceEnabled
+                            }
+                        }
+                    }
+                    Text {
+                        visible: App.sensorServiceEnabled && !App.sensorServiceImageAvailable
+                        Layout.fillWidth: true
+                        text: "需要先双击 scripts\\build-ros-sensor-image.cmd 生成数据服务镜像。"
+                        color: Theme.warning
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textTiny
+                        wrapMode: Text.WordWrap
+                    }
+                    Rectangle {
+                        visible: App.sensorServiceEnabled
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 50
+                        radius: Theme.radiusMedium
+                        color: Theme.surfaceRaised
+                        border.width: 1
+                        border.color: Theme.line
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            spacing: 10
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 1
+                                Text { text: "数据策略"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                                Text { text: root.sensorUsageLabel(); color: App.sensorSessionRecording ? Theme.accent : Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            }
+                            Text {
+                                text: root.sensorPerformanceLabel()
+                                color: Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textTiny
+                                horizontalAlignment: Text.AlignRight
+                            }
+                        }
+                    }
                 }
 
                 ColumnLayout {
                     visible: !App.simulationRunning
                     Layout.fillWidth: true
                     spacing: 0
-                    RowLayout {
+                    Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 46
-                        ColumnLayout {
-                            Layout.fillWidth: true
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: containerNameToggleSlot.left
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            Text { text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                            Text { text: root.useCustomContainerName ? "使用自定义临时名称" : "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                            Text { width: parent.width; text: "容器名称"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
+                            Text { width: parent.width; text: root.useCustomContainerName ? "使用自定义临时名称" : "退出仿真后自动删除"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; elide: Text.ElideRight }
                         }
-                        Text {
-                            visible: !root.useCustomContainerName
-                            text: "自动"
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.textTiny
-                        }
-                        SmallToggle {
-                            checked: root.useCustomContainerName
-                            accessibleName: "自定义容器名称"
-                            enabled: !App.simulationRunning && !App.busy
-                            onToggled: {
-                                root.useCustomContainerName = !root.useCustomContainerName
-                                if (!root.useCustomContainerName)
-                                    App.containerName = "flightbench-px4"
-                                else
-                                    containerNameField.forceActiveFocus(Qt.TabFocusReason)
+                        Item {
+                            id: containerNameToggleSlot
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 48
+                            height: 24
+                            SmallToggle {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                checked: root.useCustomContainerName
+                                accessibleName: "自定义容器名称"
+                                enabled: !App.simulationRunning && !App.busy
+                                onToggled: {
+                                    root.useCustomContainerName = !root.useCustomContainerName
+                                    if (!root.useCustomContainerName)
+                                        App.containerName = "flightbench-px4"
+                                    else
+                                        containerNameField.forceActiveFocus(Qt.TabFocusReason)
+                                }
                             }
                         }
                     }
@@ -590,21 +760,25 @@ Item {
                     ValueLine { Layout.fillWidth: true; label: "飞行器 ID"; value: App.selectedModelId }
                     ValueLine { Layout.fillWidth: true; label: "世界 ID"; value: App.selectedWorldId }
                     ValueLine { Layout.fillWidth: true; label: "容器"; value: App.containerName }
+                    ValueLine { Layout.fillWidth: true; label: "容器网络"; value: App.dockerNetworkAvailable ? "flightbench-net" : "未就绪" }
                     ValueLine { Layout.fillWidth: true; label: "MAVLink"; value: "UDP 14540" }
                     ValueLine { Layout.fillWidth: true; label: "图形输出"; value: "无界面（HEADLESS）" }
                     ValueLine {
                         Layout.fillWidth: true
                         label: "载荷服务"
-                        value: root.modelPayload(App.selectedModelId) === "标准四旋翼"
-                               ? "不需要" : "由当前仿真容器提供"
+                        value: !App.sensorServiceSupported ? "本批次未接入"
+                               : App.sensorServiceEnabled ? "用户已选择启动 ROS 2" : "用户选择不启动"
                     }
                     Text {
                         Layout.fillWidth: true
                         Layout.topMargin: 8
                         text: root.modelPayload(App.selectedModelId) === "标准四旋翼"
                               ? "当前飞行器不需要额外的传感器数据服务。"
-                              : "当前飞行器搭载" + root.modelPayload(App.selectedModelId)
-                                + "；本版本由仿真容器提供载荷模型，不会额外启动数据容器。"
+                              : App.sensorServiceSupported
+                                ? "当前飞行器搭载" + root.modelPayload(App.selectedModelId)
+                                  + "；是否启动 ROS 2 数据容器完全由用户选择。"
+                                : "当前飞行器搭载" + root.modelPayload(App.selectedModelId)
+                                  + "；这一载荷尚未接入实时数据。"
                         color: Theme.textMuted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textTiny
@@ -645,6 +819,7 @@ Item {
                             App.selectedModelId = "gz_x500"
                             App.selectedWorldId = "default"
                             App.containerName = "flightbench-px4"
+                            App.sensorServiceEnabled = false
                             root.useCustomContainerName = false
                         }
                     }

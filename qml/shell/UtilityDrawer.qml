@@ -390,6 +390,22 @@ Drawer {
                     ValueRow { label: "X / Roll"; value: (root.telemetryFrozen ? root.telemetrySnapshot.imuAvailable : App.imuAvailable) ? root.oneDecimal(root.telemetryFrozen ? root.telemetrySnapshot.gyroRoll : App.gyroRollRateDegreesPerSecond) + " °/s" : "—" }
                     ValueRow { label: "Y / Pitch"; value: (root.telemetryFrozen ? root.telemetrySnapshot.imuAvailable : App.imuAvailable) ? root.oneDecimal(root.telemetryFrozen ? root.telemetrySnapshot.gyroPitch : App.gyroPitchRateDegreesPerSecond) + " °/s" : "—" }
                     ValueRow { label: "Z / Yaw"; value: (root.telemetryFrozen ? root.telemetrySnapshot.imuAvailable : App.imuAvailable) ? root.oneDecimal(root.telemetryFrozen ? root.telemetrySnapshot.gyroYaw : App.gyroYawRateDegreesPerSecond) + " °/s" : "—" }
+                    Text {
+                        visible: !(root.telemetryFrozen
+                                   ? root.telemetrySnapshot.imuAvailable
+                                   : App.imuAvailable)
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        text: root.telemetryFrozen
+                              ? "定格时尚未收到飞控主 IMU 数据。"
+                              : App.vehicleConnected
+                                ? "正在请求飞控主 IMU 数据…"
+                                : "连接飞行器后显示飞控主 IMU 角速度。"
+                        color: Theme.textFaint
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textTiny
+                        wrapMode: Text.WordWrap
+                    }
 
                     SectionTitle { text: "定位与能源" }
                     ValueRow { label: "GPS"; value: (root.telemetryFrozen ? root.telemetrySnapshot.gpsAvailable : App.gpsAvailable) ? (root.telemetryFrozen ? root.telemetrySnapshot.gpsFix + " · " + root.telemetrySnapshot.satellites + " 星" : App.gpsFixType + " · " + App.gpsSatellites + " 星") : "—" }

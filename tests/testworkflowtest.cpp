@@ -35,6 +35,46 @@ int main(int argc, char *argv[])
             {QStringLiteral("horizontalSpeedMetersPerSecond"), 1.0},
             {QStringLiteral("verticalSpeedMetersPerSecond"), 0.5},
             {QStringLiteral("yawRateDegreesPerSecond"), 30.0}}},
+        {QStringLiteral("testPlanSensorSettings"), QVariantMap{
+            {QStringLiteral("usage"), QStringLiteral("record")},
+            {QStringLiteral("acceptanceRequired"), true},
+            {QStringLiteral("minimumFrameRateHz"), 8.0},
+            {QStringLiteral("maximumDataGapSeconds"), 2.0},
+            {QStringLiteral("minimumObstacleDistanceMeters"), 1.0},
+            {QStringLiteral("requireCameraFrame"), true},
+            {QStringLiteral("requireVisualSurvey"), true},
+            {QStringLiteral("minimumVisualKeyframes"), 5},
+            {QStringLiteral("minimumVisualCoveragePercent"), 60.0}}},
+        {QStringLiteral("sensorRecording"), QVariantMap{
+            {QStringLiteral("available"), true},
+            {QStringLiteral("recorded"), true},
+            {QStringLiteral("replayable"), true},
+            {QStringLiteral("recordingComplete"), true},
+            {QStringLiteral("usage"), QStringLiteral("record")},
+            {QStringLiteral("kind"), QStringLiteral("mono-camera")},
+            {QStringLiteral("performanceMode"), QStringLiteral("standard")},
+            {QStringLiteral("targetFramesPerSecond"), 10},
+            {QStringLiteral("dataAvailabilityPercent"), 96.0},
+            {QStringLiteral("averageFrameRateHz"), 9.8},
+            // One transient instantaneous sample may be low; the rate rule
+            // evaluates sustained average and the gap rule handles dropouts.
+            {QStringLiteral("minimumFrameRateHz"), 1.0},
+            {QStringLiteral("maximumDataGapSeconds"), 0.4},
+            {QStringLiteral("averageLatencyMilliseconds"), 80.0},
+            {QStringLiteral("latencyMeasured"), true},
+            {QStringLiteral("latencyMethod"), QStringLiteral("monotonic-sync-v1")},
+            {QStringLiteral("latencySampleCount"), 100},
+            {QStringLiteral("rgbFrameCount"), 100},
+            {QStringLiteral("visualSurveyAvailable"), true},
+            {QStringLiteral("visualSurvey"), QVariantMap{
+                {QStringLiteral("available"), true},
+                {QStringLiteral("keyframeCount"), 8},
+                 {QStringLiteral("goodKeyframeCount"), 7},
+                 {QStringLiteral("warningKeyframeCount"), 1},
+                 {QStringLiteral("coveragePercent"), 20.0},
+                 {QStringLiteral("spatialCoveragePercent"), 87.5},
+                 {QStringLiteral("qualityPassPercent"), 87.5}}},
+            {QStringLiteral("statusLabel"), QStringLiteral("已记录并可同步回放")}}},
         {QStringLiteral("testPlanName"), QStringLiteral("航线验证")},
         {QStringLiteral("healthResult"), QStringLiteral("已通过")},
         {QStringLiteral("takeoffResult"), QStringLiteral("成功")},
@@ -65,6 +105,84 @@ int main(int argc, char *argv[])
     };
     const QVariantMap evaluation = AcceptanceEvaluator::evaluate(session);
     if (evaluation.value(QStringLiteral("result")).toString() != QStringLiteral("passed")) return 3;
+    bool sensorCheckFound = false;
+    for (const QVariant &entry : evaluation.value(QStringLiteral("checks")).toList()) {
+        if (entry.toMap().value(QStringLiteral("id")).toString()
+            == QStringLiteral("sensor-data")) sensorCheckFound = true;
+    }
+    if (!sensorCheckFound) return 8;
+
+    QVariantMap incompleteSurveySession = session;
+    QVariantMap incompleteSensor = session.value(QStringLiteral("sensorRecording")).toMap();
+    QVariantMap incompleteSurvey = incompleteSensor.value(QStringLiteral("visualSurvey")).toMap();
+    incompleteSurvey.insert(QStringLiteral("keyframeCount"), 2);
+    incompleteSensor.insert(QStringLiteral("visualSurvey"), incompleteSurvey);
+    incompleteSurveySession.insert(QStringLiteral("sensorRecording"), incompleteSensor);
+    if (AcceptanceEvaluator::evaluate(incompleteSurveySession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("failed")) return 17;
+
+    // The UI and test-plan editor use 0.1 m precision. A calculated 2.977 m
+    // clearance is displayed as 3.0 m and must not fail against a visible
+    // 3.0 m limit when the trajectory never entered the obstacle polygon.
+    QVariantMap roundedClearanceSession = session;
+    roundedClearanceSession.insert(QStringLiteral("obstacleClearanceAvailable"), true);
+    roundedClearanceSession.insert(QStringLiteral("minimumObstacleClearanceMeters"),
+                                   2.977254971);
+    roundedClearanceSession.insert(QStringLiteral("obstacleInfringementCount"), 0);
+    if (AcceptanceEvaluator::evaluate(roundedClearanceSession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("passed")) return 15;
+    roundedClearanceSession.insert(QStringLiteral("minimumObstacleClearanceMeters"), 2.94);
+    if (AcceptanceEvaluator::evaluate(roundedClearanceSession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("failed")) return 16;
+
+    QVariantMap observeOnlySession = session;
+    QVariantMap observeSettings = session.value(
+        QStringLiteral("testPlanSensorSettings")).toMap();
+    observeSettings.insert(QStringLiteral("acceptanceRequired"), false);
+    observeOnlySession.insert(QStringLiteral("testPlanSensorSettings"), observeSettings);
+    observeOnlySession.insert(QStringLiteral("sensorRecording"), QVariantMap{});
+    const QVariantMap observeEvaluation = AcceptanceEvaluator::evaluate(observeOnlySession);
+    if (observeEvaluation.value(QStringLiteral("result")).toString()
+            != QStringLiteral("passed")) return 13;
+    for (const QVariant &entry : observeEvaluation.value(QStringLiteral("checks")).toList()) {
+        if (entry.toMap().value(QStringLiteral("id")).toString()
+                .startsWith(QStringLiteral("sensor-"))) return 13;
+    }
+
+    QVariantMap disabledSensorSession = observeOnlySession;
+    observeSettings.insert(QStringLiteral("usage"), QStringLiteral("off"));
+    observeSettings.insert(QStringLiteral("acceptanceRequired"), true);
+    disabledSensorSession.insert(QStringLiteral("testPlanSensorSettings"), observeSettings);
+    if (AcceptanceEvaluator::evaluate(disabledSensorSession)
+            .value(QStringLiteral("result")).toString()
+            != QStringLiteral("passed")) return 14;
+    QVariantMap brokenDepthSession = session;
+    QVariantMap brokenDepth = session.value(QStringLiteral("sensorRecording")).toMap();
+    brokenDepth.insert(QStringLiteral("kind"), QStringLiteral("depth-camera"));
+    brokenDepth.insert(QStringLiteral("depthFrameCount"), 0);
+    brokenDepth.insert(QStringLiteral("depthValidRatio"), 0.0);
+    brokenDepthSession.insert(QStringLiteral("sensorRecording"), brokenDepth);
+    if (AcceptanceEvaluator::evaluate(brokenDepthSession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("failed")) return 9;
+
+    QVariantMap unmeasuredObstacleSession = session;
+    QVariantMap unmeasuredObstacle = session.value(QStringLiteral("sensorRecording")).toMap();
+    unmeasuredObstacle.insert(QStringLiteral("kind"), QStringLiteral("depth-camera"));
+    unmeasuredObstacle.insert(QStringLiteral("depthFrameCount"), 100);
+    unmeasuredObstacle.insert(QStringLiteral("depthValidRatio"), 0.8);
+    unmeasuredObstacle.insert(QStringLiteral("nearestObstacleMeters"), 0.0);
+    unmeasuredObstacle.insert(QStringLiteral("obstacleDistanceMeasured"), false);
+    unmeasuredObstacleSession.insert(QStringLiteral("sensorRecording"), unmeasuredObstacle);
+    if (AcceptanceEvaluator::evaluate(unmeasuredObstacleSession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("failed")) return 12;
+
+    QVariantMap partialRecordingSession = session;
+    QVariantMap partialRecording = session.value(QStringLiteral("sensorRecording")).toMap();
+    partialRecording.insert(QStringLiteral("recordingComplete"), false);
+    partialRecording.insert(QStringLiteral("statusLabel"), QStringLiteral("写入失败"));
+    partialRecordingSession.insert(QStringLiteral("sensorRecording"), partialRecording);
+    if (AcceptanceEvaluator::evaluate(partialRecordingSession)
+            .value(QStringLiteral("result")).toString() != QStringLiteral("failed")) return 10;
     QVariantMap customSession = session;
     customSession.insert(QStringLiteral("testPlanAcceptancePreset"), QStringLiteral("custom"));
     QVariantMap customRules = session.value(QStringLiteral("testPlanAcceptanceRules")).toMap();
@@ -93,6 +211,36 @@ int main(int argc, char *argv[])
         || !contents.contains("落地结果")
         || !contents.contains("键盘控制速度")
         || !contents.contains("验收阈值")
-        || !contents.contains("会话编号")) return 7;
+        || !contents.contains("会话编号")
+        || !contents.contains("96.0%")
+        || !contents.contains("9.8 Hz")
+        || !contents.contains("视觉巡检影像地图")
+        || !contents.contains("8 张关键帧")
+        || !contents.contains("平均传输延迟（估计）")
+        || !contents.contains("80 ms")
+        || !contents.contains("单调时钟往返校准")) return 7;
+
+    QVariantMap manualPreviewSession = session;
+    QVariantMap manualPreview = session.value(QStringLiteral("sensorRecording")).toMap();
+    manualPreview.insert(QStringLiteral("usage"), QStringLiteral("preview"));
+    manualPreview.insert(QStringLiteral("latencyMeasured"), false);
+    manualPreviewSession.insert(QStringLiteral("sensorRecording"), manualPreview);
+    const QString previewReport = TestReportGenerator::generate(
+        manualPreviewSession, directory.filePath(QStringLiteral("preview-report")), &error);
+    QFile previewHtml(previewReport);
+    if (previewReport.isEmpty() || !previewHtml.open(QIODevice::ReadOnly)) return 11;
+    const QByteArray previewContents = previewHtml.readAll();
+    if (!previewContents.contains("未测量")
+        || !previewContents.contains("仅预览")) return 11;
+    manualPreview.remove(QStringLiteral("latencyMethod"));
+    manualPreview.insert(QStringLiteral("latencyMeasured"), true);
+    manualPreview.insert(QStringLiteral("averageLatencyMilliseconds"), 308.0);
+    manualPreviewSession.insert(QStringLiteral("sensorRecording"), manualPreview);
+    const QString legacyReport = TestReportGenerator::generate(
+        manualPreviewSession, directory.filePath(QStringLiteral("legacy-report")), &error);
+    QFile legacyHtml(legacyReport);
+    if (!legacyHtml.open(QIODevice::ReadOnly)) return 12;
+    const auto legacyContents = legacyHtml.readAll();
+    if (!legacyContents.contains("旧版时钟差未经校准") || legacyContents.contains("308 ms")) return 13;
     return 0;
 }

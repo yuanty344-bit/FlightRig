@@ -1,0 +1,4 @@
+*
+!docker/
+!docker/ros-sensor-bridge/
+!docker/ros-sensor-bridge/**

@@ -1,11 +1,15 @@
 #include "replaycontroller.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QHash>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMatrix3x3>
 #include <QStringConverter>
 #include <QTextStream>
+#include <QUrl>
 #include <QtMath>
 
 #include <algorithm>
@@ -15,6 +19,7 @@ namespace {
 constexpr int TickIntervalMs = 33;
 constexpr int PathRebuildIntervalMs = 160;
 constexpr int MaximumChartSamples = 240;
+constexpr qint64 MinimumReplayFrameFreshnessMs = 1500;
 
 QStringList splitCsvLine(const QString &line)
 {
@@ -100,7 +105,7 @@ ReplayController::ReplayController(QObject *parent) : QObject(parent)
 }
 
 bool ReplayController::start(const QString &csvPath, const QString &eventsPath,
-                             const QString &startedAtIso)
+                             const QString &startedAtIso, const QString &sessionFolder)
 {
     stop();
     m_errorMessage.clear();
@@ -111,6 +116,7 @@ bool ReplayController::start(const QString &csvPath, const QString &eventsPath,
     m_lastPathBuildMs = -1;
     m_speedMultiplier = 1.0;
     loadEvents(eventsPath, startedAtIso);
+    loadSensorTimeline(sessionFolder);
     buildTelemetrySeries();
     m_active = true;
     updateInterpolatedState();
@@ -136,6 +142,32 @@ void ReplayController::stop()
     m_samples.clear();
     m_events.clear();
     m_telemetrySeries.clear();
+    m_rgbSamples.clear();
+    m_depthSamples.clear();
+    m_lidarSamples.clear();
+    m_gimbalTargetSamples.clear();
+    m_gimbalFeedbackSamples.clear();
+    m_rgbSampleIndex = m_depthSampleIndex = m_lidarSampleIndex = -1;
+    m_gimbalTargetSampleIndex = m_gimbalFeedbackSampleIndex = -1;
+    m_sensorAvailable = false;
+    m_sensorKind.clear();
+    m_rgbFrameDataUrl.clear();
+    m_depthFrameDataUrl.clear();
+    m_rgbFramePath.clear();
+    m_depthFramePath.clear();
+    m_sensorTimelinePath.clear();
+    m_rgbFrameHz = m_depthFrameHz = 0.0;
+    m_rgbLatencyMilliseconds = m_depthLatencyMilliseconds = -1;
+    m_rgbStreamInterrupted = m_depthStreamInterrupted = m_lidarStreamInterrupted = false;
+    m_depthCenterDistanceMeters = m_depthNearestDistanceMeters = m_depthValidRatio = 0.0;
+    m_depthMillimetres.clear();
+    m_depthGridWidth = m_depthGridHeight = 0;
+    m_lidarPoints.clear();
+    m_lidarNearestDistanceMeters = m_lidarNearestAngleDegrees = 0.0;
+    m_lidarScanHz = m_lidarFieldOfViewDegrees = 0.0;
+    m_gimbalYawDegrees = m_gimbalPitchDegrees = m_gimbalRollDegrees = 0.0;
+    m_gimbalTargetYawDegrees = m_gimbalTargetPitchDegrees = 0.0;
+    m_gimbalFeedbackAvailable = false;
     m_timeMs = 0;
     m_durationMs = 0;
     m_currentEventIndex = -1;
@@ -143,7 +175,7 @@ void ReplayController::stop()
     m_pathGeometry.clearPath();
     if (wasActive) emit activeChanged();
     if (wasPlaying) emit playingChanged();
-    if (wasActive) { emit timeChanged(); emit dataChanged(); }
+    if (wasActive) { emit timeChanged(); emit dataChanged(); emit sensorDataChanged(); }
 }
 
 void ReplayController::synchronizeClock()
@@ -236,7 +268,254 @@ void ReplayController::updateInterpolatedState()
     m_verticalSpeedMetersPerSecond = lerp(start.verticalSpeedMetersPerSecond,
                                           end.verticalSpeedMetersPerSecond);
     updateCurrentEventIndex();
+    updateSensorState();
     emit positionChanged();
+}
+
+void ReplayController::loadSensorTimeline(const QString &sessionFolder)
+{
+    m_rgbSamples.clear();
+    m_depthSamples.clear();
+    m_lidarSamples.clear();
+    m_gimbalTargetSamples.clear();
+    m_gimbalFeedbackSamples.clear();
+    m_sensorAvailable = false;
+    m_sensorKind.clear();
+    if (sessionFolder.isEmpty()) return;
+    const QDir sensorDirectory(QDir(sessionFolder).filePath(QStringLiteral("sensor")));
+    QFile manifestFile(sensorDirectory.filePath(QStringLiteral("manifest.json")));
+    if (manifestFile.open(QIODevice::ReadOnly)) {
+        const QJsonDocument manifest = QJsonDocument::fromJson(manifestFile.readAll());
+        if (manifest.isObject())
+            m_sensorKind = manifest.object().value(QStringLiteral("kind")).toString();
+    }
+    m_sensorTimelinePath = sensorDirectory.filePath(QStringLiteral("timeline.ndjson"));
+    QFile timeline(m_sensorTimelinePath);
+    if (!timeline.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    while (!timeline.atEnd()) {
+        const qint64 fileOffset = timeline.pos();
+        const QJsonDocument document = QJsonDocument::fromJson(timeline.readLine().trimmed());
+        if (!document.isObject()) continue;
+        QVariantMap data = document.object().toVariantMap();
+        bool ok = false;
+        const qint64 elapsedMs = data.value(QStringLiteral("elapsedMs")).toLongLong(&ok);
+        if (!ok || elapsedMs < 0) continue;
+        const QString relativeFile = data.value(QStringLiteral("file")).toString();
+        if (!relativeFile.isEmpty())
+            data.insert(QStringLiteral("file"), sensorDirectory.filePath(relativeFile));
+        QVariantMap metadata = data;
+        metadata.remove(QStringLiteral("jpegBase64"));
+        metadata.remove(QStringLiteral("ranges"));
+        metadata.remove(QStringLiteral("points"));
+        metadata.remove(QStringLiteral("depthMillimetresBase64"));
+        SensorSample sample{elapsedMs, fileOffset, metadata};
+        const QString type = data.value(QStringLiteral("type")).toString();
+        if (type == QStringLiteral("scan")) m_lidarSamples.append(sample);
+        else if (type == QStringLiteral("gimbal-state")) {
+            if (data.value(QStringLiteral("actual")).toBool())
+                m_gimbalFeedbackSamples.append(sample);
+            else
+                m_gimbalTargetSamples.append(sample);
+        }
+        else if (type == QStringLiteral("camera")) {
+            if (data.value(QStringLiteral("stream")).toString() == QStringLiteral("depth"))
+                m_depthSamples.append(sample);
+            else
+                m_rgbSamples.append(sample);
+        }
+    }
+    // A sensor-view entry is useful only when it has something visual to show.
+    // Gimbal feedback alone is still replayed internally, but no longer opens
+    // an empty camera page.
+    m_sensorAvailable = !m_rgbSamples.isEmpty() || !m_depthSamples.isEmpty()
+                        || !m_lidarSamples.isEmpty();
+    if (m_sensorKind.isEmpty()) {
+        if (!m_lidarSamples.isEmpty()) m_sensorKind = QStringLiteral("lidar-2d");
+        else if (!m_depthSamples.isEmpty()) m_sensorKind = QStringLiteral("depth-camera");
+        else if (!m_rgbSamples.isEmpty()
+                 && (!m_gimbalTargetSamples.isEmpty() || !m_gimbalFeedbackSamples.isEmpty()))
+            m_sensorKind = QStringLiteral("gimbal-camera");
+        else if (!m_rgbSamples.isEmpty()) m_sensorKind = QStringLiteral("mono-camera");
+    }
+}
+
+QVariantMap ReplayController::loadSensorSample(const SensorSample &sample) const
+{
+    if (sample.fileOffset < 0 || m_sensorTimelinePath.isEmpty()) return sample.metadata;
+    QFile timeline(m_sensorTimelinePath);
+    if (!timeline.open(QIODevice::ReadOnly | QIODevice::Text)
+        || !timeline.seek(sample.fileOffset)) return sample.metadata;
+    const QJsonDocument document = QJsonDocument::fromJson(timeline.readLine().trimmed());
+    return document.isObject() ? document.object().toVariantMap() : sample.metadata;
+}
+
+void ReplayController::updateSensorState()
+{
+    if (m_rgbSamples.isEmpty() && m_depthSamples.isEmpty() && m_lidarSamples.isEmpty()
+        && m_gimbalTargetSamples.isEmpty() && m_gimbalFeedbackSamples.isEmpty()) return;
+    auto sampleIndex = [this](const QVector<SensorSample> &samples) {
+        const auto upper = std::upper_bound(samples.cbegin(), samples.cend(), m_timeMs,
+            [](qint64 value, const SensorSample &sample) { return value < sample.elapsedMs; });
+        return upper == samples.cbegin() ? -1
+                                        : static_cast<int>(std::distance(samples.cbegin(), upper) - 1);
+    };
+    bool changed = false;
+    const auto updateCamera = [this, &sampleIndex, &changed](
+                                  const QVector<SensorSample> &samples, int &currentIndex,
+                                   QString &dataUrl, QString &framePath,
+                                   double &frameHz, int &latencyMs,
+                                   bool &interrupted, bool depth) {
+        const int nextIndex = sampleIndex(samples);
+        const bool nextInterrupted = nextIndex >= 0
+            && m_timeMs - samples.at(nextIndex).elapsedMs
+                   > std::max<qint64>(MinimumReplayFrameFreshnessMs,
+                       qRound64(3000.0 / std::max(1.0,
+                           samples.at(nextIndex).metadata.value(QStringLiteral("hz"), 1.0).toDouble())));
+        if (nextIndex == currentIndex && nextInterrupted == interrupted) return;
+        currentIndex = nextIndex;
+        interrupted = nextInterrupted;
+        dataUrl.clear();
+        framePath.clear();
+        if (nextIndex >= 0) {
+            const QVariantMap data = loadSensorSample(samples.at(nextIndex));
+            framePath = samples.at(nextIndex).metadata.value(QStringLiteral("file")).toString();
+            if (!interrupted && QFileInfo::exists(framePath))
+                dataUrl = QUrl::fromLocalFile(framePath).toString();
+            frameHz = data.value(QStringLiteral("hz")).toDouble();
+            latencyMs = data.value(QStringLiteral("latencyMethod")).toString()
+                            == QStringLiteral("monotonic-sync-v1")
+                ? data.value(QStringLiteral("latencyMilliseconds"), -1).toInt() : -1;
+            if (depth && !interrupted) {
+                m_depthCenterDistanceMeters = data.value(QStringLiteral("centerDistance")).toDouble();
+                m_depthNearestDistanceMeters = data.value(QStringLiteral("nearestDistance")).toDouble();
+                m_depthValidRatio = data.value(QStringLiteral("validRatio")).toDouble();
+                m_depthGridWidth = data.value(QStringLiteral("gridWidth")).toInt();
+                m_depthGridHeight = data.value(QStringLiteral("gridHeight")).toInt();
+                m_depthMillimetres = QByteArray::fromBase64(
+                    data.value(QStringLiteral("depthMillimetresBase64")).toString().toLatin1());
+            } else if (depth) {
+                m_depthCenterDistanceMeters = 0.0;
+                m_depthNearestDistanceMeters = 0.0;
+                m_depthValidRatio = 0.0;
+                m_depthGridWidth = m_depthGridHeight = 0;
+                m_depthMillimetres.clear();
+            }
+        } else {
+            frameHz = 0.0;
+            latencyMs = -1;
+            if (depth) {
+                m_depthCenterDistanceMeters = 0.0;
+                m_depthNearestDistanceMeters = 0.0;
+                m_depthValidRatio = 0.0;
+                m_depthGridWidth = m_depthGridHeight = 0;
+                m_depthMillimetres.clear();
+            }
+        }
+        changed = true;
+    };
+    updateCamera(m_rgbSamples, m_rgbSampleIndex, m_rgbFrameDataUrl, m_rgbFramePath,
+                 m_rgbFrameHz, m_rgbLatencyMilliseconds, m_rgbStreamInterrupted, false);
+    updateCamera(m_depthSamples, m_depthSampleIndex, m_depthFrameDataUrl, m_depthFramePath,
+                 m_depthFrameHz, m_depthLatencyMilliseconds, m_depthStreamInterrupted, true);
+
+    const int lidarIndex = sampleIndex(m_lidarSamples);
+    const bool lidarInterrupted = lidarIndex >= 0
+        && m_timeMs - m_lidarSamples.at(lidarIndex).elapsedMs
+               > std::max<qint64>(MinimumReplayFrameFreshnessMs,
+                   qRound64(3000.0 / std::max(1.0,
+                       m_lidarSamples.at(lidarIndex).metadata
+                           .value(QStringLiteral("hz"), 1.0).toDouble())));
+    if (lidarIndex != m_lidarSampleIndex || lidarInterrupted != m_lidarStreamInterrupted) {
+        m_lidarSampleIndex = lidarIndex;
+        m_lidarStreamInterrupted = lidarInterrupted;
+        m_lidarPoints.clear();
+        m_lidarNearestDistanceMeters = 0.0;
+        m_lidarNearestAngleDegrees = 0.0;
+        m_lidarScanHz = 0.0;
+        m_lidarFieldOfViewDegrees = 0.0;
+        if (lidarIndex >= 0 && !lidarInterrupted) {
+            const QVariantMap data = loadSensorSample(m_lidarSamples.at(lidarIndex));
+            m_lidarPoints = data.value(QStringLiteral("points")).toList();
+            m_lidarNearestDistanceMeters = data.value(QStringLiteral("nearestDistance")).toDouble();
+            m_lidarNearestAngleDegrees = data.value(QStringLiteral("nearestAngle")).toDouble();
+            m_lidarScanHz = data.value(QStringLiteral("hz")).toDouble();
+            m_lidarFieldOfViewDegrees = data.value(QStringLiteral("fieldOfView")).toDouble();
+        }
+        changed = true;
+    }
+    const int targetIndex = sampleIndex(m_gimbalTargetSamples);
+    if (targetIndex != m_gimbalTargetSampleIndex) {
+        m_gimbalTargetSampleIndex = targetIndex;
+        if (targetIndex >= 0) {
+            const QVariantMap data = loadSensorSample(m_gimbalTargetSamples.at(targetIndex));
+            m_gimbalTargetYawDegrees = data.value(QStringLiteral("targetYaw")).toDouble();
+            m_gimbalTargetPitchDegrees = data.value(QStringLiteral("targetPitch")).toDouble();
+        } else {
+            m_gimbalTargetYawDegrees = m_gimbalTargetPitchDegrees = 0.0;
+        }
+        changed = true;
+    }
+    const int feedbackIndex = sampleIndex(m_gimbalFeedbackSamples);
+    if (feedbackIndex != m_gimbalFeedbackSampleIndex) {
+        m_gimbalFeedbackSampleIndex = feedbackIndex;
+        m_gimbalFeedbackAvailable = feedbackIndex >= 0;
+        if (feedbackIndex >= 0) {
+            const QVariantMap data = loadSensorSample(m_gimbalFeedbackSamples.at(feedbackIndex));
+            m_gimbalYawDegrees = data.value(QStringLiteral("yaw")).toDouble();
+            m_gimbalPitchDegrees = data.value(QStringLiteral("pitch")).toDouble();
+            m_gimbalRollDegrees = data.value(QStringLiteral("roll")).toDouble();
+            if (m_gimbalTargetSamples.isEmpty()) {
+                m_gimbalTargetYawDegrees = data.value(
+                    QStringLiteral("targetYaw"), m_gimbalYawDegrees).toDouble();
+                m_gimbalTargetPitchDegrees = data.value(
+                    QStringLiteral("targetPitch"), m_gimbalPitchDegrees).toDouble();
+            }
+        } else {
+            m_gimbalYawDegrees = m_gimbalPitchDegrees = m_gimbalRollDegrees = 0.0;
+        }
+        changed = true;
+    }
+    if (changed) emit sensorDataChanged();
+}
+
+bool ReplayController::gimbalMoving() const
+{
+    if (!m_gimbalFeedbackAvailable) return false;
+    return std::abs(std::remainder(m_gimbalTargetYawDegrees - m_gimbalYawDegrees, 360.0)) > 1.5
+           || std::abs(m_gimbalTargetPitchDegrees - m_gimbalPitchDegrees) > 1.5;
+}
+
+bool ReplayController::saveCurrentCameraFrame(const QString &stream,
+                                              const QString &directory,
+                                              QString *savedPath) const
+{
+    const QString source = stream == QStringLiteral("depth")
+        ? m_depthFramePath : m_rgbFramePath;
+    if (source.isEmpty() || !QFileInfo(source).isFile()) return false;
+    QDir target(directory);
+    if (!target.mkpath(QStringLiteral("."))) return false;
+    const QString destination = target.filePath(
+        QStringLiteral("%1-replay-%2.jpg")
+            .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz")),
+                 stream == QStringLiteral("depth") ? QStringLiteral("depth")
+                                                    : QStringLiteral("rgb")));
+    if (!QFile::copy(source, destination)) return false;
+    if (savedPath) *savedPath = QDir::toNativeSeparators(destination);
+    return true;
+}
+
+double ReplayController::depthDistanceAt(double normalizedX, double normalizedY) const
+{
+    if (m_depthGridWidth <= 0 || m_depthGridHeight <= 0) return 0.0;
+    const int x = std::clamp(static_cast<int>(normalizedX * m_depthGridWidth),
+                             0, m_depthGridWidth - 1);
+    const int y = std::clamp(static_cast<int>(normalizedY * m_depthGridHeight),
+                             0, m_depthGridHeight - 1);
+    const qsizetype offset = (static_cast<qsizetype>(y) * m_depthGridWidth + x) * 2;
+    if (offset + 1 >= m_depthMillimetres.size()) return 0.0;
+    const auto low = static_cast<quint8>(m_depthMillimetres.at(offset));
+    const auto high = static_cast<quint8>(m_depthMillimetres.at(offset + 1));
+    return static_cast<double>(low | (high << 8)) / 1000.0;
 }
 
 void ReplayController::rebuildPlayedPath()

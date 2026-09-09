@@ -5,6 +5,7 @@ import FlightBench
 Item {
     id: root
     signal replayAnalysisRequested()
+    signal inspectionTargetSelected()
     property bool followVehicle: App.defaultCameraMode !== "free"
     property real orbitYaw: -34
     property real orbitPitch: -24
@@ -206,6 +207,17 @@ Item {
             meshDirectory: root.activeWorldPreviewDirectory
         }
 
+        Model {
+            visible: App.gimbalInspection.hasTarget && App.gimbalInspection.worldId === root.activeWorldId
+            position: App.gimbalInspection.target
+            source: "#Sphere"
+            scale: Qt.vector3d(0.006, 0.006, 0.006)
+            materials: [DefaultMaterial {
+                diffuseColor: Theme.accent
+                lighting: DefaultMaterial.NoLighting
+            }]
+        }
+
         Node {
             id: groundMarkerAnchor
             visible: App.groundMarkerVisible && root.positionAvailable
@@ -276,7 +288,8 @@ Item {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        cursorShape: App.gimbalInspection.picking ? Qt.CrossCursor
+                     : pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
         property bool panning: false
         onPressed: mouse => {
             root.pressedX = mouse.x
@@ -288,9 +301,20 @@ Item {
             if (!App.keyboardControlActive)
                 root.forceActiveFocus(Qt.MouseFocusReason)
         }
-        onReleased: panning = false
+        onReleased: mouse => {
+            panning = false
+            if (App.gimbalInspection.picking && mouse.button === Qt.LeftButton
+                && Math.abs(mouse.x - root.pressedX) < 5 && Math.abs(mouse.y - root.pressedY) < 5) {
+                const near = view.mapTo3DScene(Qt.vector3d(mouse.x - view.x, mouse.y - view.y, 0))
+                const far = view.mapTo3DScene(Qt.vector3d(mouse.x - view.x, mouse.y - view.y, 1000))
+                if (App.gimbalInspection.selectRay(near, far.minus(near)))
+                    root.inspectionTargetSelected()
+            }
+        }
         onPositionChanged: mouse => {
             if (!pressed)
+                return
+            if (App.gimbalInspection.picking && !panning)
                 return
             if (panning) {
                 const fovRadians = 43 * Math.PI / 180
@@ -333,6 +357,40 @@ Item {
                                         - wheel.angleDelta.y / 80
                                           * App.cameraZoomSensitivity))
             wheel.accepted = true
+        }
+    }
+
+    Rectangle {
+        visible: App.gimbalInspection.picking
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 12
+        height: pickingText.implicitHeight + 24
+        color: Theme.surface
+        radius: Theme.radiusMedium
+        border.color: Theme.line
+        Text {
+            id: pickingText
+            anchors.left: parent.left
+            anchors.right: cancelPicking.left
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins: 12
+            text: "点击墙面或屋顶选择目标。右键拖动、滚轮缩放。\n" + App.gimbalInspection.status
+            wrapMode: Text.Wrap
+            color: Theme.textPrimary
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.textSmall
+        }
+        ActionButton {
+            id: cancelPicking
+            anchors.right: parent.right
+            anchors.rightMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            text: "取消选点"
+            kind: "secondary"
+            compact: true
+            onClicked: App.gimbalInspection.picking = false
         }
     }
 
