@@ -1,8 +1,13 @@
 import QtQuick
+import "../controls"
+import "../features/flight"
+import "../features/mission"
+import "../features/records"
+import "../features/scene3d"
+import "../features/sensors"
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
-import "../components"
 
 Item {
     id: root

@@ -1,5 +1,7 @@
 # FlightBench
 
+源码按业务职责组织：`src` 下分为 app、flight、mission、testing、sessions、sensors、mapping、inspection、infrastructure；QML 分为 controls、features、pages、shell。目录迁移后需重新运行 CMake 配置再构建。应用数据流和建图显示/导出的两轮结构整理已完成，完整应用构建与仿真回归仍需单独验收。职责边界和兼容约束见 [架构整理说明](docs/architecture.md)；不以文件行数作为机械拆分标准。
+
 ## 0.12.0
 
 本次版本汇总 ROS 2 传感器预览、记录、同步回放和报告，以及 LiDAR 建图、Depth 三维障碍融合、单目视觉巡检和云台多角度采集。当前程序版本与 ROS 镜像标签统一为 0.12.0。升级需重新构建程序，并运行 `scripts/build-ros-sensor-image.cmd` 生成对应镜像；提交代码不等于已重新构建 EXE 或发布包。

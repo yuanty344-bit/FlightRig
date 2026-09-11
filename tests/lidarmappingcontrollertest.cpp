@@ -1,6 +1,10 @@
-#include "lidarmappingcontroller.h"
+#include "mapping/lidarmappingcontroller.h"
 
 #include <QFileInfo>
+#include <QFile>
+#include <QImage>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QGuiApplication>
 #include <QTextStream>
 #include <QTemporaryDir>
@@ -176,6 +180,31 @@ int main(int argc, char *argv[])
         const QFileInfo info(temporary.filePath(file));
         if (!info.isFile() || info.size() <= 0) return 6;
     }
+    // Presentation/export must not mutate the SLAM state, and repeated exports
+    // of an unchanged map must preserve the exact public file formats.
+    const QVariantMap beforeExport = mapping.summary();
+    QTemporaryDir repeated;
+    if (!repeated.isValid()
+        || !mapping.saveToDirectory(repeated.path()).value(QStringLiteral("saved")).toBool()) return 14;
+    for (const QString &name : {QStringLiteral("lidar-map.pgm"),
+                                QStringLiteral("lidar-map.yaml"),
+                                QStringLiteral("lidar-pose-graph.json")}) {
+        QFile first(temporary.filePath(name));
+        QFile second(repeated.filePath(name));
+        if (!first.open(QIODevice::ReadOnly) || !second.open(QIODevice::ReadOnly)
+            || first.readAll() != second.readAll()) return 15;
+    }
+    const QImage original(temporary.filePath(QStringLiteral("lidar-map.png")));
+    if (original.isNull()
+        || original != QImage(repeated.filePath(QStringLiteral("lidar-map.png")))) return 16;
+    QFile graphFile(repeated.filePath(QStringLiteral("lidar-pose-graph.json")));
+    if (!graphFile.open(QIODevice::ReadOnly)) return 17;
+    const QJsonObject graph = QJsonDocument::fromJson(graphFile.readAll()).object();
+    if (graph.value(QStringLiteral("formatVersion")).toInt() != 1
+        || graph.value(QStringLiteral("nodeCount")).toInt() != mapping.keyframeCount()
+        || graph.value(QStringLiteral("constraintCount")).toInt() != mapping.poseGraphConstraintCount()
+        || beforeExport.value(QStringLiteral("processedScanCount"))
+            != mapping.summary().value(QStringLiteral("processedScanCount"))) return 18;
     mapping.clear();
     return mapping.available() || mapping.processedScanCount() != 0 ? 7 : 0;
 }

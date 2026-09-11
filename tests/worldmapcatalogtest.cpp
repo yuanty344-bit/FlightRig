@@ -1,4 +1,4 @@
-#include "worldmapcatalog.h"
+#include "mapping/worldmapcatalog.h"
 
 #include <QCoreApplication>
 #include <QDebug>

@@ -1,8 +1,9 @@
 import QtQuick
+import "../controls"
+import "../features/plans"
 import QtQuick.Layouts
 import FlightBench
 import "../pages"
-import "../components"
 
 Item {
     id: root

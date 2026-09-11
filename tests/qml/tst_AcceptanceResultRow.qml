@@ -1,8 +1,8 @@
 import QtQuick
+import "../../qml/features/plans"
 import QtQuick.Layouts
 import QtTest
 import FlightBench
-import "../../qml/components"
 
 TestCase {
     id: testCase

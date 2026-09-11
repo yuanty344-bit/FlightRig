@@ -1,6 +1,6 @@
-#include "gimbalinspectioncontroller.h"
-#include "worldmapcatalog.h"
-#include "testreportgenerator.h"
+#include "inspection/gimbalinspectioncontroller.h"
+#include "mapping/worldmapcatalog.h"
+#include "sessions/testreportgenerator.h"
 #include <QBuffer>
 #include <QCoreApplication>
 #include <QDateTime>

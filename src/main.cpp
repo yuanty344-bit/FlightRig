@@ -1,4 +1,4 @@
-#include "appcontroller.h"
+#include "app/appcontroller.h"
 
 #include <QGuiApplication>
 #include <QFont>

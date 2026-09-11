@@ -1,8 +1,11 @@
-#include "depthmappingcontroller.h"
+#include "mapping/depthmappingcontroller.h"
+#include "mapping/depthmapreader.h"
+#include <QBuffer>
 
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QTemporaryDir>
 
 #include <iostream>
 
@@ -28,6 +31,21 @@ bool require(bool condition, const char *message)
 int main(int argc, char **argv)
 {
     QCoreApplication application(argc, argv);
+    QBuffer legacy;
+    legacy.setData("east_m,up_m,south_m\n-0.01,2,3\ninvalid,2,3\n");
+    legacy.open(QIODevice::ReadOnly);
+    int parsed = 0;
+    bool legacyValid = true;
+    QString parseError;
+    const bool read = DepthMapReader::readPoints(legacy, 0.25,
+        [&](int x, int y, int z, const DepthVoxel &voxel) {
+            ++parsed;
+            legacyValid = legacyValid && x == -1 && y == 8 && z == 12
+                && voxel.observations == 4 && voxel.weight == 6.0f
+                && voxel.occupancy == 2.0f && voxel.freeObservations == 0;
+        }, &parseError);
+    if (!require(read && parsed == 1 && legacyValid,
+                 "legacy defaults and negative coordinate decoding changed")) return 1;
     DepthMappingController controller;
     const QByteArray depth = constantDepthGrid(64, 36, 6000);
     const QVector3D pose(0.0f, 5.0f, 0.0f);
@@ -64,9 +82,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const QString outputDirectory = QDir::current().filePath(QStringLiteral("depth-map-test-output"));
-    QDir(outputDirectory).removeRecursively();
-    QDir().mkpath(outputDirectory);
+    QTemporaryDir output;
+    if (!require(output.isValid(), "temporary export directory unavailable")) return 1;
+    const QString outputDirectory = output.path();
     const QVariantMap saved = controller.saveToDirectory(outputDirectory);
     if (!saved.value(QStringLiteral("saved")).toBool())
         std::cerr << saved.value(QStringLiteral("error")).toString().toStdString() << '\n';
@@ -122,6 +140,5 @@ int main(int argc, char **argv)
                  "free-space rays must remove stale ghost obstacles")) {
         return 1;
     }
-    QDir(outputDirectory).removeRecursively();
     return 0;
 }

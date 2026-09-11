@@ -1,5 +1,5 @@
-#include "acceptanceevaluator.h"
-#include "testreportgenerator.h"
+#include "testing/acceptanceevaluator.h"
+#include "sessions/testreportgenerator.h"
 
 #include <QCoreApplication>
 #include <QDir>

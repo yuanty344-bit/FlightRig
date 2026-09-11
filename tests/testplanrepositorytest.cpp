@@ -1,4 +1,4 @@
-#include "testplanrepository.h"
+#include "testing/testplanrepository.h"
 
 #include <QCoreApplication>
 #include <QDebug>

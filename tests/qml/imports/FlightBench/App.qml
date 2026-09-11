@@ -2,6 +2,10 @@ pragma Singleton
 import QtQuick
 QtObject {
     property bool simulationRunning: true
+    property bool missionPaused: false
+    property bool missionUploaded: false
+    property bool missionRunning: false
+    property bool missionBusy: false
     property bool sensorServiceConnected: true
     property int lastSeek: -1
     function seekReplay(ms) { lastSeek = ms }

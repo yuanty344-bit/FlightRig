@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../controls"
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
-import "../components"
 
 Rectangle {
     id: root

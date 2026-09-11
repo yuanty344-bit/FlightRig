@@ -1,9 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../controls"
+import "../features/environment"
+import "../features/plans"
+import "../features/settings"
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
-import "../components"
 
 Drawer {
     id: root

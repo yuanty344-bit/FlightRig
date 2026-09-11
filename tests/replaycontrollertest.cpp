@@ -1,4 +1,4 @@
-#include "replaycontroller.h"
+#include "sessions/replaycontroller.h"
 
 #include <QCoreApplication>
 #include <QDir>

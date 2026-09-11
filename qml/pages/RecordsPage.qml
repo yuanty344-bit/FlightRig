@@ -1,9 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../controls"
+import "../features/inspection"
+import "../features/mission"
+import "../features/records"
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
-import "../components"
 
 Item {
     id: root
@@ -627,191 +630,20 @@ Item {
                         }
 
                         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
-                        Rectangle {
-                            id: sensorSummary
-                            readonly property var sensor: root.selectedSession.sensorRecording || ({})
-                            visible: Boolean(sensor.available || sensor.deleted
-                                             || String(sensor.statusLabel || "").length > 0)
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: visible
-                                                    ? (Boolean(sensor.lidarMapAvailable)
-                                                       || Boolean(sensor.depthMapAvailable)
-                                                       || Boolean(sensor.visualSurveyAvailable) ? 128 : 94)
-                                                    : 0
-                            Layout.topMargin: visible ? 12 : 0
-                            radius: Theme.radiusMedium
-                            color: Theme.surfaceRaised
-                            border.width: 1
-                            border.color: Theme.line
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 10
-                                spacing: 10
-                                ThemedIcon {
-                                    Layout.preferredWidth: 19
-                                    Layout.preferredHeight: 19
-                                    source: String(sensorSummary.sensor.kind || "").indexOf("lidar") >= 0
-                                            ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg"
-                                    iconColor: sensorSummary.sensor.available ? Theme.accent : Theme.textFaint
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 3
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: sensorSummary.sensor.replayable
-                                              ? (sensorSummary.sensor.recordingComplete === false
-                                                 ? "传感器数据 · 部分数据可回放"
-                                                 : "传感器数据 · 可同步回放")
-                                              : sensorSummary.sensor.available
-                                                ? "传感器数据 · 仅预览统计" : "传感器数据"
-                                        color: sensorSummary.sensor.replayable
-                                               && sensorSummary.sensor.recordingComplete === false
-                                               ? Theme.warning : Theme.textPrimary
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textSmall
-                                        font.weight: Font.Medium
-                                    }
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: sensorSummary.sensor.deleted
-                                              ? "已单独删除，飞行遥测与报告仍保留"
-                                              : Number(sensorSummary.sensor.rgbFrameCount || 0)
-                                                + Number(sensorSummary.sensor.depthFrameCount || 0)
-                                                + " 帧画面 · "
-                                                + Number(sensorSummary.sensor.lidarScanCount || 0)
-                                                + " 次扫描 · "
-                                                + root.storageText(sensorSummary.sensor.sizeBytes)
-                                        color: Theme.textMuted
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textTiny
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        visible: Boolean(sensorSummary.sensor.available)
-                                                 && !Boolean(sensorSummary.sensor.deleted)
-                                        Layout.fillWidth: true
-                                        text: "可用率 "
-                                              + Number(sensorSummary.sensor.dataAvailabilityPercent || 0).toFixed(0)
-                                              + "% · 平均 "
-                                              + Number(sensorSummary.sensor.averageFrameRateHz || 0).toFixed(1)
-                                              + " Hz · 最长中断 "
-                                              + Number(sensorSummary.sensor.maximumDataGapSeconds || 0).toFixed(1)
-                                              + " s"
-                                              + (Number(sensorSummary.sensor.nearestObstacleMeters || 0) > 0
-                                                 ? " · 最近障碍 "
-                                                   + Number(sensorSummary.sensor.nearestObstacleMeters).toFixed(1)
-                                                   + " m" : "")
-                                        color: Theme.textMuted
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textTiny
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        visible: Boolean(sensorSummary.sensor.lidarMapAvailable)
-                                        Layout.fillWidth: true
-                                        text: Number((sensorSummary.sensor.lidarMap || {}).formatVersion || 1) >= 3
-                                              ? "位姿图 SLAM · "
-                                                + Number((sensorSummary.sensor.lidarMap || {}).keyframeCount || 0)
-                                                + " 个关键帧 · "
-                                                + Number((sensorSummary.sensor.lidarMap || {}).loopClosureCount || 0)
-                                                + " 次回环 · 匹配置信度 "
-                                                + Math.round(Number((sensorSummary.sensor.lidarMap || {}).localizationConfidence || 0) * 100)
-                                                + "% · 已随会话保存"
-                                              : "累计地图 · "
-                                              + Number((sensorSummary.sensor.lidarMap || {}).exploredAreaSquareMeters || 0).toFixed(1)
-                                              + " m² · 分辨率 "
-                                              + Number((sensorSummary.sensor.lidarMap || {}).resolutionMeters || 0.25).toFixed(2)
-                                              + " m · 已随会话保存"
-                                        color: Theme.accent
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textTiny
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        visible: Boolean(sensorSummary.sensor.depthMapAvailable)
-                                        Layout.fillWidth: true
-                                        text: Number((sensorSummary.sensor.depthObstacleMap || {}).formatVersion || 1) >= 2
-                                              ? "DepthFusion 三维表面 · "
-                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
-                                                + " 个稳定体素 · 置信度 "
-                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).mapConfidencePercent || 0).toFixed(0)
-                                                + "% · "
-                                                + Number((sensorSummary.sensor.depthObstacleMap || {}).meshTriangleCount || 0)
-                                                + " 个三角面 · 已随会话保存"
-                                              : "前向三维障碍图 · "
-                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
-                                              + " 个确认体素 · "
-                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).widthMeters || 0).toFixed(1)
-                                              + " × "
-                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).depthMeters || 0).toFixed(1)
-                                              + " × "
-                                              + Number((sensorSummary.sensor.depthObstacleMap || {}).heightMeters || 0).toFixed(1)
-                                              + " m · 已随会话保存"
-                                        color: Theme.accent
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textTiny
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        visible: Boolean(sensorSummary.sensor.visualSurveyAvailable)
-                                        Layout.fillWidth: true
-                                        readonly property var survey: sensorSummary.sensor.visualSurvey || ({})
-                                        text: "视觉巡检影像地图 · "
-                                              + Number(survey.keyframeCount || 0) + " 张关键帧 · "
-                                              + Number(survey.goodKeyframeCount || 0) + " 张清晰 · 采集覆盖 "
-                                              + Number(survey.spatialCoveragePercent !== undefined
-                                                      ? survey.spatialCoveragePercent
-                                                       : survey.coveragePercent || 0).toFixed(0)
-                                              + "%"
-                                              + (String(survey.coverageDefinition || "")
-                                                 === "legacy-candidate-frame-estimate"
-                                                 ? "（旧记录估算）" : "")
-                                              + " · 已随会话保存"
-                                        color: Theme.accent
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.textTiny
-                                        elide: Text.ElideRight
-                                    }
-                                }
-                                CompactIconButton {
-                                    visible: Boolean(sensorSummary.sensor.visualSurveyAvailable)
-                                             && !Boolean(sensorSummary.sensor.deleted)
-                                    iconSource: "qrc:/icons/map-pinned.svg"
-                                    accessibleLabel: "打开视觉巡检影像地图"
-                                    toolTipText: "查看关键帧、位置与备注"
-                                    enabled: !App.flightSessionActive && !App.simulationRunning
-                                    disabledReason: "停止当前仿真后才能打开历史影像地图"
-                                    onClicked: {
-                                        if (App.loadSessionVisualSurvey(root.selectedSessionId))
-                                            visualSurveyDialog.open()
-                                    }
-                                }
-                                CompactIconButton {
-                                    visible: Boolean(sensorSummary.sensor.depthMapAvailable)
-                                             && !Boolean(sensorSummary.sensor.deleted)
-                                    iconSource: "qrc:/icons/box.svg"
-                                    accessibleLabel: "打开保存的三维地图"
-                                    toolTipText: "直接查看 DepthFusion 地图"
-                                    enabled: !App.flightSessionActive && !App.simulationRunning
-                                    disabledReason: "停止当前仿真后才能打开历史三维地图"
-                                    onClicked: {
-                                        if (App.loadSessionDepthMap(root.selectedSessionId))
-                                            depthMapDialog.open()
-                                    }
-                                }
-                                CompactIconButton {
-                                    visible: Boolean(sensorSummary.sensor.replayable)
-                                             && root.selectedSessionId !== String(App.activeFlightSession.id || "")
-                                    iconSource: "qrc:/icons/trash-2.svg"
-                                    accessibleLabel: "仅删除本次传感器数据"
-                                    toolTipText: "删除传感器数据"
-                                    danger: true
-                                    onClicked: deleteSensorDataDialog.open()
-                                }
+                        SessionSensorSummary {
+                            sensor: root.selectedSession.sensorRecording || ({})
+                            sizeLabel: root.storageText(sensor.sizeBytes)
+                            canOpenHistory: !App.flightSessionActive && !App.simulationRunning
+                            canDeleteData: root.selectedSessionId !== String(App.activeFlightSession.id || "")
+                            onVisualSurveyRequested: {
+                                if (App.loadSessionVisualSurvey(root.selectedSessionId))
+                                    visualSurveyDialog.open()
                             }
+                            onDepthMapRequested: {
+                                if (App.loadSessionDepthMap(root.selectedSessionId))
+                                    depthMapDialog.open()
+                            }
+                            onDeleteRequested: deleteSensorDataDialog.open()
                         }
                         RouteDeviationSummary {
                             visible: Boolean(root.selectedSession.routeAnalysis
@@ -871,27 +703,7 @@ Item {
                                 verticalAlignment: Text.AlignVCenter
                             }
                         }
-                        ColumnLayout {
-                            visible: Boolean(root.selectedSession.acceptanceChecks
-                                             && root.selectedSession.acceptanceChecks.length > 0)
-                            Layout.fillWidth: true
-                            Layout.topMargin: visible ? 12 : 0
-                            spacing: 8
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Text { Layout.fillWidth: true; text: "验收明细"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                                Text {
-                                    text: Number(root.selectedSession.acceptancePassedCount || 0) + " 通过 · "
-                                          + Number(root.selectedSession.acceptanceWarningCount || 0) + " 提醒 · "
-                                          + Number(root.selectedSession.acceptanceFailedCount || 0) + " 未通过"
-                                    color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny
-                                }
-                            }
-                            Repeater {
-                                model: root.selectedSession.acceptanceChecks || []
-                                delegate: AcceptanceResultRow { required property var modelData; Layout.fillWidth: true; result: modelData }
-                            }
-                        }
+                        SessionAcceptanceSection { session: root.selectedSession }
                         Item { Layout.preferredHeight: 18 }
 
                         Text {
@@ -1010,75 +822,7 @@ Item {
         onReplayRequested: (sessionId, elapsedMs) => root.replayAtRequested(sessionId, elapsedMs)
     }
 
-    Dialog {
-        id: depthMapDialog
-        parent: root
-        anchors.centerIn: parent
-        width: Math.min(root.width - 36, 1180)
-        height: Math.min(root.height - 36, 760)
-        modal: true
-        padding: 0
-        closePolicy: Dialog.CloseOnEscape
-        onClosed: App.closeLoadedDepthMap()
-        background: Rectangle {
-            radius: Theme.radiusLarge
-            color: Theme.surface
-            border.width: 1
-            border.color: Theme.lineStrong
-        }
-        contentItem: ColumnLayout {
-            spacing: 0
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 72
-                color: "transparent"
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 22
-                    anchors.rightMargin: 14
-                    spacing: 12
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 2
-                        Text {
-                            text: "会话 DepthFusion 三维地图"
-                            color: Theme.textPrimary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.textTitle
-                            font.weight: Font.DemiBold
-                        }
-                        Text {
-                            text: App.depthMapping.confirmedVoxelCount + " 个稳定体素 · "
-                                  + App.depthMapping.chunkCount + " 个分块 · 置信度 "
-                                  + App.depthMapping.mapConfidencePercent.toFixed(0) + "% · 历史最小净空 "
-                                  + (App.depthMapping.minimumObservedCorridorMeters > 0
-                                     ? App.depthMapping.minimumObservedCorridorMeters.toFixed(1) + " m"
-                                     : "未记录")
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.textSmall
-                        }
-                    }
-                    CompactIconButton {
-                        iconSource: "qrc:/icons/x.svg"
-                        accessibleLabel: "关闭三维地图"
-                        toolTipText: "关闭"
-                        onClicked: depthMapDialog.close()
-                    }
-                }
-            }
-            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
-            Loader {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: 14
-                active: depthMapDialog.opened
-                sourceComponent: Component {
-                    DepthMapView3D { }
-                }
-            }
-        }
-    }
+    SessionDepthMapDialog { id: depthMapDialog; host: root }
 
     Popup {
         id: sessionActionsPopup

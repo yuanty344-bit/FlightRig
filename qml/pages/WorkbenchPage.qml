@@ -1,9 +1,10 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import "../controls"
+import "../features/plans"
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
-import "../components"
 
 Item {
     id: root

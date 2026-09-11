@@ -1,4 +1,4 @@
-#include "sensorservicecontroller.h"
+#include "sensors/sensorservicecontroller.h"
 
 #include <QCoreApplication>
 #include <QDir>

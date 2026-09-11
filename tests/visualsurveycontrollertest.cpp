@@ -1,4 +1,4 @@
-#include "visualsurveycontroller.h"
+#include "inspection/visualsurveycontroller.h"
 
 #include <QBuffer>
 #include <QCoreApplication>

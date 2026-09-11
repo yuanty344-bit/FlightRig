@@ -10,6 +10,7 @@ $outputDirectory = Split-Path -Parent $sourceDirectory
 $buildDirectory = Join-Path $sourceDirectory 'build-msvc'
 $releaseDirectory = Join-Path $outputDirectory 'release'
 $stagingDirectory = Join-Path $outputDirectory 'release.new'
+$stagingArchivePath = Join-Path $outputDirectory 'release.new.zip'
 $cmakeListsContent = Get-Content -Raw -LiteralPath (Join-Path $sourceDirectory 'CMakeLists.txt')
 $versionMatch = [regex]::Match(
     $cmakeListsContent,
@@ -58,6 +59,7 @@ function Import-VisualStudioEnvironment {
         throw 'MSVC x64 was not found. Install the Visual Studio 2022 Desktop development with C++ workload.'
     }
     $environmentLines = & cmd.exe /d /c ('"' + $vcvars + '" >nul && set')
+    if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the MSVC x64 environment.' }
     foreach ($line in $environmentLines) {
         $separator = $line.IndexOf('=')
         if ($separator -gt 0) {
@@ -154,7 +156,8 @@ $buildArguments += @('--target',
                     'FlightBenchWorldMapTest', 'FlightBenchTestWorkflowTest',
                     'FlightBenchSensorServiceTest', 'FlightBenchLidarMappingTest',
                     'FlightBenchDepthMappingTest', 'FlightBenchVisualSurveyTest',
-                    'FlightBenchGimbalInspectionTest')
+                    'FlightBenchGimbalInspectionTest', 'FlightBenchRunCoordinatorTest',
+                    'FlightBenchSessionIoTest', 'FlightBenchPreferencesTest')
 Invoke-Checked $cmake $buildArguments
 
 if (-not $SkipSmokeTests) {
@@ -166,15 +169,22 @@ Write-Stage 'Running unit and interface smoke tests'
 
 Write-Stage 'Creating a clean Windows release directory'
 
-if ((Split-Path -Parent $releaseDirectory) -ne $outputDirectory -or
-    (Split-Path -Leaf $releaseDirectory) -ne 'release') {
-    throw "Refusing to clean an unexpected release path: $releaseDirectory"
+foreach ($pathToCheck in @($releaseDirectory, $stagingDirectory, $stagingArchivePath, $archivePath)) {
+    $resolvedTarget = [IO.Path]::GetFullPath($pathToCheck)
+    if ((Split-Path -Parent $resolvedTarget) -ne [IO.Path]::GetFullPath($outputDirectory)) {
+        throw "Refusing to modify an unexpected release path: $resolvedTarget"
+    }
+    if ((Test-Path -LiteralPath $resolvedTarget) -and
+        ((Get-Item -LiteralPath $resolvedTarget).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw "Refusing to modify a linked release path: $resolvedTarget"
+    }
 }
 if (Test-Path -LiteralPath $stagingDirectory) { Remove-Item -LiteralPath $stagingDirectory -Recurse -Force }
 New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'FlightBench.exe') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'mavsdk.dll') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $sourceDirectory 'simulation') -Destination $stagingDirectory -Recurse
+Copy-Item -LiteralPath (Join-Path $sourceDirectory 'resources\licenses') -Destination $stagingDirectory -Recurse
 
 # ROS 2 sensor support remains optional and is deliberately not built while
 # publishing: a normal x500 release must not require Docker or network access.
@@ -221,11 +231,31 @@ Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Jo
     ('Built: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'))
 ) | Set-Content -LiteralPath (Join-Path $stagingDirectory 'build-info.txt') -Encoding UTF8
 
-if (Test-Path -LiteralPath $releaseDirectory) { Remove-Item -LiteralPath $releaseDirectory -Recurse -Force }
-Move-Item -LiteralPath $stagingDirectory -Destination $releaseDirectory
-if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath -Force }
 Write-Stage 'Compressing the shareable archive'
-Compress-Archive -Path (Join-Path $releaseDirectory '*') -DestinationPath $archivePath -CompressionLevel Optimal
+if (Test-Path -LiteralPath $stagingArchivePath) { Remove-Item -LiteralPath $stagingArchivePath -Force }
+Compress-Archive -Path (Join-Path $stagingDirectory '*') -DestinationPath $stagingArchivePath -CompressionLevel Optimal
+
+# Do not discard the working release if compression or replacement fails.
+# Keep uniquely named backups so the user can recover the previous package.
+$backupSuffix = '.backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
+$releaseBackup = $releaseDirectory + $backupSuffix
+$archiveBackup = $archivePath + $backupSuffix
+try {
+    if (Test-Path -LiteralPath $releaseDirectory) { Move-Item -LiteralPath $releaseDirectory -Destination $releaseBackup }
+    if (Test-Path -LiteralPath $archivePath) { Move-Item -LiteralPath $archivePath -Destination $archiveBackup }
+    Move-Item -LiteralPath $stagingDirectory -Destination $releaseDirectory
+    Move-Item -LiteralPath $stagingArchivePath -Destination $archivePath
+} catch {
+    if ((Test-Path -LiteralPath $releaseBackup) -and -not (Test-Path -LiteralPath $releaseDirectory)) {
+        Move-Item -LiteralPath $releaseBackup -Destination $releaseDirectory
+    }
+    if ((Test-Path -LiteralPath $archiveBackup) -and -not (Test-Path -LiteralPath $archivePath)) {
+        Move-Item -LiteralPath $archiveBackup -Destination $archivePath
+    }
+    throw
+}
+if (Test-Path -LiteralPath $releaseBackup) { Write-Host "Previous release retained: $releaseBackup" }
+if (Test-Path -LiteralPath $archiveBackup) { Write-Host "Previous archive retained: $archiveBackup" }
 
 Write-Host "Release ready: $releaseDirectory" -ForegroundColor Green
 Write-Host "Shareable archive: $archivePath" -ForegroundColor Green

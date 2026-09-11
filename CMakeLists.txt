@@ -35,49 +35,82 @@ qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(FlightBench
     src/main.cpp
-    src/appcontroller.cpp
-    src/appcontroller.h
-    src/storagepaths.h
-    src/acceptanceevaluator.cpp
-    src/acceptanceevaluator.h
-    src/dockercontroller.cpp
-    src/dockercontroller.h
-    src/flightsessionrecorder.cpp
-    src/flightsessionrecorder.h
-    src/lidarmappingcontroller.cpp
-    src/lidarmappingcontroller.h
-    src/depthmappingcontroller.cpp
-    src/depthmappingcontroller.h
-    src/visualsurveycontroller.cpp
-    src/visualsurveycontroller.h
-    src/gimbalinspectioncontroller.cpp
-    src/gimbalinspectioncontroller.h
-    src/flightpathgeometry.cpp
-    src/flightpathgeometry.h
-    src/routelibrary.cpp
-    src/routelibrary.h
-    src/testplanrepository.cpp
-    src/testplanrepository.h
-    src/replaycontroller.cpp
-    src/replaycontroller.h
-    src/sensorservicecontroller.cpp
-    src/sensorservicecontroller.h
-    src/sensorclocksync.h
-    src/preflightevaluator.cpp
-    src/preflightevaluator.h
-    src/px4eventtranslator.cpp
-    src/px4eventtranslator.h
-    src/routedeviationanalyzer.cpp
-    src/routedeviationanalyzer.h
-    src/testreportgenerator.cpp
-    src/testreportgenerator.h
-    src/worldmapcatalog.cpp
-    src/worldmapcatalog.h
-    src/vehicleconnection.cpp
-    src/vehicleconnection.h
+    src/app/appcontroller.cpp
+    src/app/simulationruncoordinator.cpp
+    src/app/simulationruncoordinator.h
+    src/sessions/sensorsessionfinalizer.cpp
+    src/sessions/sensorsessionfinalizer.h
+    src/infrastructure/simulationcatalog.cpp
+    src/infrastructure/applicationpreferences.cpp
+    src/infrastructure/applicationpreferences.h
+    src/infrastructure/runtimeinformation.cpp
+    src/infrastructure/runtimeinformation.h
+    src/infrastructure/simulationcatalog.h
+    src/app/appcontroller.h
+    src/infrastructure/storagepaths.h
+    src/testing/acceptanceevaluator.cpp
+    src/testing/acceptanceevaluator.h
+    src/infrastructure/dockercontroller.cpp
+    src/infrastructure/dockercontroller.h
+    src/sessions/flightsessionrecorder.cpp
+    src/sessions/sessionarchive.cpp
+    src/sessions/sessionarchive.h
+    src/sessions/flightsessionrecorder.h
+    src/mapping/lidarmappingcontroller.cpp
+    src/mapping/lidarmapoutput.cpp
+    src/mapping/lidarmapoutput.h
+    src/mapping/lidarmaptypes.h
+    src/mapping/lidarmappingcontroller.h
+    src/mapping/depthmappingcontroller.cpp
+    src/mapping/depthsurfacegeometry.cpp
+    src/mapping/depthmapexport.cpp
+    src/mapping/depthmapreader.cpp
+    src/mapping/depthmapreader.h
+    src/mapping/depthvoxel.h
+    src/mapping/depthmapexport.h
+    src/mapping/depthsurfacegeometry.h
+    src/mapping/depthvoxelcoordinates.h
+    src/mapping/depthmappingcontroller.h
+    src/inspection/visualsurveycontroller.cpp
+    src/inspection/visualsurveycontroller.h
+    src/inspection/gimbalinspectioncontroller.cpp
+    src/inspection/gimbalinspectioncontroller.h
+    src/mapping/flightpathgeometry.cpp
+    src/mapping/flightpathgeometry.h
+    src/mission/routelibrary.cpp
+    src/mission/routelibrary.h
+    src/testing/testplanrepository.cpp
+    src/testing/testplanrepository.h
+    src/sessions/replaycontroller.cpp
+    src/sessions/replaydata.cpp
+    src/sessions/replaydata.h
+    src/sessions/replaycontroller.h
+    src/sensors/sensorservicecontroller.cpp
+    src/sensors/sensorsessionrecorder.cpp
+    src/sensors/sensorsessionrecorder.h
+    src/sensors/sensorsessionstorage.cpp
+    src/sensors/sensorsessionstorage.h
+    src/sensors/mjpegaviwriter.cpp
+    src/sensors/mjpegaviwriter.h
+    src/sensors/sensorservicecontroller.h
+    src/sensors/sensorclocksync.h
+    src/testing/preflightevaluator.cpp
+    src/testing/preflightevaluator.h
+    src/flight/px4eventtranslator.cpp
+    src/flight/px4eventtranslator.h
+    src/mission/routedeviationanalyzer.cpp
+    src/mission/routedeviationanalyzer.h
+    src/sessions/testreportgenerator.cpp
+    src/sessions/testreportgenerator.h
+    src/mapping/worldmapcatalog.cpp
+    src/mapping/worldmapcatalog.h
+    src/flight/vehicleconnection.cpp
+    src/flight/vehicleconnection.h
 )
 
 # Opt-in console subsystem for sanitizer/debugger runs. Normal Windows builds
+target_include_directories(FlightBench PRIVATE src)
+
 # remain GUI applications and do not open a terminal window.
 option(FLIGHTBENCH_CONSOLE_DIAGNOSTICS "Build FlightBench with a diagnostic console" OFF)
 if(FLIGHTBENCH_CONSOLE_DIAGNOSTICS)
@@ -108,54 +141,81 @@ file(GLOB FLIGHTBENCH_WORLD_MAP_ASSETS
 set(FLIGHTBENCH_WORLD_MAP_JSON_ASSETS ${FLIGHTBENCH_WORLD_MAP_ASSETS})
 list(FILTER FLIGHTBENCH_WORLD_MAP_JSON_ASSETS INCLUDE REGEX "\\.json$")
 
+# Private relative-import helper, not a public JavaScript namespace of FlightBench.
+# Exporting it through qmldir makes repeated module imports ambiguous in Qt.
+set_source_files_properties(qml/features/mission/RouteMapPainter.js PROPERTIES
+    QT_QML_SKIP_QMLDIR_ENTRY TRUE)
+
 qt_add_qml_module(FlightBench
     URI FlightBench
     VERSION 1.0
     QML_FILES
         qml/Theme.qml
         qml/Main.qml
-        qml/components/ActionButton.qml
-        qml/components/AcceptanceResultRow.qml
-        qml/components/AppToolTip.qml
-        qml/components/CompactIconButton.qml
-        qml/components/DisclosureRow.qml
-        qml/components/HealthCheckRow.qml
-        qml/components/IconLink.qml
-        qml/components/MissionPlanner.qml
-        qml/components/NumericField.qml
-        qml/components/SegmentedControl.qml
-        qml/components/StatusRow.qml
-        qml/components/SurfaceCard.qml
-        qml/components/ToastHost.qml
-        qml/components/TelemetryPanel.qml
-        qml/components/FlightScene3D.qml
-        qml/components/ReplayAnalysisPanel.qml
-        qml/components/ReplayControls.qml
-        qml/components/ReplayEventPanel.qml
-        qml/components/ReplayTelemetryChart.qml
-        qml/components/RouteDeviationSummary.qml
-        qml/components/LidarPanel.qml
-        qml/components/CameraPanel.qml
-        qml/components/GimbalInspectionPanel.qml
-        qml/components/DepthMapView3D.qml
-        qml/components/VisualSurveyMap.qml
-        qml/components/VisualSurveyDialog.qml
-        qml/components/RuntimeEnvironmentCenter.qml
-        qml/components/SimulationModelPicker.qml
-        qml/components/SimulationWorldPicker.qml
-        qml/components/SelectField.qml
-        qml/components/SettingsCenter.qml
-        qml/components/SessionEditDialog.qml
-        qml/components/SessionFilterDialog.qml
-        qml/components/SessionTrashDialog.qml
-        qml/components/PreflightSummary.qml
-        qml/components/TestPlanEditDialog.qml
-        qml/components/TestPlanPicker.qml
-        qml/components/TestResultSummary.qml
-        qml/components/WorldScene3D.qml
-        qml/components/GroundPositionMarker3D.qml
-        qml/components/DroneModel3D.qml
-        qml/components/ThemedIcon.qml
+        qml/controls/ActionButton.qml
+        qml/features/plans/AcceptanceResultRow.qml
+        qml/controls/AppToolTip.qml
+        qml/controls/CompactIconButton.qml
+        qml/controls/DisclosureRow.qml
+        qml/features/plans/HealthCheckRow.qml
+        qml/controls/IconLink.qml
+        qml/features/mission/MissionPlanner.qml
+        qml/features/mission/WaypointMapMarker.qml
+        qml/features/mission/MissionMapInteraction.qml
+        qml/features/mission/RouteMapPainter.js
+        qml/features/mission/RouteLibraryDialog.qml
+        qml/features/mission/WaypointEditorPanel.qml
+        qml/features/records/SessionSensorSummary.qml
+        qml/controls/NumericField.qml
+        qml/controls/SegmentedControl.qml
+        qml/controls/StatusRow.qml
+        qml/controls/SurfaceCard.qml
+        qml/controls/ToastHost.qml
+        qml/features/flight/TelemetryPanel.qml
+        qml/features/scene3d/FlightScene3D.qml
+        qml/features/records/ReplayAnalysisPanel.qml
+        qml/features/records/ReplayControls.qml
+        qml/features/records/ReplayEventPanel.qml
+        qml/features/records/ReplayTelemetryChart.qml
+        qml/features/mission/RouteDeviationSummary.qml
+        qml/features/sensors/LidarPanel.qml
+        qml/features/sensors/CameraPanel.qml
+        qml/features/inspection/GimbalInspectionPanel.qml
+        qml/features/sensors/DepthMapView3D.qml
+        qml/features/inspection/VisualSurveyMap.qml
+        qml/features/inspection/VisualSurveyDialog.qml
+        qml/features/environment/RuntimeEnvironmentCenter.qml
+        qml/features/environment/SimulationModelPicker.qml
+        qml/features/environment/SimulationWorldPicker.qml
+        qml/controls/SelectField.qml
+        qml/features/settings/SettingsCenter.qml
+        qml/features/settings/SettingsAppearancePage.qml
+        qml/features/settings/SettingsInteractionPage.qml
+        qml/features/settings/SettingsScenePage.qml
+        qml/features/settings/SettingsPathPage.qml
+        qml/features/settings/SettingsStoragePage.qml
+        qml/features/settings/SettingsSoftwarePage.qml
+        qml/features/records/SessionAcceptanceSection.qml
+        qml/features/records/SessionDepthMapDialog.qml
+        qml/features/settings/SettingsPageHeader.qml
+        qml/features/settings/SettingsSectionLabel.qml
+        qml/features/settings/SettingsCategoryRow.qml
+        qml/features/settings/SettingsToggle.qml
+        qml/features/settings/SettingsSwitchRow.qml
+        qml/features/settings/SettingsChoiceRow.qml
+        qml/features/settings/SettingsNumberRow.qml
+        qml/features/settings/SettingsValueLine.qml
+        qml/features/records/SessionEditDialog.qml
+        qml/features/records/SessionFilterDialog.qml
+        qml/features/records/SessionTrashDialog.qml
+        qml/features/plans/PreflightSummary.qml
+        qml/features/plans/TestPlanEditDialog.qml
+        qml/features/plans/TestPlanPicker.qml
+        qml/features/plans/TestResultSummary.qml
+        qml/features/scene3d/WorldScene3D.qml
+        qml/features/scene3d/GroundPositionMarker3D.qml
+        qml/features/scene3d/DroneModel3D.qml
+        qml/controls/ThemedIcon.qml
         qml/shell/AppShell.qml
         qml/shell/BottomNavigation.qml
         qml/shell/TopBar.qml
@@ -267,45 +327,76 @@ install(TARGETS FlightBench
 
 add_executable(FlightBenchFlightTest EXCLUDE_FROM_ALL
     tests/flighttest.cpp
-    src/appcontroller.cpp
-    src/appcontroller.h
-    src/storagepaths.h
-    src/acceptanceevaluator.cpp
-    src/acceptanceevaluator.h
-    src/dockercontroller.cpp
-    src/dockercontroller.h
-    src/flightsessionrecorder.cpp
-    src/flightsessionrecorder.h
-    src/lidarmappingcontroller.cpp
-    src/lidarmappingcontroller.h
-    src/depthmappingcontroller.cpp
-    src/depthmappingcontroller.h
-    src/visualsurveycontroller.cpp
-    src/visualsurveycontroller.h
-    src/gimbalinspectioncontroller.cpp
-    src/gimbalinspectioncontroller.h
-    src/flightpathgeometry.cpp
-    src/flightpathgeometry.h
-    src/routelibrary.cpp
-    src/routelibrary.h
-    src/testplanrepository.cpp
-    src/testplanrepository.h
-    src/replaycontroller.cpp
-    src/replaycontroller.h
-    src/sensorservicecontroller.cpp
-    src/sensorservicecontroller.h
-    src/preflightevaluator.cpp
-    src/preflightevaluator.h
-    src/px4eventtranslator.cpp
-    src/px4eventtranslator.h
-    src/routedeviationanalyzer.cpp
-    src/routedeviationanalyzer.h
-    src/testreportgenerator.cpp
-    src/testreportgenerator.h
-    src/worldmapcatalog.cpp
-    src/worldmapcatalog.h
-    src/vehicleconnection.cpp
-    src/vehicleconnection.h
+    src/app/appcontroller.cpp
+    src/app/simulationruncoordinator.cpp
+    src/app/simulationruncoordinator.h
+    src/sessions/sensorsessionfinalizer.cpp
+    src/sessions/sensorsessionfinalizer.h
+    src/infrastructure/simulationcatalog.cpp
+    src/infrastructure/applicationpreferences.cpp
+    src/infrastructure/applicationpreferences.h
+    src/infrastructure/runtimeinformation.cpp
+    src/infrastructure/runtimeinformation.h
+    src/infrastructure/simulationcatalog.h
+    src/app/appcontroller.h
+    src/infrastructure/storagepaths.h
+    src/testing/acceptanceevaluator.cpp
+    src/testing/acceptanceevaluator.h
+    src/infrastructure/dockercontroller.cpp
+    src/infrastructure/dockercontroller.h
+    src/sessions/flightsessionrecorder.cpp
+    src/sessions/sessionarchive.cpp
+    src/sessions/sessionarchive.h
+    src/sessions/flightsessionrecorder.h
+    src/mapping/lidarmappingcontroller.cpp
+    src/mapping/lidarmapoutput.cpp
+    src/mapping/lidarmapoutput.h
+    src/mapping/lidarmaptypes.h
+    src/mapping/lidarmappingcontroller.h
+    src/mapping/depthmappingcontroller.cpp
+    src/mapping/depthsurfacegeometry.cpp
+    src/mapping/depthmapexport.cpp
+    src/mapping/depthmapreader.cpp
+    src/mapping/depthmapreader.h
+    src/mapping/depthvoxel.h
+    src/mapping/depthmapexport.h
+    src/mapping/depthsurfacegeometry.h
+    src/mapping/depthvoxelcoordinates.h
+    src/mapping/depthmappingcontroller.h
+    src/inspection/visualsurveycontroller.cpp
+    src/inspection/visualsurveycontroller.h
+    src/inspection/gimbalinspectioncontroller.cpp
+    src/inspection/gimbalinspectioncontroller.h
+    src/mapping/flightpathgeometry.cpp
+    src/mapping/flightpathgeometry.h
+    src/mission/routelibrary.cpp
+    src/mission/routelibrary.h
+    src/testing/testplanrepository.cpp
+    src/testing/testplanrepository.h
+    src/sessions/replaycontroller.cpp
+    src/sessions/replaydata.cpp
+    src/sessions/replaydata.h
+    src/sessions/replaycontroller.h
+    src/sensors/sensorservicecontroller.cpp
+    src/sensors/sensorsessionrecorder.cpp
+    src/sensors/sensorsessionrecorder.h
+    src/sensors/sensorsessionstorage.cpp
+    src/sensors/sensorsessionstorage.h
+    src/sensors/mjpegaviwriter.cpp
+    src/sensors/mjpegaviwriter.h
+    src/sensors/sensorservicecontroller.h
+    src/testing/preflightevaluator.cpp
+    src/testing/preflightevaluator.h
+    src/flight/px4eventtranslator.cpp
+    src/flight/px4eventtranslator.h
+    src/mission/routedeviationanalyzer.cpp
+    src/mission/routedeviationanalyzer.h
+    src/sessions/testreportgenerator.cpp
+    src/sessions/testreportgenerator.h
+    src/mapping/worldmapcatalog.cpp
+    src/mapping/worldmapcatalog.h
+    src/flight/vehicleconnection.cpp
+    src/flight/vehicleconnection.h
 )
 
 target_include_directories(FlightBenchFlightTest PRIVATE src)
@@ -324,45 +415,76 @@ add_custom_command(TARGET FlightBenchFlightTest POST_BUILD
 
 add_executable(FlightBenchMissionTest EXCLUDE_FROM_ALL
     tests/missiontest.cpp
-    src/appcontroller.cpp
-    src/appcontroller.h
-    src/storagepaths.h
-    src/acceptanceevaluator.cpp
-    src/acceptanceevaluator.h
-    src/dockercontroller.cpp
-    src/dockercontroller.h
-    src/flightsessionrecorder.cpp
-    src/flightsessionrecorder.h
-    src/lidarmappingcontroller.cpp
-    src/lidarmappingcontroller.h
-    src/depthmappingcontroller.cpp
-    src/depthmappingcontroller.h
-    src/visualsurveycontroller.cpp
-    src/visualsurveycontroller.h
-    src/gimbalinspectioncontroller.cpp
-    src/gimbalinspectioncontroller.h
-    src/flightpathgeometry.cpp
-    src/flightpathgeometry.h
-    src/routelibrary.cpp
-    src/routelibrary.h
-    src/testplanrepository.cpp
-    src/testplanrepository.h
-    src/replaycontroller.cpp
-    src/replaycontroller.h
-    src/sensorservicecontroller.cpp
-    src/sensorservicecontroller.h
-    src/preflightevaluator.cpp
-    src/preflightevaluator.h
-    src/px4eventtranslator.cpp
-    src/px4eventtranslator.h
-    src/routedeviationanalyzer.cpp
-    src/routedeviationanalyzer.h
-    src/testreportgenerator.cpp
-    src/testreportgenerator.h
-    src/worldmapcatalog.cpp
-    src/worldmapcatalog.h
-    src/vehicleconnection.cpp
-    src/vehicleconnection.h
+    src/app/appcontroller.cpp
+    src/app/simulationruncoordinator.cpp
+    src/app/simulationruncoordinator.h
+    src/sessions/sensorsessionfinalizer.cpp
+    src/sessions/sensorsessionfinalizer.h
+    src/infrastructure/simulationcatalog.cpp
+    src/infrastructure/applicationpreferences.cpp
+    src/infrastructure/applicationpreferences.h
+    src/infrastructure/runtimeinformation.cpp
+    src/infrastructure/runtimeinformation.h
+    src/infrastructure/simulationcatalog.h
+    src/app/appcontroller.h
+    src/infrastructure/storagepaths.h
+    src/testing/acceptanceevaluator.cpp
+    src/testing/acceptanceevaluator.h
+    src/infrastructure/dockercontroller.cpp
+    src/infrastructure/dockercontroller.h
+    src/sessions/flightsessionrecorder.cpp
+    src/sessions/sessionarchive.cpp
+    src/sessions/sessionarchive.h
+    src/sessions/flightsessionrecorder.h
+    src/mapping/lidarmappingcontroller.cpp
+    src/mapping/lidarmapoutput.cpp
+    src/mapping/lidarmapoutput.h
+    src/mapping/lidarmaptypes.h
+    src/mapping/lidarmappingcontroller.h
+    src/mapping/depthmappingcontroller.cpp
+    src/mapping/depthsurfacegeometry.cpp
+    src/mapping/depthmapexport.cpp
+    src/mapping/depthmapreader.cpp
+    src/mapping/depthmapreader.h
+    src/mapping/depthvoxel.h
+    src/mapping/depthmapexport.h
+    src/mapping/depthsurfacegeometry.h
+    src/mapping/depthvoxelcoordinates.h
+    src/mapping/depthmappingcontroller.h
+    src/inspection/visualsurveycontroller.cpp
+    src/inspection/visualsurveycontroller.h
+    src/inspection/gimbalinspectioncontroller.cpp
+    src/inspection/gimbalinspectioncontroller.h
+    src/mapping/flightpathgeometry.cpp
+    src/mapping/flightpathgeometry.h
+    src/mission/routelibrary.cpp
+    src/mission/routelibrary.h
+    src/testing/testplanrepository.cpp
+    src/testing/testplanrepository.h
+    src/sessions/replaycontroller.cpp
+    src/sessions/replaydata.cpp
+    src/sessions/replaydata.h
+    src/sessions/replaycontroller.h
+    src/sensors/sensorservicecontroller.cpp
+    src/sensors/sensorsessionrecorder.cpp
+    src/sensors/sensorsessionrecorder.h
+    src/sensors/sensorsessionstorage.cpp
+    src/sensors/sensorsessionstorage.h
+    src/sensors/mjpegaviwriter.cpp
+    src/sensors/mjpegaviwriter.h
+    src/sensors/sensorservicecontroller.h
+    src/testing/preflightevaluator.cpp
+    src/testing/preflightevaluator.h
+    src/flight/px4eventtranslator.cpp
+    src/flight/px4eventtranslator.h
+    src/mission/routedeviationanalyzer.cpp
+    src/mission/routedeviationanalyzer.h
+    src/sessions/testreportgenerator.cpp
+    src/sessions/testreportgenerator.h
+    src/mapping/worldmapcatalog.cpp
+    src/mapping/worldmapcatalog.h
+    src/flight/vehicleconnection.cpp
+    src/flight/vehicleconnection.h
 )
 
 target_include_directories(FlightBenchMissionTest PRIVATE src)
@@ -387,9 +509,9 @@ add_custom_command(TARGET FlightBenchMissionTest POST_BUILD
 
 add_executable(FlightBenchRouteLibraryTest EXCLUDE_FROM_ALL
     tests/routelibrarytest.cpp
-    src/routelibrary.cpp
-    src/routelibrary.h
-    src/storagepaths.h
+    src/mission/routelibrary.cpp
+    src/mission/routelibrary.h
+    src/infrastructure/storagepaths.h
 )
 
 target_include_directories(FlightBenchRouteLibraryTest PRIVATE src)
@@ -401,9 +523,9 @@ endif()
 
 add_executable(FlightBenchTestPlanRepositoryTest EXCLUDE_FROM_ALL
     tests/testplanrepositorytest.cpp
-    src/testplanrepository.cpp
-    src/testplanrepository.h
-    src/storagepaths.h
+    src/testing/testplanrepository.cpp
+    src/testing/testplanrepository.h
+    src/infrastructure/storagepaths.h
 )
 
 target_include_directories(FlightBenchTestPlanRepositoryTest PRIVATE src)
@@ -415,10 +537,12 @@ endif()
 
 add_executable(FlightBenchReplayTest EXCLUDE_FROM_ALL
     tests/replaycontrollertest.cpp
-    src/replaycontroller.cpp
-    src/replaycontroller.h
-    src/flightpathgeometry.cpp
-    src/flightpathgeometry.h
+    src/sessions/replaycontroller.cpp
+    src/sessions/replaydata.cpp
+    src/sessions/replaydata.h
+    src/sessions/replaycontroller.h
+    src/mapping/flightpathgeometry.cpp
+    src/mapping/flightpathgeometry.h
 )
 
 target_include_directories(FlightBenchReplayTest PRIVATE src)
@@ -429,12 +553,14 @@ endif()
 
 add_executable(FlightBenchSessionRecorderTest EXCLUDE_FROM_ALL
     tests/flightsessionrecordertest.cpp
-    src/flightsessionrecorder.cpp
-    src/flightsessionrecorder.h
-    src/acceptanceevaluator.cpp
-    src/acceptanceevaluator.h
-    src/routedeviationanalyzer.cpp
-    src/routedeviationanalyzer.h
+    src/sessions/flightsessionrecorder.cpp
+    src/sessions/sessionarchive.cpp
+    src/sessions/sessionarchive.h
+    src/sessions/flightsessionrecorder.h
+    src/testing/acceptanceevaluator.cpp
+    src/testing/acceptanceevaluator.h
+    src/mission/routedeviationanalyzer.cpp
+    src/mission/routedeviationanalyzer.h
 )
 
 target_include_directories(FlightBenchSessionRecorderTest PRIVATE src)
@@ -445,8 +571,8 @@ endif()
 
 add_executable(FlightBenchRouteAnalysisTest EXCLUDE_FROM_ALL
     tests/routedeviationanalyzertest.cpp
-    src/routedeviationanalyzer.cpp
-    src/routedeviationanalyzer.h
+    src/mission/routedeviationanalyzer.cpp
+    src/mission/routedeviationanalyzer.h
 )
 
 target_include_directories(FlightBenchRouteAnalysisTest PRIVATE src)
@@ -458,8 +584,8 @@ endif()
 
 add_executable(FlightBenchWorldMapTest EXCLUDE_FROM_ALL
     tests/worldmapcatalogtest.cpp
-    src/worldmapcatalog.cpp
-    src/worldmapcatalog.h
+    src/mapping/worldmapcatalog.cpp
+    src/mapping/worldmapcatalog.h
 )
 
 target_include_directories(FlightBenchWorldMapTest PRIVATE src)
@@ -475,10 +601,10 @@ endif()
 
 add_executable(FlightBenchTestWorkflowTest EXCLUDE_FROM_ALL
     tests/testworkflowtest.cpp
-    src/acceptanceevaluator.cpp
-    src/acceptanceevaluator.h
-    src/testreportgenerator.cpp
-    src/testreportgenerator.h
+    src/testing/acceptanceevaluator.cpp
+    src/testing/acceptanceevaluator.h
+    src/sessions/testreportgenerator.cpp
+    src/sessions/testreportgenerator.h
 )
 target_include_directories(FlightBenchTestWorkflowTest PRIVATE src)
 target_link_libraries(FlightBenchTestWorkflowTest PRIVATE Qt6::Core)
@@ -488,8 +614,14 @@ endif()
 
 add_executable(FlightBenchSensorServiceTest EXCLUDE_FROM_ALL
     tests/sensorservicecontrollertest.cpp
-    src/sensorservicecontroller.cpp
-    src/sensorservicecontroller.h
+    src/sensors/sensorservicecontroller.cpp
+    src/sensors/sensorsessionrecorder.cpp
+    src/sensors/sensorsessionrecorder.h
+    src/sensors/sensorsessionstorage.cpp
+    src/sensors/sensorsessionstorage.h
+    src/sensors/mjpegaviwriter.cpp
+    src/sensors/mjpegaviwriter.h
+    src/sensors/sensorservicecontroller.h
 )
 target_compile_definitions(FlightBenchSensorServiceTest PRIVATE FLIGHTBENCH_TESTING=1)
 target_include_directories(FlightBenchSensorServiceTest PRIVATE src)
@@ -500,8 +632,11 @@ endif()
 
 add_executable(FlightBenchLidarMappingTest EXCLUDE_FROM_ALL
     tests/lidarmappingcontrollertest.cpp
-    src/lidarmappingcontroller.cpp
-    src/lidarmappingcontroller.h
+    src/mapping/lidarmappingcontroller.cpp
+    src/mapping/lidarmapoutput.cpp
+    src/mapping/lidarmapoutput.h
+    src/mapping/lidarmaptypes.h
+    src/mapping/lidarmappingcontroller.h
 )
 target_include_directories(FlightBenchLidarMappingTest PRIVATE src)
 target_link_libraries(FlightBenchLidarMappingTest PRIVATE Qt6::Core Qt6::Gui)
@@ -511,8 +646,16 @@ endif()
 
 add_executable(FlightBenchDepthMappingTest EXCLUDE_FROM_ALL
     tests/depthmappingcontrollertest.cpp
-    src/depthmappingcontroller.cpp
-    src/depthmappingcontroller.h
+    src/mapping/depthmappingcontroller.cpp
+    src/mapping/depthsurfacegeometry.cpp
+    src/mapping/depthmapexport.cpp
+    src/mapping/depthmapreader.cpp
+    src/mapping/depthmapreader.h
+    src/mapping/depthvoxel.h
+    src/mapping/depthmapexport.h
+    src/mapping/depthsurfacegeometry.h
+    src/mapping/depthvoxelcoordinates.h
+    src/mapping/depthmappingcontroller.h
 )
 target_include_directories(FlightBenchDepthMappingTest PRIVATE src)
 target_link_libraries(FlightBenchDepthMappingTest PRIVATE Qt6::Core Qt6::Gui Qt6::Quick3D)
@@ -522,8 +665,8 @@ endif()
 
 add_executable(FlightBenchVisualSurveyTest EXCLUDE_FROM_ALL
     tests/visualsurveycontrollertest.cpp
-    src/visualsurveycontroller.cpp
-    src/visualsurveycontroller.h
+    src/inspection/visualsurveycontroller.cpp
+    src/inspection/visualsurveycontroller.h
 )
 target_include_directories(FlightBenchVisualSurveyTest PRIVATE src)
 target_link_libraries(FlightBenchVisualSurveyTest PRIVATE Qt6::Core Qt6::Gui)
@@ -534,14 +677,14 @@ endif()
 add_executable(FlightBenchGimbalInspectionTest EXCLUDE_FROM_ALL
     tests/gimbalinspectioncontrollertest.cpp
     tests/gimbalinspection.qrc
-    src/gimbalinspectioncontroller.cpp
-    src/gimbalinspectioncontroller.h
-    src/visualsurveycontroller.cpp
-    src/visualsurveycontroller.h
-    src/worldmapcatalog.cpp
-    src/worldmapcatalog.h
-    src/testreportgenerator.cpp
-    src/testreportgenerator.h
+    src/inspection/gimbalinspectioncontroller.cpp
+    src/inspection/gimbalinspectioncontroller.h
+    src/inspection/visualsurveycontroller.cpp
+    src/inspection/visualsurveycontroller.h
+    src/mapping/worldmapcatalog.cpp
+    src/mapping/worldmapcatalog.h
+    src/sessions/testreportgenerator.cpp
+    src/sessions/testreportgenerator.h
 )
 set_target_properties(FlightBenchGimbalInspectionTest PROPERTIES AUTORCC ON)
 target_include_directories(FlightBenchGimbalInspectionTest PRIVATE src)
@@ -551,12 +694,71 @@ if(MSVC)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(FlightBenchRunCoordinatorTest
+        tests/simulationruncoordinatortest.cpp src/app/simulationruncoordinator.cpp)
+    target_include_directories(FlightBenchRunCoordinatorTest PRIVATE src)
+    target_link_libraries(FlightBenchRunCoordinatorTest PRIVATE Qt6::Core)
+    if(MSVC)
+        target_compile_options(FlightBenchRunCoordinatorTest PRIVATE /utf-8 /Zc:__cplusplus)
+    endif()
+    add_test(NAME FlightBench.RunCoordinator COMMAND FlightBenchRunCoordinatorTest)
+    set_tests_properties(FlightBench.RunCoordinator PROPERTIES LABELS "unit" TIMEOUT 30
+        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+    add_executable(FlightBenchSessionIoTest
+        tests/sessioniotest.cpp
+        src/sensors/sensorsessionstorage.cpp
+        src/sensors/mjpegaviwriter.cpp
+        src/sessions/replaydata.cpp)
+    target_include_directories(FlightBenchSessionIoTest PRIVATE src)
+    target_link_libraries(FlightBenchSessionIoTest PRIVATE Qt6::Core Qt6::Gui)
+    if(MSVC)
+        target_compile_options(FlightBenchSessionIoTest PRIVATE /utf-8 /Zc:__cplusplus)
+    endif()
+    add_test(NAME FlightBench.SessionIo COMMAND FlightBenchSessionIoTest)
+    set_tests_properties(FlightBench.SessionIo PROPERTIES LABELS "unit" TIMEOUT 30
+        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+    add_executable(FlightBenchPreferencesTest
+        tests/applicationpreferencestest.cpp
+        src/infrastructure/applicationpreferences.cpp
+        src/infrastructure/applicationpreferences.h)
+    target_include_directories(FlightBenchPreferencesTest PRIVATE src)
+    target_link_libraries(FlightBenchPreferencesTest PRIVATE Qt6::Core)
+    if(MSVC)
+        target_compile_options(FlightBenchPreferencesTest PRIVATE /utf-8 /Zc:__cplusplus)
+    endif()
+    add_test(NAME FlightBench.Preferences COMMAND FlightBenchPreferencesTest)
+    set_tests_properties(FlightBench.Preferences PROPERTIES LABELS "unit" TIMEOUT 30
+        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
     # Isolated real-layout regression: load the source component and Theme,
     # without starting AppController, Docker, or touching actual flight records.
     find_program(FLIGHTBENCH_QML_TEST_RUNNER NAMES qmltestrunner qmltestrunner6
                  HINTS "${Qt6_DIR}/../../../bin")
     if(FLIGHTBENCH_QML_TEST_RUNNER)
         foreach(_scale IN ITEMS 1 1.25 1.5)
+            add_test(NAME FlightBench.FeaturePanels.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_FeaturePanels.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.FeaturePanels.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+            add_test(NAME FlightBench.UiSections.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_UiSections.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.UiSections.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+            add_test(NAME FlightBench.SettingsRows.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_SettingsRows.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.SettingsRows.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
             add_test(NAME FlightBench.AcceptanceLayout.Scale${_scale}
                      COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
                              -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_AcceptanceResultRow.qml"
