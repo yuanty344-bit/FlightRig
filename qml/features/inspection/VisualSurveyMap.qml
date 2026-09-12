@@ -349,7 +349,7 @@ Rectangle {
                         onClicked: App.exportVisualSurveyKeyframe(Number(root.selected.index || 0))
                     }
                     ActionButton {
-                        Layout.fillWidth: true; text: "打开位置"; compact: true
+                        Layout.fillWidth: true; text: "打开影像文件夹"; compact: true
                         iconSource: "qrc:/icons/folder-open.svg"; kind: "secondary"
                         enabled: Boolean(root.selected.timeLabel)
                         onClicked: App.openVisualSurveyFolder()

@@ -19,7 +19,7 @@ Item {
     property string resultFilter: ""
     property int dateFilterDays: 0
     property var filteredSessions: []
-    property var modelFilterOptions: [{ label: "全部机型", value: "" }]
+    property var modelFilterOptions: [{ label: "全部飞行器", value: "" }]
     property var worldFilterOptions: [{ label: "全部场景", value: "" }]
     readonly property bool filtersActive: modelFilter.length > 0
                                           || worldFilter.length > 0
@@ -68,7 +68,7 @@ Item {
         if (planName.length > 0) return planName
         const routeName = String(session.missionRouteName || "").trim()
         if (routeName.length > 0) return routeName
-        return String(session.modelName || "飞行会话")
+        return String(session.modelName || "飞行记录")
     }
 
     function modelKey(session) {
@@ -94,7 +94,7 @@ Item {
 
     function rebuildFilters() {
         const sessions = App.flightSessions || []
-        const modelOptions = [{ label: "全部机型", value: "" }]
+        const modelOptions = [{ label: "全部飞行器", value: "" }]
         const worldOptions = [{ label: "全部场景", value: "" }]
         const seenModels = ({})
         const seenWorlds = ({})
@@ -253,24 +253,24 @@ Item {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: "会话、遥测、传感器证据与测试结论"
+                        text: "飞行记录、遥测、传感器证据与测试结论"
                         color: Theme.heroMuted
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
                     }
                 }
                 CompactIconButton {
-                    iconSource: "qrc:/icons/archive-restore.svg"
-                    accessibleLabel: "打开会话回收站"
-                    toolTipText: App.trashSessionCount > 0 ? "会话回收站（" + App.trashSessionCount + "）" : "会话回收站"
+                    iconSource: "qrc:/icons/trash-2.svg"
+                    accessibleLabel: "打开飞行记录回收站"
+                    toolTipText: App.trashSessionCount > 0 ? "飞行记录回收站（" + App.trashSessionCount + "）" : "飞行记录回收站"
                     outlined: App.trashSessionCount > 0
                     onDarkSurface: true
                     onClicked: trashDialog.open()
                 }
                 CompactIconButton {
-                    iconSource: "qrc:/icons/sliders-horizontal.svg"
-                    accessibleLabel: "筛选飞行会话"
-                    toolTipText: root.filtersActive ? "已筛选会话" : "筛选会话"
+                    iconSource: "qrc:/icons/list-filter.svg"
+                    accessibleLabel: "筛选飞行记录"
+                    toolTipText: root.filtersActive ? "已筛选飞行记录" : "筛选飞行记录"
                     outlined: root.filtersActive
                     onDarkSurface: true
                     normalIconColor: root.filtersActive ? "#79ADFF" : Theme.heroIcon
@@ -279,7 +279,7 @@ Item {
                 ActionButton {
                     Layout.preferredWidth: 114
                     compact: true
-                    text: "保存位置"
+                    text: "记录文件夹"
                     iconSource: "qrc:/icons/folder-open.svg"
                     kind: "glass"
                     onClicked: App.openSessionsFolder()
@@ -313,7 +313,7 @@ Item {
                             Layout.rightMargin: 14
                             Text {
                                 Layout.fillWidth: true
-                                text: root.filtersActive ? "筛选结果" : "最近会话"
+                                text: root.filtersActive ? "筛选结果" : "最近记录"
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.textTiny
@@ -334,7 +334,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: visible ? 72 : 0
                             activeFocusOnTab: true
-                            Accessible.name: "当前会话"
+                            Accessible.name: "当前飞行记录"
                             Accessible.role: Accessible.Button
                             Keys.onReturnPressed: root.selectSession(String(App.activeFlightSession.id || ""))
                             Keys.onEnterPressed: root.selectSession(String(App.activeFlightSession.id || ""))
@@ -361,7 +361,7 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 3
-                                    Text { text: "当前会话"; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? Theme.accentContent : Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+                                    Text { text: "当前飞行记录"; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? Theme.accentContent : Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
                                     Text { text: String(App.activeFlightSession.durationLabel || "00:00") + " · 正在记录"; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? "#DDEAFF" : Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                                 }
                             }
@@ -460,7 +460,7 @@ Item {
                             spacing: 6
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: root.filtersActive ? "没有符合条件的会话" : "还没有飞行记录"
+                                text: root.filtersActive ? "没有符合条件的飞行记录" : "还没有飞行记录"
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.textSmall
@@ -528,7 +528,7 @@ Item {
                             }
                             CompactIconButton {
                                 iconSource: "qrc:/icons/pencil.svg"
-                                accessibleLabel: "编辑会话名称和备注"
+                                accessibleLabel: "编辑飞行记录名称和备注"
                                 toolTipText: "编辑名称和备注"
                                 onClicked: {
                                     editSessionDialog.prepare(
@@ -540,22 +540,22 @@ Item {
                             CompactIconButton {
                                 visible: !root.compactLayout
                                          && root.selectedSessionId !== String(App.activeFlightSession.id || "")
-                                iconSource: "qrc:/icons/history.svg"
-                                accessibleLabel: "复用本次测试方案"
-                                toolTipText: "复用本次方案"
+                                iconSource: "qrc:/icons/clipboard-copy.svg"
+                                accessibleLabel: "使用本次测试配置"
+                                toolTipText: "使用本次测试配置"
                                 enabled: !App.simulationRunning && !App.flightSessionActive
                                 disabledReason: "停止当前仿真后才能复用方案"
                                 onClicked: root.reusePlanRequested(root.selectedSessionId)
                             }
                             CompactIconButton {
                                 iconSource: "qrc:/icons/play.svg"
-                                accessibleLabel: "回放当前飞行会话"
+                                accessibleLabel: "回放当前飞行记录"
                                 toolTipText: root.selectedSession.replayAvailable
-                                             ? "回放飞行" : "该会话缺少位置数据"
+                                             ? "回放飞行" : "该记录缺少位置数据"
                                 enabled: Boolean(root.selectedSession.replayAvailable)
                                          && !App.simulationRunning && !App.flightSessionActive
                                 disabledReason: !Boolean(root.selectedSession.replayAvailable)
-                                                ? "该会话缺少可回放的位置数据"
+                                                ? "该记录缺少可回放的位置数据"
                                                 : "停止当前仿真后才能回放"
                                 onClicked: root.replayRequested(root.selectedSessionId)
                             }
@@ -569,28 +569,28 @@ Item {
                                 id: moreSessionActionsButton
                                 visible: root.compactLayout
                                 iconSource: "qrc:/icons/ellipsis.svg"
-                                accessibleLabel: "更多会话操作"
+                                accessibleLabel: "更多飞行记录操作"
                                 toolTipText: "更多操作"
                                 onClicked: sessionActionsPopup.open()
                             }
                             CompactIconButton {
                                 visible: !root.compactLayout
-                                iconSource: "qrc:/icons/package.svg"
-                                accessibleLabel: "导出完整会话包"
+                                iconSource: "qrc:/icons/package-open.svg"
+                                accessibleLabel: "导出完整飞行记录包"
                                 toolTipText: "导出报告和原始数据包"
                                 onClicked: root.exportPath = App.exportSessionBundle(root.selectedSessionId)
                             }
                             CompactIconButton {
                                 visible: !root.compactLayout
                                 iconSource: "qrc:/icons/folder-open.svg"
-                                accessibleLabel: "打开当前会话目录"
-                                toolTipText: "打开目录"
+                                accessibleLabel: "打开当前记录文件夹"
+                                toolTipText: "打开当前记录文件夹"
                                 onClicked: App.openSessionFolder(root.selectedSessionId)
                             }
                             CompactIconButton {
                                 visible: !root.compactLayout
                                 iconSource: "qrc:/icons/file-down.svg"
-                                accessibleLabel: "导出当前会话 CSV"
+                                accessibleLabel: "导出当前记录 CSV"
                                 toolTipText: "导出 CSV"
                                 onClicked: root.exportPath = App.exportSessionCsv(root.selectedSessionId)
                             }
@@ -598,8 +598,8 @@ Item {
                                 visible: !root.compactLayout
                                          && root.selectedSessionId !== String(App.activeFlightSession.id || "")
                                 iconSource: "qrc:/icons/trash-2.svg"
-                                accessibleLabel: "删除当前飞行会话"
-                                toolTipText: "移到会话回收站"
+                                accessibleLabel: "删除当前飞行记录"
+                                toolTipText: "移到飞行记录回收站"
                                 danger: true
                                 onClicked: deleteSessionDialog.open()
                             }
@@ -686,7 +686,7 @@ Item {
 
                             DetailValue { label: "测试方案"; value: String(root.selectedSession.testPlanName || "未记录") }
                             DetailValue { label: "仿真场景"; value: root.selectedWorldText() }
-                            DetailValue { label: "健康检查"; value: String(root.selectedSession.healthResult || "未记录") }
+                            DetailValue { label: "起飞检查"; value: String(root.selectedSession.healthResult || "未记录") }
                             DetailValue { label: "异常事件"; value: Number(root.selectedSession.issueCount || 0) + " 项" }
                         }
 
@@ -768,7 +768,7 @@ Item {
                         Item { Layout.preferredHeight: 18 }
 
                         Text {
-                            text: "会话事件"
+                            text: "飞行事件"
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textSmall
@@ -816,7 +816,7 @@ Item {
                             visible: !root.selectedSession.events || root.selectedSession.events.length === 0
                             Layout.fillWidth: true
                             Layout.topMargin: 18
-                            text: "暂无会话事件"
+                            text: "暂无飞行事件"
                             color: Theme.textFaint
                             horizontalAlignment: Text.AlignHCenter
                             font.family: Theme.fontFamily
@@ -838,7 +838,7 @@ Item {
                     Text {
                         visible: root.selectedSessionId.length === 0
                         anchors.centerIn: parent
-                        text: "选择一个会话查看详情"
+                        text: "选择一条飞行记录查看详情"
                         color: Theme.textFaint
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
@@ -906,11 +906,11 @@ Item {
             ActionButton {
                 visible: root.selectedSessionId !== String(App.activeFlightSession.id || "")
                 Layout.fillWidth: true
-                text: "复用本次方案"
-                iconSource: "qrc:/icons/history.svg"
+                text: "使用本次测试配置"
+                iconSource: "qrc:/icons/clipboard-copy.svg"
                 kind: "secondary"
                 enabled: !App.simulationRunning && !App.flightSessionActive
-                disabledReason: "停止当前仿真后才能复用方案"
+                disabledReason: "停止当前仿真后才能使用历史测试配置"
                 onClicked: {
                     sessionActionsPopup.close()
                     root.reusePlanRequested(root.selectedSessionId)
@@ -918,8 +918,8 @@ Item {
             }
             ActionButton {
                 Layout.fillWidth: true
-                text: "导出完整会话包"
-                iconSource: "qrc:/icons/package.svg"
+                text: "导出完整飞行记录包"
+                iconSource: "qrc:/icons/package-open.svg"
                 kind: "secondary"
                 onClicked: {
                     sessionActionsPopup.close()
@@ -928,7 +928,7 @@ Item {
             }
             ActionButton {
                 Layout.fillWidth: true
-                text: "打开会话目录"
+                text: "打开记录文件夹"
                 iconSource: "qrc:/icons/folder-open.svg"
                 kind: "secondary"
                 onClicked: {
@@ -975,7 +975,7 @@ Item {
         contentItem: ColumnLayout {
             spacing: 12
             Text {
-                text: "移到会话回收站？"
+                text: "移到飞行记录回收站？"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTitle
@@ -983,7 +983,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "会话将保留 30 天。期间可以从记录页的回收站恢复。"
+                text: "飞行记录将保留 30 天，期间可以从记录页的回收站恢复。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textBody

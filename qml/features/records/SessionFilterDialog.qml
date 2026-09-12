@@ -42,7 +42,7 @@ MotionDialog {
             Layout.fillWidth: true
             Text {
                 Layout.fillWidth: true
-                text: "筛选会话"
+                text: "筛选飞行记录"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTitle
@@ -50,12 +50,12 @@ MotionDialog {
             }
             PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
-                accessibleLabel: "关闭会话筛选"
+                accessibleLabel: "关闭飞行记录筛选"
                 toolTipText: "关闭"
                 onClicked: root.close()
             }
         }
-        Text { text: "机型"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+        Text { text: "飞行器"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
         SelectField {
             Layout.fillWidth: true
             model: root.modelOptions
@@ -77,7 +77,7 @@ MotionDialog {
                 { label: "通过", value: "passed" },
                 { label: "有提醒", value: "warning" },
                 { label: "未通过", value: "failed" },
-                { label: "用户中止", value: "aborted" },
+                { label: "用户结束", value: "aborted" },
                 { label: "需检查", value: "review" },
                 { label: "未完成", value: "incomplete" },
                 { label: "未评估", value: "not-rated" }

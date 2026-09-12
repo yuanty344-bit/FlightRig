@@ -11,7 +11,7 @@ inline QString rootDirectory()
     const QString overridePath = qEnvironmentVariable("FLIGHTBENCH_DATA_ROOT").trimmed();
     if (!overridePath.isEmpty()) return QDir::cleanPath(overridePath);
     return QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
-        .filePath(QStringLiteral("FlightBench"));
+        .filePath(QStringLiteral("FlightRig"));
 }
 
 inline QString directory(const QString &name)

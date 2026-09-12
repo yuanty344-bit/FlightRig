@@ -137,7 +137,7 @@ void GimbalInspectionController::setPicking(bool value)
     if (m_historical) return;
     if (value && (!m_ready || !m_views[0].toMap().value(QStringLiteral("image")).toString().isEmpty()
                   || savedCount() > 0)) {
-        setStatus(m_ready ? QStringLiteral("本次已采集目标；更换目标请开始新会话")
+        setStatus(m_ready ? QStringLiteral("本次已采集目标；更换目标请开始新的飞行记录")
                           : QStringLiteral("请先启动云台仿真，等待位置与角度反馈")); return;
     }
     pause(); m_picking = value; emit changed();

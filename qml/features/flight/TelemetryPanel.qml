@@ -177,7 +177,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: attitude.bottom
                         anchors.topMargin: 4
-                        text: "更多遥测"
+                        text: "详细遥测"
                         iconSource: "qrc:/icons/gauge.svg"
                         sidePadding: 12
                         onClicked: root.moreTelemetryRequested()

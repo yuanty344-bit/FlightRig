@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "qingdao_may_fourth_square",
+  "sourceScene": "city-sources/qingdao_may_fourth_square/qingdao_may_fourth_square.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 2460,
+      "triangles": 4344
+    },
+    "roads": {
+      "vertices": 3468,
+      "triangles": 1734
+    },
+    "green_areas": {
+      "vertices": 393,
+      "triangles": 317
+    },
+    "water": {
+      "vertices": 0,
+      "triangles": 0
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/qingdao_may_fourth_square.sdf": "a135acd013c321ecbeb02bf49b091921356d183e653b7f1b7d7126be6f38c7e8",
+    "simulation/models/qingdao_may_fourth_square/model.sdf": "66456fea7329dbd9edd9916aa419265bb832b68358262f03677199880827ef23",
+    "simulation/models/qingdao_may_fourth_square/model.config": "544a9311414ed3f0defdc078794d298b1d174f1cac16f52b1cefb7755d317ef2",
+    "simulation/models/qingdao_may_fourth_square/ATTRIBUTION.md": "561c7a7813a14fd0b84e79d78b46d8efe012e098ba1e3583d970dd5cb5e7f81d",
+    "simulation/models/qingdao_may_fourth_square/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/qingdao_may_fourth_square/meshes/buildings.obj": "6829b3e9223e5908847eb1263a4d5ebd2048f3307e2d339dcd2eaa977a6c2db0",
+    "simulation/models/qingdao_may_fourth_square/meshes/roads.obj": "2b8f21fb1e85a7a431adb7b0e68bc4dd2a9389de95e094488a36a2b312f48830",
+    "simulation/models/qingdao_may_fourth_square/meshes/green_areas.obj": "669749741d63abeb5e06448cab4092ed7b1d0a7f59920b46575303e34baa659b",
+    "simulation/models/qingdao_may_fourth_square/meshes/water.obj": "a22a38a35c9b2dace350d194e689ceaf9166fd472ef478cee507c62ae35627b7"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

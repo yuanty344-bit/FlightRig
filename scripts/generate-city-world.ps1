@@ -36,6 +36,12 @@ param(
     [Parameter(ParameterSetName = 'Offline')]
     [double[]]$Bounds,
 
+    [ValidateRange(5, 100)]
+    [double]$MinimumOriginClearanceMeters = 20,
+
+    [ValidateRange(0, 100)]
+    [double]$MinimumWaterClearanceMeters = 10,
+
     [string]$Description,
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
@@ -81,10 +87,19 @@ if ($PSCmdlet.ParameterSetName -ne 'Offline') {
     $Bounds = @($download._flightbench.bounds | ForEach-Object { [double]$_ })
 } else {
     $SourceOsmJson = (Resolve-Path -LiteralPath $SourceOsmJson).Path
-    Copy-Item -LiteralPath $SourceOsmJson -Destination $rawPath -Force
+    if (-not [string]::Equals(
+            $SourceOsmJson,
+            [IO.Path]::GetFullPath($rawPath),
+            [StringComparison]::OrdinalIgnoreCase)) {
+        Copy-Item -LiteralPath $SourceOsmJson -Destination $rawPath -Force
+    }
     $sourceQuery = Join-Path (Split-Path -Parent $SourceOsmJson) 'overpass.query'
-    if (Test-Path -LiteralPath $sourceQuery) {
-        Copy-Item -LiteralPath $sourceQuery -Destination (Join-Path (Split-Path -Parent $rawPath) 'overpass.query') -Force
+    $targetQuery = Join-Path (Split-Path -Parent $rawPath) 'overpass.query'
+    if ((Test-Path -LiteralPath $sourceQuery) -and -not [string]::Equals(
+            [IO.Path]::GetFullPath($sourceQuery),
+            [IO.Path]::GetFullPath($targetQuery),
+            [StringComparison]::OrdinalIgnoreCase)) {
+        Copy-Item -LiteralPath $sourceQuery -Destination $targetQuery -Force
     }
     if ($BoundaryWayId -le 0 -and (!$Bounds -or $Bounds.Count -ne 4)) {
         $metadata = Get-Content -Raw -Encoding UTF8 -LiteralPath $rawPath | ConvertFrom-Json
@@ -160,9 +175,11 @@ Invoke-PythonChecked @(
     (Join-Path $PSScriptRoot 'cityworld\validate_assets.py'),
     '--project-root', $ProjectRoot,
     '--world-id', $WorldId,
-    '--scene', $scenePath
+    '--scene', $scenePath,
+    '--minimum-origin-clearance', $MinimumOriginClearanceMeters.ToString([Globalization.CultureInfo]::InvariantCulture),
+    '--minimum-water-clearance', $MinimumWaterClearanceMeters.ToString([Globalization.CultureInfo]::InvariantCulture)
 )
 
 Write-Host "City world ready: $Name ($WorldId)" -ForegroundColor Green
 Write-Host "Source: $sourceRoot"
-Write-Host 'Reconfigure and rebuild FlightBench so the new map resources are embedded.'
+Write-Host 'Reconfigure and rebuild FlightRig so the new map resources are embedded.'

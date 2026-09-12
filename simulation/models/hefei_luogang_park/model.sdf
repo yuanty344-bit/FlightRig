@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<sdf version="1.10">
+  <model name="hefei_luogang_park_city">
+    <static>true</static>
+    <link name="city">
+      <visual name="buildings_visual">
+        <geometry><mesh><uri>model://hefei_luogang_park/meshes/buildings.obj</uri></mesh></geometry>
+        <material><ambient>0.78 0.81 0.83 1</ambient><diffuse>0.88 0.90 0.91 1</diffuse><specular>0.08 0.08 0.08 1</specular></material>
+      </visual>
+      <collision name="buildings_collision">
+        <geometry><mesh><uri>model://hefei_luogang_park/meshes/buildings.obj</uri></mesh></geometry>
+      </collision>
+      <visual name="roads_visual">
+        <geometry><mesh><uri>model://hefei_luogang_park/meshes/roads.obj</uri></mesh></geometry>
+        <material><ambient>0.42 0.45 0.47 1</ambient><diffuse>0.50 0.53 0.55 1</diffuse></material>
+      </visual>
+      <visual name="green_areas_visual">
+        <geometry><mesh><uri>model://hefei_luogang_park/meshes/green_areas.obj</uri></mesh></geometry>
+        <material><ambient>0.34 0.48 0.36 1</ambient><diffuse>0.42 0.58 0.44 1</diffuse></material>
+      </visual>
+      <visual name="water_visual">
+        <geometry><mesh><uri>model://hefei_luogang_park/meshes/water.obj</uri></mesh></geometry>
+        <material><ambient>0.25 0.48 0.63 1</ambient><diffuse>0.34 0.61 0.76 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -20,7 +20,7 @@ TestCase {
         SettingsSwitchRow { id: toggle; title: "显示轨迹"; summary: "继续记录" }
         SettingsChoiceRow { id: choice; title: "选项"; choices: [{label:"默认",value:"default"}]; selectedValue: "default"; controlColumnWidth: 190 }
         SettingsNumberRow { id: number; title: "速度"; value: 2; unit: "m/s"; controlColumnWidth: 190 }
-        SettingsValueLine { id: line; label: "版本"; value: "0.12.0"; controlColumnWidth: 190 }
+        SettingsValueLine { id: line; label: "版本"; value: "0.13.0"; controlColumnWidth: 190 }
     }
     SignalSpy { id: categorySpy; target: category; signalName: "activated" }
     SignalSpy { id: toggleSpy; target: toggle; signalName: "toggled" }

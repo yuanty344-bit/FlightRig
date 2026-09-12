@@ -35,7 +35,7 @@ bool SensorSessionRecorder::beginSessionRecording(const QString &sessionFolder,
         const auto opened = m_sessionStorage.open(cleanFolder);
         if (opened != SensorSessionStorage::OpenResult::Ready) {
             m_callbacks.status(opened == SensorSessionStorage::OpenResult::DirectoryFailed
-                ? QStringLiteral("无法创建会话传感器目录，已改为仅预览")
+                ? QStringLiteral("无法创建飞行记录的传感器目录，已改为仅预览")
                 : QStringLiteral("无法创建传感器时间索引，已改为仅预览"));
             m_sessionUsage = QStringLiteral("preview");
         }
@@ -417,7 +417,7 @@ QVariantMap SensorSessionRecorder::finishSessionRecording()
         summary.insert(QStringLiteral("recordingComplete"), false);
         summary.insert(QStringLiteral("manifestWriteFailed"), true);
         summary.insert(QStringLiteral("statusLabel"),
-                       QStringLiteral("数据已保存，但会话索引写入失败"));
+                       QStringLiteral("数据已保存，但飞行记录索引写入失败"));
     }
     const bool wasRecording = m_sessionRecording;
     m_sessionRecording = false;

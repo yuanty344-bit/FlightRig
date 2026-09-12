@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "hangzhou_qianjiang_park",
+  "sourceScene": "city-sources/hangzhou_qianjiang_park/hangzhou_qianjiang_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 1508,
+      "triangles": 2692
+    },
+    "roads": {
+      "vertices": 1492,
+      "triangles": 746
+    },
+    "green_areas": {
+      "vertices": 151,
+      "triangles": 123
+    },
+    "water": {
+      "vertices": 0,
+      "triangles": 0
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/hangzhou_qianjiang_park.sdf": "1ae071b66159e7b02e5c4bee30fd865052c0151bcce65cc218a60475cd8d9a7f",
+    "simulation/models/hangzhou_qianjiang_park/model.sdf": "26f8ae4cd5cda578c0d94e7fa01d52ff3c9f11f382019d0b08166d196f0046d3",
+    "simulation/models/hangzhou_qianjiang_park/model.config": "6f12c3f32019c15a34a19581687660868bb96cd244a2c1c702286afd020e3c8e",
+    "simulation/models/hangzhou_qianjiang_park/ATTRIBUTION.md": "e2d5f072a28a146b8758f02ee10a483e870fdb54bc1ecb962ab32624d0300344",
+    "simulation/models/hangzhou_qianjiang_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/hangzhou_qianjiang_park/meshes/buildings.obj": "567c056d8699b52ce3749814172b21c45d1d14b79a630c95fb377a3f1dcf318b",
+    "simulation/models/hangzhou_qianjiang_park/meshes/roads.obj": "1a858abacb960f8af876db351e6cf627fe6894c6b2916821014106aa19e6a8ae",
+    "simulation/models/hangzhou_qianjiang_park/meshes/green_areas.obj": "caa7362a393db9aaba1a0dcca6bb0e68ae6e7479286f15811cb67ea46e2433a2",
+    "simulation/models/hangzhou_qianjiang_park/meshes/water.obj": "ce177d7d078a7134f64279847ff3cda781cc4766dbfc77995d89f1cee010b4f8"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

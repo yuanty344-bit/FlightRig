@@ -109,11 +109,11 @@ Item {
                 Text { Layout.fillWidth: true; text: "设置会自动保存，只影响以后使用时的偏好。"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
                 SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "外观"; summary: root.themeLabel() + " · 文字 " + Theme.textScalePercent + "%"; iconSource: "qrc:/icons/palette.svg"; targetPage: 1 }
                 SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "操作与快捷键"; summary: "精确转向 " + App.preciseTurnDefaultDegrees.toFixed(0) + "° · 相机灵敏度"; iconSource: "qrc:/icons/mouse-pointer-2.svg"; targetPage: 2 }
-                SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "三维视图"; summary: root.cameraLabel() + " · 世界图层"; iconSource: "qrc:/icons/box.svg"; targetPage: 3 }
+                SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "三维视图"; summary: root.cameraLabel() + " · 场景图层"; iconSource: "qrc:/icons/box.svg"; targetPage: 3 }
                 SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "飞行轨迹"; summary: App.flightPathVisible ? "显示 · " + root.pathLengthLabel() : "已隐藏"; iconSource: "qrc:/icons/route.svg"; targetPage: 4 }
                 SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "记录与存储"; summary: App.telemetryRecordingHz + " Hz · " + App.sessionStorageSizeLabel; iconSource: "qrc:/icons/database.svg"; targetPage: 5 }
-                SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "软件与环境"; summary: "FlightBench " + App.applicationVersion; iconSource: "qrc:/icons/info.svg"; targetPage: 6 }
-                Text { Layout.fillWidth: true; Layout.topMargin: 8; text: "机型、世界、航线和安全规则属于测试方案，不在这里重复设置。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                SettingsCategoryRow { onActivated: root.openPage(targetPage); title: "软件与环境"; summary: "FlightRig " + App.applicationVersion; iconSource: "qrc:/icons/info.svg"; targetPage: 6 }
+                Text { Layout.fillWidth: true; Layout.topMargin: 8; text: "飞行器、仿真场景、航线和安全规则属于测试方案，不在这里重复设置。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
             }
         }
 
@@ -157,9 +157,9 @@ Item {
 
     FileDialog {
         id: importDialog
-        title: "导入 FlightBench 设置"
+        title: "导入 FlightRig 设置"
         fileMode: FileDialog.OpenFile
-        nameFilters: ["FlightBench 设置 (*.json)"]
+        nameFilters: ["FlightRig 设置 (*.json)"]
         onAccepted: {
             const result = App.importApplicationSettings(selectedFile)
             if (result.success) {
@@ -488,8 +488,8 @@ Item {
         background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
-            Text { text: "清空会话回收站？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
-            Text { Layout.fillWidth: true; text: "回收站中的 " + App.trashSessionCount + " 条会话将永久删除，无法恢复。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
+            Text { text: "清空飞行记录回收站？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
+            Text { Layout.fillWidth: true; text: "回收站中的 " + App.trashSessionCount + " 条飞行记录将永久删除，无法恢复。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
             RowLayout {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }
@@ -510,7 +510,7 @@ Item {
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "恢复全部设置？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
-            Text { Layout.fillWidth: true; text: "外观、操作、三维视图、轨迹和记录偏好会恢复默认值。测试方案与会话不会删除。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
+            Text { Layout.fillWidth: true; text: "外观、操作、三维视图、轨迹和记录偏好会恢复默认值。测试方案与飞行记录不会删除。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; wrapMode: Text.WordWrap }
             RowLayout {
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }

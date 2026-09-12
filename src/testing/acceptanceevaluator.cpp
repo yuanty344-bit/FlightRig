@@ -34,7 +34,7 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     if (planType.isEmpty()) {
         return {{QStringLiteral("result"), QStringLiteral("not-rated")},
                 {QStringLiteral("resultLabel"), QStringLiteral("未评估")},
-                {QStringLiteral("reason"), QStringLiteral("会话没有保存测试方案与验收规则")},
+                {QStringLiteral("reason"), QStringLiteral("飞行记录没有保存测试方案与验收规则")},
                 {QStringLiteral("checks"), QVariantList{}},
                 {QStringLiteral("passedCount"), 0},
                 {QStringLiteral("warningCount"), 0},
@@ -71,10 +71,10 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     QVariantList checks;
     const bool healthPassed = session.value(QStringLiteral("healthResult")).toString()
                               == QStringLiteral("已通过");
-    checks.append(check(QStringLiteral("health"), QStringLiteral("起飞前健康检查"),
+    checks.append(check(QStringLiteral("health"), QStringLiteral("起飞检查"),
                         healthPassed ? QStringLiteral("pass") : QStringLiteral("fail"),
                         healthPassed ? QStringLiteral("传感器、位置和解锁许可均已稳定")
-                                     : QStringLiteral("健康检查没有稳定通过")));
+                                     : QStringLiteral("起飞检查没有稳定通过")));
 
     const bool takeoffPassed = session.value(QStringLiteral("takeoffResult")).toString()
                                == QStringLiteral("成功");
@@ -100,8 +100,8 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     const bool safelyStopped = !endedInAir && !endedArmed;
     checks.append(check(QStringLiteral("landing"), QStringLiteral("安全落地并锁定"),
                         safelyStopped ? QStringLiteral("pass") : QStringLiteral("fail"),
-                        safelyStopped ? QStringLiteral("会话结束时飞行器已落地并锁定")
-                                      : QStringLiteral("会话结束时飞行器仍在空中或已解锁")));
+                        safelyStopped ? QStringLiteral("记录结束时飞行器已落地并锁定")
+                                      : QStringLiteral("记录结束时飞行器仍在空中或已解锁")));
 
     const int issueCount = session.value(QStringLiteral("issueCount")).toInt();
     checks.append(check(QStringLiteral("events"), QStringLiteral("严重运行事件"),
@@ -151,7 +151,7 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     } else if (missionPlan && (strict || custom)) {
         checks.append(check(QStringLiteral("clearance"), QStringLiteral("建筑安全净空"),
                             QStringLiteral("warning"),
-                            QStringLiteral("当前世界没有可用于运行后验收的建筑数据")));
+                            QStringLiteral("当前仿真场景没有可用于运行后验收的建筑数据")));
     }
 
     const double maxAltitude = session.value(QStringLiteral("maxAltitude")).toDouble();
@@ -190,7 +190,7 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
                             sensorAvailable ? QStringLiteral("pass") : QStringLiteral("fail"),
                             sensorAvailable
                                 ? QStringLiteral("已收到本次方案要求的传感器数据")
-                                : QStringLiteral("本次会话没有收到有效传感器数据")));
+                                : QStringLiteral("本次飞行记录没有收到有效传感器数据")));
         if (sensorUsage == QStringLiteral("record")) {
             const bool recordingComplete = sensor.value(
                 QStringLiteral("recordingComplete")).toBool();
@@ -344,9 +344,9 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     QString label = QStringLiteral("通过");
     QString reason = QStringLiteral("方案要求的关键步骤和安全指标均已通过");
     const QString endReason = session.value(QStringLiteral("endReason")).toString();
-    if (endReason.contains(QStringLiteral("用户中止"))) {
+    if (endReason.contains(QStringLiteral("用户结束"))) {
         result = QStringLiteral("aborted");
-        label = QStringLiteral("用户中止");
+        label = QStringLiteral("用户结束");
         reason = endReason;
     } else if (failedCount > 0) {
         result = QStringLiteral("failed");

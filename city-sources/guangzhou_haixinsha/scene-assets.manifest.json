@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "guangzhou_haixinsha",
+  "sourceScene": "city-sources/guangzhou_haixinsha/guangzhou_haixinsha.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 702,
+      "triangles": 1220
+    },
+    "roads": {
+      "vertices": 4460,
+      "triangles": 2230
+    },
+    "green_areas": {
+      "vertices": 253,
+      "triangles": 183
+    },
+    "water": {
+      "vertices": 40,
+      "triangles": 32
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/guangzhou_haixinsha.sdf": "dc01b1983538827c9aca4009b32b57c20fd0878c216b16e6a7385823759419a6",
+    "simulation/models/guangzhou_haixinsha/model.sdf": "083a82cc2d7e1110c98bc408dd581f7fd474786d7c282132602bab42c6ba8d41",
+    "simulation/models/guangzhou_haixinsha/model.config": "1c628c4fd6b678718af971c000d1f40e04954a1f665fda991faa1475810a4f1a",
+    "simulation/models/guangzhou_haixinsha/ATTRIBUTION.md": "a47d2e648537aefdf710bfce2edb496cc246ead9832823726d602fe014ef8dff",
+    "simulation/models/guangzhou_haixinsha/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/guangzhou_haixinsha/meshes/buildings.obj": "f9c13073a5821e1f6f474557e2deacf19594cf7160d2deee1023011c717bea99",
+    "simulation/models/guangzhou_haixinsha/meshes/roads.obj": "b0d509f03fab6a94060c177f9c5f5451d4d4944b82aa0427d7d1107c911c7661",
+    "simulation/models/guangzhou_haixinsha/meshes/green_areas.obj": "3ad604db4b24c9453be6a4aa06fee4f84cd676c00d071c00d6de1557f7dda41e",
+    "simulation/models/guangzhou_haixinsha/meshes/water.obj": "d6f1ebef05d17fe55e160e332ca1271dffa1166ec3db243d4a9d236096c91538"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

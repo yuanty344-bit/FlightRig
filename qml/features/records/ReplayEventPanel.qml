@@ -177,7 +177,7 @@ Rectangle {
             visible: App.replayEvents.length === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            text: "本次会话没有事件标记"
+            text: "本次飞行记录没有事件标记"
             color: Theme.textFaint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textSmall

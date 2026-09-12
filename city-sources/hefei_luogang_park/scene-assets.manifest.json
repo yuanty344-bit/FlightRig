@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "hefei_luogang_park",
+  "sourceScene": "city-sources/hefei_luogang_park/hefei_luogang_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 1216,
+      "triangles": 2200
+    },
+    "roads": {
+      "vertices": 3376,
+      "triangles": 1688
+    },
+    "green_areas": {
+      "vertices": 43,
+      "triangles": 33
+    },
+    "water": {
+      "vertices": 75,
+      "triangles": 71
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/hefei_luogang_park.sdf": "d2588dc9a76856db9ec4545790a78777be4d4c32a7195475f0415baa9f2977d4",
+    "simulation/models/hefei_luogang_park/model.sdf": "b726f3998d9372593730ebc28163fa8ea8ec9eb541bec6698197b23a48ff758a",
+    "simulation/models/hefei_luogang_park/model.config": "d2e7b57f77ae0c9bb7818cd14b1b7d2fb995d2e71429ecb921cd6ebb1c75d804",
+    "simulation/models/hefei_luogang_park/ATTRIBUTION.md": "9cb8ecb63c524d66ce61736577239ad2d2a81648eabbeb9c1d2772a4b7209aea",
+    "simulation/models/hefei_luogang_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/hefei_luogang_park/meshes/buildings.obj": "686813c4d8ecb55c60d9c4c401d7cfff9fcc91af06317a9b8142eb2815bcc9f5",
+    "simulation/models/hefei_luogang_park/meshes/roads.obj": "b957287d73c2b0566b0f6c1382842faf81f71fc13330cf9b5b331bab5b1cb6ce",
+    "simulation/models/hefei_luogang_park/meshes/green_areas.obj": "af304ede9f96fb8d9d5e61ae26a54b6b36f68880e1068d0aef77faa84f58e4db",
+    "simulation/models/hefei_luogang_park/meshes/water.obj": "11d4894a1096dc103676e524248e1dbe05b0862fe40c02e449365580e87b8d94"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

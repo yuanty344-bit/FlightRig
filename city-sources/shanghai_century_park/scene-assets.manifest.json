@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "shanghai_century_park",
+  "sourceScene": "city-sources/shanghai_century_park/shanghai_century_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 830,
+      "triangles": 1480
+    },
+    "roads": {
+      "vertices": 5544,
+      "triangles": 2772
+    },
+    "green_areas": {
+      "vertices": 215,
+      "triangles": 183
+    },
+    "water": {
+      "vertices": 243,
+      "triangles": 229
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/shanghai_century_park.sdf": "6222312fc039e00b54f59fa2b499eed056050c6182f119aaf1b6bc11a9f6f328",
+    "simulation/models/shanghai_century_park/model.sdf": "b1c8ab40c7272bda53714e98580a5750fc3a63781434b2ca0185ca5c2dcef6aa",
+    "simulation/models/shanghai_century_park/model.config": "1a74c8089bf1549bbf169c33d30291ff2bc711ac550dc3126ca7b782536598ee",
+    "simulation/models/shanghai_century_park/ATTRIBUTION.md": "54c3df289646d150aa4c456b9d5b00a47e3448497018f08d48889d9d8a281671",
+    "simulation/models/shanghai_century_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/shanghai_century_park/meshes/buildings.obj": "703ea064978dc94134990d1514651b5cf5650fea13f09bd591d614ccb690eca6",
+    "simulation/models/shanghai_century_park/meshes/roads.obj": "c09773e59bc64d98e9d1c463e8ca37462b16b8eb31cda566ce2d6182a5496139",
+    "simulation/models/shanghai_century_park/meshes/green_areas.obj": "13dac84d87d998b81c6fbba97c636648e650b9060ac33fd7b48d20330b1157d0",
+    "simulation/models/shanghai_century_park/meshes/water.obj": "a183df2a7987ac5ff3337431e26584d398ae8eb4e93f26e0428a927d3a7a496a"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

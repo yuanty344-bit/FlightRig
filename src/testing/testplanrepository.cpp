@@ -349,7 +349,7 @@ QVariantMap TestPlanRepository::savePlan(const QString &planId,
                                             ? endAction : QStringLiteral("hold");
     if (!validType(normalizedType)) return result(false, QStringLiteral("执行方式无效"));
     if (modelId.trimmed().isEmpty() || worldId.trimmed().isEmpty()) {
-        return result(false, QStringLiteral("请选择飞行器和仿真世界"));
+        return result(false, QStringLiteral("请选择飞行器和仿真场景"));
     }
     if (!std::isfinite(takeoffAltitudeMeters)
         || takeoffAltitudeMeters < 1.0 || takeoffAltitudeMeters > 100.0) {

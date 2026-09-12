@@ -31,16 +31,11 @@ Rectangle {
             Layout.preferredWidth: 34
             Layout.preferredHeight: 34
             radius: 10
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.accentHover }
-                GradientStop { position: 1; color: Theme.accent }
-            }
-            border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.2)
+            color: "transparent"
             Image {
                 anchors.centerIn: parent
-                width: 22
-                height: 22
+                width: 34
+                height: 34
                 source: "qrc:/icons/flightbench-app.svg"
             }
         }
@@ -48,7 +43,7 @@ Rectangle {
         ColumnLayout {
             spacing: 1
             Text {
-                text: "FlightBench"
+                text: "FlightRig"
                 color: Theme.heroText
                 font.family: Theme.fontFamily
                 font.pixelSize: 15
@@ -68,9 +63,14 @@ Rectangle {
             id: environmentButton
             readonly property bool waiting: App.busy
                                              || (App.simulationRunning && !App.vehicleConnected)
+            readonly property bool environmentReady: App.dockerAvailable
+                                                        && App.imageAvailable
+                                                        && App.dockerNetworkAvailable
             readonly property string statusText: App.vehicleConnected ? "飞行器已连接"
-                                                 : App.simulationRunning ? "正在连接"
-                                                 : App.dockerAvailable ? "环境可用" : "检查环境"
+                                                 : App.simulationRunning ? "正在连接飞行器"
+                                                 : App.busy ? "正在检查环境"
+                                                 : environmentReady ? "环境已就绪"
+                                                                    : "环境需要处理"
             implicitWidth: environmentRow.implicitWidth + 24
             implicitHeight: 34
             hoverEnabled: true
@@ -113,7 +113,7 @@ Rectangle {
                         radius: 4
                         color: App.vehicleConnected ? Theme.success
                                : environmentButton.waiting ? Theme.accent
-                               : App.dockerAvailable ? Theme.success : Theme.textFaint
+                               : environmentButton.environmentReady ? Theme.success : Theme.warning
                     }
                 }
                 Text {
@@ -139,7 +139,7 @@ Rectangle {
         CompactIconButton {
             implicitWidth: 36
             implicitHeight: 36
-            iconSource: "qrc:/icons/sliders-horizontal.svg"
+            iconSource: "qrc:/icons/settings.svg"
             accessibleLabel: "打开设置"
             toolTipText: "设置"
             onDarkSurface: true

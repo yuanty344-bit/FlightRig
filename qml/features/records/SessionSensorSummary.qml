@@ -101,7 +101,7 @@ Rectangle {
                       + Number((sensorSummary.sensor.lidarMap || {}).loopClosureCount || 0)
                       + " 次回环 · 匹配置信度 "
                       + Math.round(Number((sensorSummary.sensor.lidarMap || {}).localizationConfidence || 0) * 100)
-                      + "% · 已随会话保存"
+                      + "% · 已随飞行记录保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
@@ -116,7 +116,7 @@ Rectangle {
                       + Number((sensorSummary.sensor.depthObstacleMap || {}).mapConfidencePercent || 0).toFixed(0)
                       + "% · "
                       + Number((sensorSummary.sensor.depthObstacleMap || {}).meshTriangleCount || 0)
-                      + " 个三角面 · 已随会话保存"
+                      + " 个三角面 · 已随飞行记录保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
@@ -131,7 +131,7 @@ Rectangle {
                       + Number(survey.goodKeyframeCount || 0) + " 张清晰 · 采集覆盖 "
                       + Number(survey.spatialCoveragePercent || 0).toFixed(0)
                       + "%"
-                      + " · 已随会话保存"
+                      + " · 已随飞行记录保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny

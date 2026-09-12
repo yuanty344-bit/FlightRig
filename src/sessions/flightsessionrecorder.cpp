@@ -105,9 +105,9 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
                                          const QString &qtVersion,
                                          const QString &mavsdkVersion)
 {
-    if (m_active) finishSession(QStringLiteral("开始新会话"));
+    if (m_active) finishSession(QStringLiteral("开始新的飞行记录"));
     if (!QDir().mkpath(m_sessionsDirectory)) {
-        emit recorderError(QStringLiteral("无法创建飞行会话目录：%1").arg(m_sessionsDirectory));
+        emit recorderError(QStringLiteral("无法创建飞行记录文件夹：%1").arg(m_sessionsDirectory));
         return false;
     }
 
@@ -122,7 +122,7 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
         folderPath = QDir(m_sessionsDirectory).filePath(sessionId);
     }
     if (!QDir().mkpath(folderPath)) {
-        emit recorderError(QStringLiteral("无法创建飞行会话：%1").arg(folderPath));
+        emit recorderError(QStringLiteral("无法创建飞行记录：%1").arg(folderPath));
         return false;
     }
 
@@ -132,7 +132,7 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
     m_eventsFile.setFileName(eventsPath);
     if (!m_csvFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)
         || !m_eventsFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-        emit recorderError(QStringLiteral("无法创建会话数据文件：%1").arg(folderPath));
+        emit recorderError(QStringLiteral("无法创建飞行记录数据文件：%1").arg(folderPath));
         m_csvFile.close();
         m_eventsFile.close();
         return false;
@@ -224,7 +224,7 @@ bool FlightSessionRecorder::startSession(const QString &modelId,
     m_csvFile.flush();
     m_active = true;
     m_summaryTimer.start();
-    appendEvent(QStringLiteral("[%1] [会话] 开始记录 %2（%3），默认起飞高度 %4 米")
+    appendEvent(QStringLiteral("[%1] [记录] 开始记录 %2（%3），默认起飞高度 %4 米")
                     .arg(m_startedAt.toString(QStringLiteral("HH:mm:ss")),
                          modelName,
                          modelId,
@@ -317,7 +317,7 @@ void FlightSessionRecorder::finishSession(const QString &reason)
             m_metadata.insert(QStringLiteral("routeAnalysis"), routeAnalysis);
     }
     m_metadata.insert(QStringLiteral("status"), status);
-    appendEvent(QStringLiteral("[%1] [会话] 结束记录：%2")
+    appendEvent(QStringLiteral("[%1] [记录] 结束记录：%2")
                     .arg(endedAt.toString(QStringLiteral("HH:mm:ss")), reason));
     writeMetadata();
 
@@ -417,7 +417,7 @@ void FlightSessionRecorder::markHealthReady()
 {
     if (!m_active || m_healthPassed) return;
     m_healthPassed = true;
-    appendEvent(QStringLiteral("[%1] [会话] 健康检查已稳定通过")
+    appendEvent(QStringLiteral("[%1] [记录] 起飞检查已稳定通过")
                     .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
     emit activeSessionChanged();
 }
@@ -435,7 +435,7 @@ void FlightSessionRecorder::markTakeoffRequested()
 {
     if (!m_active) return;
     m_takeoffRequested = true;
-    appendEvent(QStringLiteral("[%1] [会话] 已请求起飞")
+    appendEvent(QStringLiteral("[%1] [记录] 已请求起飞")
                     .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
 }
 
@@ -443,7 +443,7 @@ void FlightSessionRecorder::markLandingRequested()
 {
     if (!m_active) return;
     m_landingRequested = true;
-    appendEvent(QStringLiteral("[%1] [会话] 已请求降落")
+    appendEvent(QStringLiteral("[%1] [记录] 已请求降落")
                     .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
 }
 
@@ -452,11 +452,11 @@ void FlightSessionRecorder::updateFlightState(bool armed, bool inAir)
     if (!m_active) return;
     if (inAir && !m_sawInAir) {
         m_sawInAir = true;
-        appendEvent(QStringLiteral("[%1] [会话] 已确认飞行器离地")
+        appendEvent(QStringLiteral("[%1] [记录] 已确认飞行器离地")
                         .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
     }
     if (m_landingRequested && m_sawInAir && !inAir && !armed && (m_inAir || m_armed)) {
-        appendEvent(QStringLiteral("[%1] [会话] 已确认降落并解除锁定")
+        appendEvent(QStringLiteral("[%1] [记录] 已确认降落并解除锁定")
                         .arg(QDateTime::currentDateTime().toString(QStringLiteral("HH:mm:ss"))));
     }
     m_armed = armed;
@@ -641,7 +641,7 @@ bool FlightSessionRecorder::updateSessionDetails(const QString &sessionId,
     const QString normalizedName = displayName.trimmed().left(60);
     const QString normalizedNotes = notes.trimmed().left(500);
     if (sessionId.isEmpty()) {
-        emit recorderError(QStringLiteral("没有找到要编辑的飞行会话"));
+        emit recorderError(QStringLiteral("没有找到要编辑的飞行记录"));
         return false;
     }
 
@@ -670,7 +670,7 @@ bool FlightSessionRecorder::updateSessionDetails(const QString &sessionId,
         const bool opened = file.open(QIODevice::WriteOnly | QIODevice::Truncate);
         const bool written = opened && file.write(contents) == contents.size();
         if (!written || !file.commit()) {
-            emit recorderError(QStringLiteral("无法保存会话名称和备注"));
+            emit recorderError(QStringLiteral("无法保存飞行记录名称和备注"));
             return false;
         }
         m_completedSessions[index] = metadata;
@@ -678,7 +678,7 @@ bool FlightSessionRecorder::updateSessionDetails(const QString &sessionId,
         return true;
     }
 
-    emit recorderError(QStringLiteral("没有找到要编辑的飞行会话"));
+    emit recorderError(QStringLiteral("没有找到要编辑的飞行记录"));
     return false;
 }
 
@@ -702,7 +702,7 @@ bool FlightSessionRecorder::setSessionReport(const QString &sessionId,
         metadata.insert(QStringLiteral("reportFormatVersion"), 1);
         const QString folderPath = metadata.value(QStringLiteral("folderPath")).toString();
         if (!saveStandaloneMetadata(metadata, folderPath)) {
-            emit recorderError(QStringLiteral("无法把测试报告信息写入会话摘要"));
+            emit recorderError(QStringLiteral("无法把测试报告信息写入飞行记录摘要"));
             return false;
         }
         m_completedSessions[index] = metadata;
@@ -710,7 +710,7 @@ bool FlightSessionRecorder::setSessionReport(const QString &sessionId,
         return true;
     }
 
-    emit recorderError(QStringLiteral("无法登记测试报告：没有找到对应会话"));
+    emit recorderError(QStringLiteral("无法登记测试报告：没有找到对应的飞行记录"));
     return false;
 }
 
@@ -723,7 +723,7 @@ bool FlightSessionRecorder::updateSessionSensorSummary(const QString &sessionId,
         metadata.insert(QStringLiteral("sensorRecording"), summary);
         const QString folder = metadata.value(QStringLiteral("folderPath")).toString();
         if (!saveStandaloneMetadata(metadata, folder)) {
-            emit recorderError(QStringLiteral("无法更新会话的视觉巡检备注"));
+            emit recorderError(QStringLiteral("无法更新飞行记录中的视觉巡检备注"));
             return false;
         }
         m_completedSessions[index] = metadata;
@@ -736,13 +736,13 @@ bool FlightSessionRecorder::updateSessionSensorSummary(const QString &sessionId,
 bool FlightSessionRecorder::deleteSession(const QString &sessionId)
 {
     if (sessionId.isEmpty() || (m_active && activeSessionId() == sessionId)) {
-        emit recorderError(QStringLiteral("正在记录的会话不能删除"));
+        emit recorderError(QStringLiteral("正在生成的飞行记录不能删除"));
         return false;
     }
 
     const QVariantMap metadata = metadataForSession(sessionId);
     if (metadata.isEmpty()) {
-        emit recorderError(QStringLiteral("没有找到要删除的飞行会话"));
+        emit recorderError(QStringLiteral("没有找到要删除的飞行记录"));
         return false;
     }
 
@@ -752,17 +752,17 @@ bool FlightSessionRecorder::deleteSession(const QString &sessionId)
     if (rootPath.isEmpty() || folderPath.isEmpty()
         || QFileInfo(folderPath).dir().canonicalPath() != rootPath
         || QFileInfo(folderPath).fileName() != sessionId) {
-        emit recorderError(QStringLiteral("会话目录校验失败，已取消删除"));
+        emit recorderError(QStringLiteral("飞行记录文件夹校验失败，已取消删除"));
         return false;
     }
 
     const QString trashTarget = QDir(m_trashDirectory).filePath(sessionId);
     if (QFileInfo::exists(trashTarget)) {
-        emit recorderError(QStringLiteral("回收站里已有同名会话，请先处理后再重试"));
+        emit recorderError(QStringLiteral("回收站里已有同名飞行记录，请先处理后再重试"));
         return false;
     }
     if (!QDir().rename(folderPath, trashTarget)) {
-        emit recorderError(QStringLiteral("无法把会话移到回收站：%1")
+        emit recorderError(QStringLiteral("无法把飞行记录移到回收站：%1")
                                .arg(QDir::toNativeSeparators(folderPath)));
         return false;
     }
@@ -773,8 +773,8 @@ bool FlightSessionRecorder::deleteSession(const QString &sessionId)
     if (!saveStandaloneMetadata(trashedMetadata, trashTarget)) {
         const bool rolledBack = QDir().rename(trashTarget, folderPath);
         emit recorderError(rolledBack
-                               ? QStringLiteral("无法保存回收站会话信息，已恢复原会话")
-                               : QStringLiteral("无法保存回收站会话信息，且自动恢复目录失败；数据仍保留在回收站目录"));
+                               ? QStringLiteral("无法保存回收站中的飞行记录信息，已恢复原记录")
+                               : QStringLiteral("无法保存回收站中的飞行记录信息，且自动恢复文件夹失败；数据仍保留在回收站文件夹"));
         return false;
     }
 
@@ -803,19 +803,19 @@ bool FlightSessionRecorder::restoreSession(const QString &sessionId)
         if (source.isEmpty() || trashRoot.isEmpty()
             || QFileInfo(source).dir().canonicalPath() != trashRoot
             || QFileInfo::exists(destination)) {
-            emit recorderError(QStringLiteral("会话恢复路径校验失败"));
+            emit recorderError(QStringLiteral("飞行记录恢复路径校验失败"));
             return false;
         }
         if (!QDir().rename(source, destination)) {
-            emit recorderError(QStringLiteral("无法恢复这个会话"));
+            emit recorderError(QStringLiteral("无法恢复这条飞行记录"));
             return false;
         }
         metadata.remove(QStringLiteral("trashedAt"));
         if (!saveStandaloneMetadata(metadata, destination)) {
             const bool rolledBack = QDir().rename(destination, source);
             emit recorderError(rolledBack
-                                   ? QStringLiteral("无法保存恢复后的会话信息，已放回回收站")
-                                   : QStringLiteral("无法保存恢复后的会话信息，且自动放回回收站失败；数据仍保留在会话目录"));
+                                   ? QStringLiteral("无法保存恢复后的飞行记录信息，已放回回收站")
+                                   : QStringLiteral("无法保存恢复后的飞行记录信息，且自动放回回收站失败；数据仍保留在飞行记录文件夹"));
             return false;
         }
         m_trashedSessions.removeAt(index);
@@ -824,7 +824,7 @@ bool FlightSessionRecorder::restoreSession(const QString &sessionId)
         emit completedSessionsChanged();
         return true;
     }
-    emit recorderError(QStringLiteral("回收站中没有找到这个会话"));
+    emit recorderError(QStringLiteral("回收站中没有找到这条飞行记录"));
     return false;
 }
 
@@ -842,14 +842,14 @@ bool FlightSessionRecorder::permanentlyDeleteSession(const QString &sessionId)
             return false;
         }
         if (!QDir(folderPath).removeRecursively()) {
-            emit recorderError(QStringLiteral("无法永久删除会话"));
+            emit recorderError(QStringLiteral("无法永久删除飞行记录"));
             return false;
         }
         m_trashedSessions.removeAt(index);
         emit trashedSessionsChanged();
         return true;
     }
-    emit recorderError(QStringLiteral("回收站中没有找到这个会话"));
+    emit recorderError(QStringLiteral("回收站中没有找到这条飞行记录"));
     return false;
 }
 
@@ -945,7 +945,7 @@ void FlightSessionRecorder::writeMetadata()
     const bool committed = written && file.commit();
     if (!committed && !m_metadataErrorReported) {
         m_metadataErrorReported = true;
-        emit recorderError(QStringLiteral("无法保存会话摘要：%1")
+        emit recorderError(QStringLiteral("无法保存飞行记录摘要：%1")
                                .arg(QDir(folderPath).filePath(QStringLiteral("session.json"))));
     }
 }

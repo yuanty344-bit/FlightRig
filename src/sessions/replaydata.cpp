@@ -148,7 +148,7 @@ QVector<ReplayData::Sample> ReplayData::loadSamples(const QString &csvPath,
         else samples.append(sample);
     }
     if (samples.size() < 2 && errorMessage)
-        *errorMessage = QStringLiteral("该会话没有足够的本地位置数据");
+        *errorMessage = QStringLiteral("该飞行记录没有足够的本地位置数据");
     return samples;
 }
 

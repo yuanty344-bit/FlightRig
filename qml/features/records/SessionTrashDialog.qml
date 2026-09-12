@@ -34,7 +34,7 @@ MotionDialog {
                 spacing: 2
                 Text {
                     Layout.fillWidth: true
-                    text: "会话回收站"
+                    text: "飞行记录回收站"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textTitle
@@ -44,8 +44,8 @@ MotionDialog {
                 Text {
                     Layout.fillWidth: true
                     text: App.trashRetentionDays > 0
-                          ? "删除的会话保留 " + App.trashRetentionDays + " 天，可在此恢复"
-                          : "删除的会话不会自动清理，可在此恢复"
+                          ? "删除的飞行记录保留 " + App.trashRetentionDays + " 天，可在此恢复"
+                          : "删除的飞行记录不会自动清理，可在此恢复"
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textTiny
@@ -57,7 +57,7 @@ MotionDialog {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 iconSource: "qrc:/icons/x.svg"
-                accessibleLabel: "关闭会话回收站"
+                accessibleLabel: "关闭飞行记录回收站"
                 toolTipText: "关闭"
                 onClicked: root.close()
             }
@@ -88,7 +88,7 @@ MotionDialog {
                         spacing: 2
                         Text {
                             Layout.fillWidth: true
-                            text: String(modelData.displayName || modelData.testPlanName || modelData.missionRouteName || modelData.modelName || "飞行会话")
+                            text: String(modelData.displayName || modelData.testPlanName || modelData.missionRouteName || modelData.modelName || "飞行记录")
                             color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; elide: Text.ElideRight
                         }
                         Text {
@@ -101,11 +101,11 @@ MotionDialog {
                         }
                     }
                     CompactIconButton {
-                        iconSource: "qrc:/icons/archive-restore.svg"; accessibleLabel: "恢复会话"; toolTipText: "恢复到记录列表"
+                        iconSource: "qrc:/icons/archive-restore.svg"; accessibleLabel: "恢复飞行记录"; toolTipText: "恢复到记录列表"
                         onClicked: App.restoreSession(String(modelData.id || ""))
                     }
                     CompactIconButton {
-                        iconSource: "qrc:/icons/archive-x.svg"; accessibleLabel: "永久删除会话"; toolTipText: "永久删除"; danger: true
+                        iconSource: "qrc:/icons/archive-x.svg"; accessibleLabel: "永久删除飞行记录"; toolTipText: "永久删除"; danger: true
                         onClicked: { root.pendingDeleteId = String(modelData.id || ""); permanentDeleteDialog.open() }
                     }
                 }
@@ -130,7 +130,7 @@ MotionDialog {
         background: DialogSurface { color: Theme.surfaceRaised }
         contentItem: ColumnLayout {
             spacing: 12
-            Text { text: "永久删除这个会话？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
+            Text { text: "永久删除这条飞行记录？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
             Text { Layout.fillWidth: true; text: "摘要、事件和遥测数据将无法恢复。"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; wrapMode: Text.WordWrap }
             RowLayout {
                 Layout.fillWidth: true

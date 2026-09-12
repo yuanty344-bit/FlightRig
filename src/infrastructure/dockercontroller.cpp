@@ -80,7 +80,7 @@ void DockerController::startSimulation(const QString &modelId,
     }
     if (!m_networkAvailable) {
         setProblemCode(QStringLiteral("network-missing"));
-        setStatusMessage(QStringLiteral("FlightBench 容器网络尚未就绪，请重新检测"));
+        setStatusMessage(QStringLiteral("FlightRig 容器网络尚未就绪，请重新检测"));
         return;
     }
     if (!m_containerNameAvailable) {
@@ -97,12 +97,12 @@ void DockerController::startSimulation(const QString &modelId,
         QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$"));
     if (!validModelId.match(modelId).hasMatch()) {
         setProblemCode(QStringLiteral("model-invalid"));
-        setStatusMessage(QStringLiteral("选择的仿真机型无效"));
+        setStatusMessage(QStringLiteral("选择的仿真飞行器无效"));
         return;
     }
     if (!validWorldId.match(worldId).hasMatch()) {
         setProblemCode(QStringLiteral("world-invalid"));
-        setStatusMessage(QStringLiteral("选择的仿真世界无效"));
+        setStatusMessage(QStringLiteral("选择的仿真场景无效"));
         return;
     }
     if (!validContainerName.match(containerName).hasMatch()) {
@@ -155,7 +155,7 @@ void DockerController::startSimulation(const QString &modelId,
             QStringLiteral("worlds/%1.sdf").arg(worldId));
         if (!assets.exists() || !QFileInfo::exists(worldFile)) {
             setProblemCode(QStringLiteral("world-assets-missing"));
-            setStatusMessage(QStringLiteral("找不到 %1 世界资源，请重新构建软件")
+            setStatusMessage(QStringLiteral("找不到仿真场景资源 %1，请重新构建软件")
                                  .arg(worldId));
             return;
         }
@@ -240,7 +240,7 @@ QString DockerController::prepareSensorModelProfile(const QString &modelId,
         QStringLiteral("models/%1").arg(payloadModel));
     if (!QFileInfo(sourcePath).isDir()) return {};
     const QString profileRoot = QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation))
-                                    .filePath(QStringLiteral("FlightBench/sensor-profile"));
+                                    .filePath(QStringLiteral("FlightRig/sensor-profile"));
     const QString targetPath = QDir(profileRoot).filePath(
         QStringLiteral("models/%1").arg(payloadModel));
     QDir targetDirectory(targetPath);
@@ -368,7 +368,7 @@ void DockerController::handleFinished(int exitCode, QProcess::ExitStatus exitSta
             inspectContainer();
         } else {
             setNetworkAvailable(false);
-            setStatusMessage(QStringLiteral("正在创建 FlightBench 专用容器网络…"));
+            setStatusMessage(QStringLiteral("正在创建 FlightRig 专用容器网络…"));
             run(Operation::CreateNetwork,
                 {QStringLiteral("network"), QStringLiteral("create"),
                  QString::fromLatin1(NetworkName)});
@@ -378,10 +378,10 @@ void DockerController::handleFinished(int exitCode, QProcess::ExitStatus exitSta
         setNetworkAvailable(success);
         if (success) {
             setProblemCode({});
-            setStatusMessage(QStringLiteral("FlightBench 运行环境已就绪"));
+            setStatusMessage(QStringLiteral("FlightRig 运行环境已就绪"));
         } else {
             setProblemCode(QStringLiteral("network-failed"));
-            setStatusMessage(QStringLiteral("无法创建 FlightBench 容器网络：%1")
+            setStatusMessage(QStringLiteral("无法创建 FlightRig 容器网络：%1")
                                  .arg(standardError.isEmpty()
                                           ? QStringLiteral("未知错误") : standardError));
         }
@@ -477,7 +477,7 @@ void DockerController::handleInspectFinished(int exitCode, QProcess::ExitStatus 
     setSimulationRunning(isRunning);
     if (isRunning && !wasRunning) {
         setProblemCode({});
-        setStatusMessage(QStringLiteral("检测到正在运行的 FlightBench 仿真容器"));
+        setStatusMessage(QStringLiteral("检测到正在运行的 FlightRig 仿真容器"));
     } else if (!isRunning && wasRunning) {
         m_startedByUs = false;
         setStatusMessage(QStringLiteral("检测到仿真容器已经停止"));

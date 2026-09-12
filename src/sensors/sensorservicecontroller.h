@@ -195,7 +195,7 @@ private:
     void setStatusMessage(const QString &message);
     void setProblemCode(const QString &code);
 
-    static constexpr auto ImageName = "flightbench/ros-sensor-bridge:0.12.0";
+    static constexpr auto ImageName = "flightrig/ros-sensor-bridge:0.13.0";
     static constexpr auto ContainerName = "flightbench-ros";
     static constexpr auto NetworkName = "flightbench-net";
     static constexpr quint16 GatewayPort = 8765;

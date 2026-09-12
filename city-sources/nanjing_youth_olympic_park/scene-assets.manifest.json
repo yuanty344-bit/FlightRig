@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "nanjing_youth_olympic_park",
+  "sourceScene": "city-sources/nanjing_youth_olympic_park/nanjing_youth_olympic_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 138,
+      "triangles": 260
+    },
+    "roads": {
+      "vertices": 604,
+      "triangles": 302
+    },
+    "green_areas": {
+      "vertices": 203,
+      "triangles": 191
+    },
+    "water": {
+      "vertices": 156,
+      "triangles": 138
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/nanjing_youth_olympic_park.sdf": "da1ed8b7a528daeb5eb9c5996cdcb57647f2ad9f152b7a93532f8ec753127fc0",
+    "simulation/models/nanjing_youth_olympic_park/model.sdf": "4a6cb718051813fb50b62ff937d7a15198314a5fc802e37b5f967ecc68c1eceb",
+    "simulation/models/nanjing_youth_olympic_park/model.config": "56a7960e407800b6435cac737ecdf387299f16e0b472ddc1938233e8a107b3fd",
+    "simulation/models/nanjing_youth_olympic_park/ATTRIBUTION.md": "3b854310db0204dcf0e54c5caf9b1bbd8affd23285e40d4f835c90e0d015caf6",
+    "simulation/models/nanjing_youth_olympic_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/nanjing_youth_olympic_park/meshes/buildings.obj": "36029b58284cb7e309bb6c97681c008979262c474e367112b1046ca72a6bc520",
+    "simulation/models/nanjing_youth_olympic_park/meshes/roads.obj": "1284af02a9bfc6aeed9041d1855bd746d1169d14390a36a581311c53dee41508",
+    "simulation/models/nanjing_youth_olympic_park/meshes/green_areas.obj": "870b4d66e00494e6d08300422f1abc2938fc854f771d8a23b1e32b54adee5643",
+    "simulation/models/nanjing_youth_olympic_park/meshes/water.obj": "748ff73dbddb4f74120df65529dcd70a963e5f733ef86d9d5f1df89d00cc005d"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

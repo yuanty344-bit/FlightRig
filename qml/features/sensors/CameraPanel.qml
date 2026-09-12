@@ -167,7 +167,7 @@ SurfaceCard {
                 visible: !root.showPointCloud
                 iconSource: "qrc:/icons/folder-open.svg"
                 accessibleLabel: "打开截图与录像位置"
-                toolTipText: "打开保存位置"
+                toolTipText: "打开截图与录像文件夹"
                 onClicked: App.openSensorCapturesFolder()
             }
 

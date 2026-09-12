@@ -88,7 +88,7 @@ void VisualSurveyController::stop()
     m_active = false;
     writeManifest(false);
     setStatus(m_keyframes.isEmpty() ? QStringLiteral("未获得可用关键帧")
-                                    : QStringLiteral("视觉巡检已暂停，可继续或随会话保存"));
+                                    : QStringLiteral("视觉巡检已暂停，可继续或随飞行记录保存"));
     emit stateChanged();
 }
 
@@ -370,7 +370,7 @@ bool VisualSurveyController::loadFromSession(const QString &sessionFolder)
     m_loadedVisitedAreaCount = root.value(QStringLiteral("visitedAreaCount")).toInt();
     rebuildCounts();
     m_selectedIndex = m_keyframes.isEmpty() ? -1 : 0;
-    setStatus(m_keyframes.isEmpty() ? QStringLiteral("该会话没有视觉巡检关键帧")
+    setStatus(m_keyframes.isEmpty() ? QStringLiteral("该飞行记录没有视觉巡检关键帧")
                                     : QStringLiteral("正在查看历史视觉巡检"));
     emit surveyChanged(); emit selectedIndexChanged(); emit stateChanged();
     return !m_keyframes.isEmpty();

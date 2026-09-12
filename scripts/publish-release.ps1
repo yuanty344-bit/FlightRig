@@ -18,10 +18,10 @@ $versionMatch = [regex]::Match(
     [Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
 if (-not $versionMatch.Success) {
-    throw 'Could not read the FlightBench version from CMakeLists.txt.'
+    throw 'Could not read the FlightRig version from CMakeLists.txt.'
 }
 $projectVersion = $versionMatch.Groups[1].Value
-$archivePath = Join-Path $outputDirectory "FlightBench-$projectVersion-win64.zip"
+$archivePath = Join-Path $outputDirectory "FlightRig-$projectVersion-win64.zip"
 
 function Read-CMakeCacheValue {
     param([string]$Name)
@@ -123,9 +123,9 @@ function Write-Stage {
     Write-Host ("==> " + $Message) -ForegroundColor Cyan
 }
 
-$runningFlightBench = Get-Process -Name 'FlightBench' -ErrorAction SilentlyContinue
-if ($runningFlightBench) {
-    throw 'FlightBench is still running. Close the application, then run publish-release.cmd again.'
+$runningFlightRig = Get-Process -Name 'FlightRig' -ErrorAction SilentlyContinue
+if ($runningFlightRig) {
+    throw 'FlightRig is still running. Close the application, then run publish-release.cmd again.'
 }
 
 Write-Stage 'Checking the MSVC, Qt, MAVSDK, CMake and Ninja toolchain'
@@ -141,7 +141,7 @@ if ($ninja -and (Test-Path -LiteralPath $ninja)) {
     $env:PATH = (Split-Path -Parent $ninja) + ';' + $env:PATH
 }
 
-Write-Stage "Configuring FlightBench $projectVersion"
+Write-Stage "Configuring FlightRig $projectVersion"
 Invoke-Checked $cmake @('-S', $sourceDirectory, '-B', $buildDirectory, '-G', 'Ninja',
                         '-DCMAKE_BUILD_TYPE=Release', "-DCMAKE_PREFIX_PATH=$qtRoot",
                         "-DMAVSDK_DIR=$mavsdkDirectory", '-DBUILD_TESTING=ON')
@@ -181,7 +181,7 @@ foreach ($pathToCheck in @($releaseDirectory, $stagingDirectory, $stagingArchive
 }
 if (Test-Path -LiteralPath $stagingDirectory) { Remove-Item -LiteralPath $stagingDirectory -Recurse -Force }
 New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
-Copy-Item -LiteralPath (Join-Path $buildDirectory 'FlightBench.exe') -Destination $stagingDirectory
+Copy-Item -LiteralPath (Join-Path $buildDirectory 'FlightRig.exe') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $buildDirectory 'mavsdk.dll') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $sourceDirectory 'simulation') -Destination $stagingDirectory -Recurse
 Copy-Item -LiteralPath (Join-Path $sourceDirectory 'resources\licenses') -Destination $stagingDirectory -Recurse
@@ -189,7 +189,7 @@ Copy-Item -LiteralPath (Join-Path $sourceDirectory 'resources\licenses') -Destin
 # ROS 2 sensor support remains optional and is deliberately not built while
 # publishing: a normal x500 release must not require Docker or network access.
 # Ship the tiny image recipe instead, so a recipient who wants LiDAR / camera
-# data can install the matching 0.12.0 image directly from the release folder.
+# data can install the matching image directly from the release folder.
 $releaseScriptsDirectory = Join-Path $stagingDirectory 'scripts'
 $releaseDockerDirectory = Join-Path $stagingDirectory 'docker\ros-sensor-bridge'
 New-Item -ItemType Directory -Path $releaseScriptsDirectory -Force | Out-Null
@@ -206,25 +206,25 @@ Copy-Item -LiteralPath (Join-Path $sourceDirectory '.dockerignore') `
           -Destination $stagingDirectory
 
 @(
-    'FlightBench 0.12.0 optional ROS 2 sensor service',
+    "FlightRig $projectVersion optional ROS 2 sensor service",
     '',
     'Normal PX4 simulation does not require this service.',
     'For x500 LiDAR, Mono Camera, Depth or Gimbal sensor data:',
     '1. Install and start Docker Desktop.',
     '2. Double-click scripts\build-ros-sensor-image.cmd once.',
-    '3. In FlightBench, enable ROS 2 sensor data before starting simulation.',
+    '3. In FlightRig, enable ROS 2 sensor data before starting simulation.',
     '',
-    'The installer builds flightbench/ros-sensor-bridge:0.12.0 locally.',
-    'It does not start a ROS container until the user enables it in FlightBench.'
+    "The installer builds flightrig/ros-sensor-bridge:$projectVersion locally.",
+    'It does not start a ROS container until the user enables it in FlightRig.'
 ) | Set-Content -LiteralPath (Join-Path $stagingDirectory 'ROS2-SENSOR-SETUP.txt') -Encoding UTF8
 
 $windeployqt = Join-Path $qtBin 'windeployqt.exe'
 Invoke-Checked $windeployqt @('--release', '--compiler-runtime', '--qmldir', (Join-Path $sourceDirectory 'qml'),
                               '--translations', 'zh_CN', '--skip-plugin-types', 'qmltooling',
-                              (Join-Path $stagingDirectory 'FlightBench.exe'))
+                              (Join-Path $stagingDirectory 'FlightRig.exe'))
 
 @(
-    "FlightBench $projectVersion",
+    "FlightRig $projectVersion",
     'Windows x64 / MSVC 2022',
     'Qt 6.11.x',
     'MAVSDK 3.17.x',

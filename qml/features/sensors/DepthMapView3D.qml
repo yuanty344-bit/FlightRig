@@ -253,7 +253,7 @@ Item {
         anchors.margins: 12
         spacing: 8
         CompactIconButton {
-            iconSource: "qrc:/icons/locate-fixed.svg"
+            iconSource: "qrc:/icons/focus.svg"
             accessibleLabel: "重置三维地图视角"
             toolTipText: "重置视角"
             onClicked: root.resetView()

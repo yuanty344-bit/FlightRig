@@ -154,7 +154,7 @@ QString polyline(const QVector<ChartSample> &samples,
 
 QString telemetryChart(const QVector<ChartSample> &samples)
 {
-    if (samples.size() < 2) return QStringLiteral("<p class=muted>该会话缺少可绘制的遥测数据。</p>");
+    if (samples.size() < 2) return QStringLiteral("<p class=muted>该飞行记录缺少可绘制的遥测数据。</p>");
     const QVector<ChartSample> chartSamples = reducedSamples(samples);
     const auto altitudeValue = [](const ChartSample &s) { return s.altitude; };
     const auto speedValue = [](const ChartSample &s) { return s.speed; };
@@ -196,7 +196,7 @@ QString trackChart(const QVector<ChartSample> &samples, const QVariantMap &sessi
         positioned.append(sample);
     }
     positioned = reducedSamples(positioned);
-    if (positioned.size() < 2) return QStringLiteral("<p class=muted>该会话缺少可绘制的实际轨迹。</p>");
+    if (positioned.size() < 2) return QStringLiteral("<p class=muted>该飞行记录缺少可绘制的实际轨迹。</p>");
     QVector<QPointF> planned;
     const QVariantList waypoints = session.value(QStringLiteral("missionWaypoints")).toList();
     if (!waypoints.isEmpty()) {
@@ -261,7 +261,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                                       QString *errorMessage)
 {
     if (session.isEmpty()) {
-        if (errorMessage) *errorMessage = QStringLiteral("会话数据为空");
+        if (errorMessage) *errorMessage = QStringLiteral("飞行记录数据为空");
         return {};
     }
     if (!QDir().mkpath(outputDirectory)) {
@@ -314,7 +314,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
     const QString notes = session.value(QStringLiteral("notes")).toString().trimmed();
     const QString notesHtml = notes.isEmpty()
         ? QString()
-        : QStringLiteral("<h2>会话备注</h2><div class='note'>%1</div>").arg(h(notes));
+        : QStringLiteral("<h2>飞行记录备注</h2><div class='note'>%1</div>").arg(h(notes));
     const QString trackHtml = hasMission
         ? QStringLiteral("<h2>计划与实际飞行轨迹</h2>%1").arg(trackChart(samples, session))
         : QStringLiteral("<h2>实际飞行轨迹</h2>%1").arg(trackChart(samples, session));
@@ -330,8 +330,8 @@ QString TestReportGenerator::generate(const QVariantMap &session,
             .arg(label.toHtmlEscaped(), escapedValue);
     };
     QString basicRows;
-    basicRows += row(QStringLiteral("会话编号"), h(id));
-    basicRows += row(QStringLiteral("会话状态"), textOr(session, QStringLiteral("status")));
+    basicRows += row(QStringLiteral("飞行记录编号"), h(id));
+    basicRows += row(QStringLiteral("记录状态"), textOr(session, QStringLiteral("status")));
     basicRows += row(QStringLiteral("测试方案"), textOr(session, QStringLiteral("testPlanName"), QStringLiteral("未使用方案")));
     basicRows += row(QStringLiteral("执行方式"), textOr(session, QStringLiteral("testPlanTypeLabel")));
     basicRows += row(QStringLiteral("验收规则"), textOr(session, QStringLiteral("acceptancePresetLabel")));
@@ -356,7 +356,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
     basicRows += row(QStringLiteral("开始时间"), textOr(session, QStringLiteral("startedAt")));
     basicRows += row(QStringLiteral("结束时间"), textOr(session, QStringLiteral("endedAt")));
     basicRows += row(QStringLiteral("结束原因"), textOr(session, QStringLiteral("endReason")));
-    basicRows += row(QStringLiteral("健康检查"), textOr(session, QStringLiteral("healthResult")));
+    basicRows += row(QStringLiteral("起飞检查"), textOr(session, QStringLiteral("healthResult")));
     basicRows += row(QStringLiteral("起飞结果"), textOr(session, QStringLiteral("takeoffResult")));
     basicRows += row(QStringLiteral("落地结果"), textOr(session, QStringLiteral("landingResult")));
     basicRows += row(QStringLiteral("目标起飞高度"),
@@ -393,9 +393,9 @@ QString TestReportGenerator::generate(const QVariantMap &session,
     }
 
     QString environmentRows;
-    environmentRows += row(QStringLiteral("机型"), textOr(session, QStringLiteral("modelName")));
-    environmentRows += row(QStringLiteral("仿真世界"), textOr(session, QStringLiteral("worldName")));
-    environmentRows += row(QStringLiteral("FlightBench"), textOr(session, QStringLiteral("applicationVersion")));
+    environmentRows += row(QStringLiteral("飞行器"), textOr(session, QStringLiteral("modelName")));
+    environmentRows += row(QStringLiteral("仿真场景"), textOr(session, QStringLiteral("worldName")));
+    environmentRows += row(QStringLiteral("FlightRig"), textOr(session, QStringLiteral("applicationVersion")));
     environmentRows += row(QStringLiteral("Qt"), textOr(session, QStringLiteral("qtVersion")));
     environmentRows += row(QStringLiteral("MAVSDK"), textOr(session, QStringLiteral("mavsdkVersion")));
     environmentRows += row(QStringLiteral("PX4 镜像"), textOr(session, QStringLiteral("simulationImage")));
@@ -475,7 +475,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                                   .arg(staleFrames));
         }
         if (sensor.value(QStringLiteral("recorded")).toBool()) {
-            sensorRows += row(QStringLiteral("保存位置"),
+            sensorRows += row(QStringLiteral("传感器数据文件夹"),
                               textOr(sensor, QStringLiteral("relativeDirectory"),
                                      QStringLiteral("sensor")));
         }
@@ -635,7 +635,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                 inspectionHtml += QStringLiteral("<p>%1</p>").arg(h(readable ? quality.value(QStringLiteral("reason"))
                     : view.value(QStringLiteral("lastDiagnostic"), QStringLiteral("未记录原因"))));
                 if (readable) {
-                    inspectionHtml += QStringLiteral("<p>会话第 %1 秒 · 距离 %2 m · 实际云台水平 %3° / 俯仰 %4°</p>"
+                    inspectionHtml += QStringLiteral("<p>记录第 %1 秒 · 距离 %2 m · 实际云台水平 %3° / 俯仰 %4°</p>"
                         "<img class='sensor-preview' alt='巡检观察方向照片' src='data:image/jpeg;base64,%5'>")
                         .arg(view.value(QStringLiteral("elapsedMs")).toLongLong() / 1000.0, 0, 'f', 1)
                         .arg(view.value(QStringLiteral("distanceM")).toDouble(), 0, 'f', 1)
@@ -667,7 +667,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                                         textOr(session, QStringLiteral("modelName")),
                                         textOr(session, QStringLiteral("worldName")));
     const QString html = QStringLiteral(R"HTML(<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>FlightBench 测试报告</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>FlightRig 测试报告</title>
 <style>:root{color-scheme:light}*{box-sizing:border-box}body{font-family:"Microsoft YaHei UI","Microsoft YaHei","Segoe UI",sans-serif;color:#17202a;background:#eef2f6;margin:0}.page{max-width:920px;margin:28px auto;background:#fff;padding:38px;border-radius:14px;box-shadow:0 8px 30px #23314218}h1{font-size:28px;margin:0 0 6px;overflow-wrap:anywhere}h2{font-size:18px;margin:30px 0 12px}.muted{color:#6c7784}.result{border-left:5px solid %1;padding:15px 18px;background:#f6f8fa;border-radius:8px;margin:22px 0}.result p{margin:8px 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.metric{padding:13px;background:#f6f8fa;border-radius:8px;min-width:0}.metric small{display:block;color:#6c7784}.metric b{display:block;margin-top:5px;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;table-layout:auto}th,td{text-align:left;padding:10px;border-bottom:1px solid #e1e6eb;font-size:14px;vertical-align:top;overflow-wrap:anywhere}th[scope=row]{width:172px;color:#6c7784;font-weight:500}.pill{display:inline-block;white-space:nowrap;padding:3px 8px;border-radius:12px;background:#eef2f6}.pill.pass{color:#16836d;background:#e8f5f1}.pill.warning{color:#b86812;background:#fbf0db}.pill.fail{color:#c44242;background:#fbe9ea}.note{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px 16px;background:#f6f8fa;border-radius:8px;color:#495563}.sensor-preview{display:block;max-width:100%;max-height:360px;margin:14px auto;border:1px solid #e1e6eb;border-radius:10px}svg{display:block;width:100%;height:auto}li{margin:7px 0;font-size:13px;color:#495563;overflow-wrap:anywhere}a{color:#1769e0}@media(max-width:700px){.page{margin:0;padding:22px;border-radius:0}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}th[scope=row]{width:124px}}@media(max-width:430px){.grid{grid-template-columns:1fr}th,td{display:block;width:100%}th[scope=row]{padding-bottom:3px;border-bottom:0}}@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{background:#fff}.page{max-width:none;margin:0;padding:0;box-shadow:none}h2{break-after:avoid}table,svg,.result,.metric,.sensor-preview{break-inside:avoid}}</style></head>
 <body><main class="page"><h1>%2</h1><p class="muted">%3</p>
 <section class="result"><strong style="color:%1;font-size:20px">%4</strong><p>%5</p><small>%6 项通过 · %7 项提醒 · %8 项未通过</small></section>
@@ -676,7 +676,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
 <h2>验收结果</h2><table><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody>%17</tbody></table>
 <h2>高度与速度</h2>%18%19%20%21
 <h2>软件与仿真环境</h2><table>%22</table>
-<h2>事件记录</h2><ul>%23</ul><p class="muted">报告由 FlightBench 在本机生成；原始数据以 session.json、events.log 和 telemetry.csv 为准。城市世界地图数据：<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>。</p></main></body></html>)HTML")
+<h2>事件记录</h2><ul>%23</ul><p class="muted">报告由 FlightRig 在本机生成；原始数据以 session.json、events.log 和 telemetry.csv 为准。城市地图数据：<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>。</p></main></body></html>)HTML")
         .arg(resultColor(result), h(titleValue), headerInfo,
              textOr(session, QStringLiteral("testResultLabel"), QStringLiteral("未评估")),
              textOr(session, QStringLiteral("testResultReason"), QStringLiteral("没有结论说明")),

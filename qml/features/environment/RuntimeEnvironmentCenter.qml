@@ -141,7 +141,7 @@ Item {
         if (!planComplete) return "请先完善当前测试方案"
         if (!App.dockerAvailable) return "请先启动 Docker Desktop"
         if (!App.imageAvailable) return "本机没有找到 PX4 SITL 镜像"
-        if (!App.dockerNetworkAvailable) return "FlightBench 容器网络尚未就绪"
+        if (!App.dockerNetworkAvailable) return "FlightRig 容器网络尚未就绪"
         if (root.sensorBlockingIssue) return "请先生成 ROS 2 数据服务镜像"
         if (!App.containerNameAvailable) return "这个容器名称已经被占用"
         if (App.busy) return "正在执行另一项操作"
@@ -402,7 +402,7 @@ Item {
                                         anchors.centerIn: parent
                                         width: 18
                                         height: 18
-                                        source: "qrc:/icons/plane.svg"
+                                        source: "qrc:/icons/drone.svg"
                                         iconColor: Theme.accent
                                     }
                                 }
@@ -468,7 +468,7 @@ Item {
                             compact: true
                             kind: "secondary"
                             text: "选择飞行器"
-                            iconSource: "qrc:/icons/plane.svg"
+                            iconSource: "qrc:/icons/drone.svg"
                             enabled: !App.simulationRunning && !App.busy
                             disabledReason: "停止仿真后才能更换飞行器"
                             onClicked: modelDialog.showPicker(App.selectedModelId)
@@ -477,10 +477,10 @@ Item {
                             Layout.fillWidth: true
                             compact: true
                             kind: "secondary"
-                            text: "选择世界"
+                            text: "选择仿真场景"
                             iconSource: "qrc:/icons/map-pinned.svg"
                             enabled: !App.simulationRunning && !App.busy
-                            disabledReason: "停止仿真后才能更换世界"
+                            disabledReason: "停止仿真后才能更换仿真场景"
                             onClicked: worldDialog.showPicker(App.selectedWorldId)
                         }
                     }
@@ -544,7 +544,7 @@ Item {
                         label: "飞行器连接"
                         value: App.vehicleConnected ? "已连接" : App.simulationRunning ? "等待心跳" : "尚未连接"
                         statusKind: App.vehicleConnected ? "complete" : App.simulationRunning ? "current" : "pending"
-                        iconSource: App.vehicleConnected ? "qrc:/icons/circle-check.svg" : "qrc:/icons/locate-fixed.svg"
+                        iconSource: App.vehicleConnected ? "qrc:/icons/circle-check.svg" : "qrc:/icons/radio-tower.svg"
                         dividerVisible: false
                     }
                 }
@@ -944,7 +944,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "飞行器仍处于解锁或飞行状态。FlightBench 会先执行降落，确认落地并锁定后再停止容器。"
+                text: "飞行器仍处于解锁或飞行状态。FlightRig 会先执行降落，确认落地并锁定后再停止容器。"
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall

@@ -56,7 +56,7 @@ MotionDialog {
         var options = []
         for (var i = 0; i < App.simulationWorlds.length; ++i) {
             var world = App.simulationWorlds[i]
-            options.push({ label: String(world.name || world.id || "仿真世界"),
+            options.push({ label: String(world.name || world.id || "仿真场景"),
                            value: String(world.id || "") })
         }
         return options
@@ -94,7 +94,7 @@ MotionDialog {
         for (let i = 0; i < options.length; ++i) {
             if (String(options[i].value) === String(worldId)) return String(options[i].label)
         }
-        return "选择仿真世界"
+        return "选择仿真场景"
     }
 
     function routeOptions() {
@@ -348,14 +348,14 @@ MotionDialog {
                             kind: "secondary"
                             text: root.modelName(root.modelId)
                             allowTextElide: true
-                            iconSource: "qrc:/icons/plane.svg"
+                            iconSource: "qrc:/icons/drone.svg"
                             toolTipText: "选择飞行器和载荷\n当前：" + text
                             onClicked: modelPicker.showPicker(root.modelId)
                         }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 5
-                        Text { text: "仿真世界"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                        Text { text: "仿真场景"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                         ActionButton {
                             Layout.fillWidth: true
                             compact: true
@@ -363,7 +363,7 @@ MotionDialog {
                             text: root.worldName(root.worldId)
                             allowTextElide: true
                             iconSource: "qrc:/icons/map-pinned.svg"
-                            toolTipText: "查看地图并选择仿真世界\n当前：" + text
+                            toolTipText: "查看地图并选择仿真场景\n当前：" + text
                             onClicked: worldPicker.showPicker(root.worldId)
                         }
                     }
@@ -386,7 +386,7 @@ MotionDialog {
                             Layout.fillWidth: true
                             model: [
                                 { label: "不使用 · 仅启动 PX4", value: "off" },
-                                { label: "仅预览 · 不写入会话", value: "preview" },
+                                { label: "仅预览 · 不写入飞行记录", value: "preview" },
                                 { label: "预览并记录 · 可同步回放", value: "record" }
                             ]
                             selectedValue: root.sensorUsage
@@ -418,7 +418,7 @@ MotionDialog {
                         text: root.sensorUsage === "record"
                               ? "画面或扫描会随飞行时间轴保存；记录量取决于性能模式。"
                               : root.sensorUsage === "preview"
-                                ? "启动可选 ROS 2 容器，只显示实时数据，不占用会话存储。"
+                                ? "启动可选 ROS 2 容器，只显示实时数据，不占用飞行记录存储。"
                                 : "不会启动 ROS 2 数据容器。"
                         color: Theme.textMuted
                         font.family: Theme.fontFamily
@@ -696,7 +696,7 @@ MotionDialog {
                 Layout.preferredWidth: 92
                 text: root.editing ? "保存" : "创建"
                 enabled: nameField.text.trim().length > 0 && root.modelId.length > 0 && root.worldId.length > 0
-                toolTipText: enabled ? "保存这套测试配置" : "请填写名称并选择飞行器和世界"
+                toolTipText: enabled ? "保存这套测试配置" : "请填写名称并选择飞行器和仿真场景"
                 onClicked: root.saveRequested(root.draft())
             }
         }

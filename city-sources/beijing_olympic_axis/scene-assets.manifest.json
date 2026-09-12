@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "beijing_olympic_axis",
+  "sourceScene": "city-sources/beijing_olympic_axis/beijing_olympic_axis.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 1156,
+      "triangles": 2056
+    },
+    "roads": {
+      "vertices": 7028,
+      "triangles": 3514
+    },
+    "green_areas": {
+      "vertices": 460,
+      "triangles": 346
+    },
+    "water": {
+      "vertices": 163,
+      "triangles": 161
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/beijing_olympic_axis.sdf": "068673db7f64c504c4860ac48cb07651f86d1c3aaa69adbe0214f1947164f732",
+    "simulation/models/beijing_olympic_axis/model.sdf": "18aa924efd1b5f2a9c2235299bdfbbed3473afdda5fcb73f1d22a39ed15e2ead",
+    "simulation/models/beijing_olympic_axis/model.config": "9799c75712f73fc21b0fdb5fae9f8ceda4146f2b8347d2fa841e521365d6273c",
+    "simulation/models/beijing_olympic_axis/ATTRIBUTION.md": "b15bf7388bb02fd99a108ea826d43b0f8d16aaf0b00650f5433725afa98bc911",
+    "simulation/models/beijing_olympic_axis/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/beijing_olympic_axis/meshes/buildings.obj": "e1672d62e99ab5e6e4be1c2b307bd58ddbe6de7122d8ba9a76c1c7d9bb767844",
+    "simulation/models/beijing_olympic_axis/meshes/roads.obj": "245d200b55f91beddc1fa43920cfec322de7170cde54dc1ab9dd532cba106801",
+    "simulation/models/beijing_olympic_axis/meshes/green_areas.obj": "cbf3949dac8c41110fe1d8969dce16b67a8d7c25f7ec581917bef5e22bbfdd7d",
+    "simulation/models/beijing_olympic_axis/meshes/water.obj": "285febbc580fac29350cabf89273d28e5cfc944b4f2394f3c2b51f2a939c5fb5"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

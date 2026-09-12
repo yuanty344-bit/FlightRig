@@ -49,7 +49,7 @@ QVariantMap PreflightEvaluator::evaluate(const QVariantMap &plan,
     const bool planComplete = !plan.isEmpty() && plan.value(QStringLiteral("complete")).toBool();
     checks.append(item(QStringLiteral("plan"), QStringLiteral("测试方案"),
                        planComplete ? QStringLiteral("pass") : QStringLiteral("block"),
-                       planComplete ? QStringLiteral("机型、世界和方案参数完整")
+                       planComplete ? QStringLiteral("飞行器、仿真场景和方案参数完整")
                                     : requiresRoute ? QStringLiteral("当前方案还没有选择可用航线")
                                                     : QStringLiteral("当前方案不完整"),
                        QStringLiteral("plan")));
@@ -70,13 +70,13 @@ QVariantMap PreflightEvaluator::evaluate(const QVariantMap &plan,
                        QStringLiteral("environment")));
     checks.append(item(QStringLiteral("model"), QStringLiteral("飞行器资源"),
                        modelAvailable ? QStringLiteral("pass") : QStringLiteral("block"),
-                       modelAvailable ? QStringLiteral("方案机型已登记并可供启动")
-                                      : QStringLiteral("方案使用的机型当前不可用"),
+                       modelAvailable ? QStringLiteral("方案中的飞行器已登记并可供启动")
+                                      : QStringLiteral("方案使用的飞行器当前不可用"),
                        QStringLiteral("plan")));
-    checks.append(item(QStringLiteral("world"), QStringLiteral("仿真世界"),
+    checks.append(item(QStringLiteral("world"), QStringLiteral("仿真场景"),
                        worldAvailable ? QStringLiteral("pass") : QStringLiteral("block"),
                        worldAvailable ? QStringLiteral("场景资源已登记")
-                                      : QStringLiteral("方案使用的仿真世界当前不可用"),
+                                      : QStringLiteral("方案使用的仿真场景当前不可用"),
                        QStringLiteral("environment")));
 
     const QString worldId = plan.value(QStringLiteral("worldId")).toString();

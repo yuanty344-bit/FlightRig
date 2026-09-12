@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
     QFile html(report);
     if (!html.open(QIODevice::ReadOnly)) return 6;
     const QByteArray contents = html.readAll();
-    if (!contents.contains("FlightBench")
+    if (!contents.contains("FlightRig")
         || !contents.contains("报告 &lt;转义&gt; 检查")
         || !contents.contains("width:100%")
         || contents.contains("100%%")
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
         || !contents.contains("落地结果")
         || !contents.contains("键盘控制速度")
         || !contents.contains("验收阈值")
-        || !contents.contains("会话编号")
+        || !contents.contains("飞行记录编号")
         || !contents.contains("96.0%")
         || !contents.contains("9.8 Hz")
         || !contents.contains("视觉巡检影像地图")

@@ -78,7 +78,7 @@ MotionDialog {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Text {
-                    text: "选择仿真世界"
+                    text: "选择仿真场景"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textTitle
@@ -98,7 +98,7 @@ MotionDialog {
                 anchors.top: parent.top
                 anchors.topMargin: 12
                 iconSource: "qrc:/icons/x.svg"
-                accessibleLabel: "关闭世界选择"
+                accessibleLabel: "关闭仿真场景选择"
                 toolTipText: "关闭"
                 onClicked: root.close()
             }

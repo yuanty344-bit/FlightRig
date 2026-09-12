@@ -576,7 +576,7 @@ AppController::AppController(QObject *parent)
         if (vehicleConnected() && !vehicleReady()) {
             m_healthTimedOut = true;
             appendDiagnostic(QStringLiteral("PX4"),
-                             QStringLiteral("健康检查超过 90 秒仍未稳定"));
+                             QStringLiteral("起飞检查超过 90 秒仍未稳定"));
             updateIssueState();
         }
     });
@@ -615,7 +615,7 @@ AppController::AppController(QObject *parent)
     if (!m_testPlanRepository.plan(savedTestPlanId).isEmpty()) {
         setSelectedTestPlanId(savedTestPlanId);
     }
-    appendDiagnostic(QStringLiteral("应用"), QStringLiteral("FlightBench 已启动，正在检查本机环境"));
+    appendDiagnostic(QStringLiteral("应用"), QStringLiteral("FlightRig 已启动，正在检查本机环境"));
 
     m_sessionRecorder.purgeTrashOlderThan(m_preferences.trashRetentionDays());
     refreshSessionStorageUsage();
@@ -752,7 +752,7 @@ void AppController::stopSimulation()
 void AppController::abortTest()
 {
     if (!simulationRunning()) return;
-    m_sessionEndReason = QStringLiteral("用户中止测试");
+    m_sessionEndReason = QStringLiteral("用户结束测试");
     appendDiagnostic(QStringLiteral("测试"), m_sessionEndReason);
     if (vehicleConnected() && (inAir() || armed())) {
         landAndStopSimulation();
@@ -1739,15 +1739,15 @@ bool AppController::loadSessionDepthMap(const QString &sessionId)
     }
     const QString sessionFolder = m_sessionRecorder.folderPathForSession(sessionId);
     if (sessionFolder.isEmpty()) {
-        useStatus(QStringLiteral("找不到所选会话目录"));
+        useStatus(QStringLiteral("找不到所选飞行记录的文件夹"));
         return false;
     }
     const QString mapFolder = QDir(sessionFolder).filePath(QStringLiteral("sensor/depth-map"));
     if (!m_depthMapping.loadMap(mapFolder)) {
-        useStatus(QStringLiteral("这条会话没有可读取的 DepthFusion 地图"));
+        useStatus(QStringLiteral("这条飞行记录没有可读取的 DepthFusion 地图"));
         return false;
     }
-    useStatus(QStringLiteral("已直接加载会话保存的三维地图，无需重新播放"));
+    useStatus(QStringLiteral("已直接加载飞行记录保存的三维地图，无需重新播放"));
     return true;
 }
 
@@ -1786,11 +1786,11 @@ bool AppController::loadSessionVisualSurvey(const QString &sessionId)
     }
     const QString folder = m_sessionRecorder.folderPathForSession(sessionId);
     if (folder.isEmpty() || !m_visualSurvey.loadFromSession(folder)) {
-        useStatus(QStringLiteral("这条会话没有可读取的视觉巡检影像地图"));
+        useStatus(QStringLiteral("这条飞行记录没有可读取的视觉巡检影像地图"));
         return false;
     }
     m_loadedVisualSurveySessionId = sessionId;
-    useStatus(QStringLiteral("已加载会话保存的视觉巡检影像地图"));
+    useStatus(QStringLiteral("已加载飞行记录保存的视觉巡检影像地图"));
     return true;
 }
 
@@ -1852,7 +1852,7 @@ bool AppController::updateVisualSurveyKeyframe(const QString &notes, bool anomal
         sensor.insert(QStringLiteral("visualSurveyAvailable"), m_visualSurvey.available());
         sensor.insert(QStringLiteral("visualSurvey"), m_visualSurvey.finishSession());
         if (!m_sessionRecorder.updateSessionSensorSummary(m_loadedVisualSurveySessionId, sensor)) {
-            useStatus(QStringLiteral("原图备注已保存，但会话摘要更新失败"));
+            useStatus(QStringLiteral("原图备注已保存，但飞行记录摘要更新失败"));
             return false;
         }
     }
@@ -1866,7 +1866,7 @@ bool AppController::openDepthMapsFolder()
     QDir().mkpath(directory);
     const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
     useStatus(opened ? QStringLiteral("已打开三维障碍地图文件夹")
-                     : QStringLiteral("无法打开三维障碍地图保存位置"));
+                     : QStringLiteral("无法打开三维障碍地图文件夹"));
     return opened;
 }
 
@@ -1876,7 +1876,7 @@ bool AppController::openLidarMapsFolder()
     QDir().mkpath(directory);
     const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
     useStatus(opened ? QStringLiteral("已打开雷达地图文件夹")
-                     : QStringLiteral("无法打开雷达地图保存位置"));
+                     : QStringLiteral("无法打开雷达地图文件夹"));
     return opened;
 }
 
@@ -2148,7 +2148,7 @@ QString AppController::testRunGuidance() const
         if (!dockerAvailable()) return QStringLiteral("请先启动 Docker Desktop");
         if (!imageAvailable()) return QStringLiteral("请安装已支持的 PX4 SITL 镜像");
         if (!dockerNetworkAvailable()) return QStringLiteral("请重新检测并创建容器网络");
-        return QStringLiteral("请先生成 FlightBench ROS 2 数据服务镜像");
+        return QStringLiteral("请先生成 FlightRig ROS 2 数据服务镜像");
     }
     if (stage == QStringLiteral("ready"))
         return QStringLiteral("环境与方案都已就绪");
@@ -2231,7 +2231,7 @@ QVariantMap AppController::preflightSummary() const
                                                    : QStringLiteral("block")},
             {QStringLiteral("detail"), available
                  ? QStringLiteral("已选择随本次仿真启动独立 ROS 2 数据容器")
-                 : QStringLiteral("未找到 flightbench/ros-sensor-bridge:0.12.0 镜像")},
+                 : QStringLiteral("未找到 flightrig/ros-sensor-bridge:0.13.0 镜像")},
             {QStringLiteral("action"), available ? QString() : QStringLiteral("environment")},
         });
         if (!available) ++blockCount;
@@ -2267,7 +2267,7 @@ void AppController::setSelectedModelId(const QString &modelId)
     settings.setValue(QStringLiteral("simulation/modelId"), m_selectedModelId);
     emit selectedModelChanged();
     appendDiagnostic(QStringLiteral("设置"),
-                     QStringLiteral("仿真机型已设为 %1（%2）")
+                     QStringLiteral("仿真飞行器已设为 %1（%2）")
                          .arg(definition->name, definition->id));
     useStatus(QStringLiteral("已选择 %1").arg(definition->name));
 }
@@ -2282,7 +2282,7 @@ void AppController::setSelectedWorldId(const QString &worldId)
     QSettings().setValue(QStringLiteral("simulation/worldId"), m_selectedWorldId);
     emit selectedWorldChanged();
     appendDiagnostic(QStringLiteral("设置"),
-                     QStringLiteral("仿真世界已设为 %1（%2）")
+                     QStringLiteral("仿真场景已设为 %1（%2）")
                          .arg(definition->name, definition->id));
     useStatus(QStringLiteral("已选择 %1").arg(definition->name));
 }
@@ -2295,7 +2295,7 @@ void AppController::setSensorServiceEnabled(bool enabled)
         return;
     }
     if (enabled && !sensorServiceSupported()) {
-        useStatus(QStringLiteral("当前机型尚未接入 ROS 2 传感器服务"));
+        useStatus(QStringLiteral("当前飞行器尚未接入 ROS 2 传感器服务"));
         return;
     }
     m_sensorServiceEnabled = enabled;
@@ -2336,7 +2336,7 @@ void AppController::setSelectedTestPlanId(const QString &planId)
         return;
     }
     if (!findSimulationWorld(worldId)) {
-        useStatus(QStringLiteral("测试方案使用的仿真世界当前不可用"));
+        useStatus(QStringLiteral("测试方案使用的仿真场景当前不可用"));
         return;
     }
 
@@ -2441,8 +2441,8 @@ QString AppController::exportSessionCsv(const QString &sessionId)
         return {};
     }
     appendDiagnostic(QStringLiteral("记录"),
-                     QStringLiteral("会话 CSV 已导出到 %1").arg(destinationPath));
-    useStatus(QStringLiteral("会话 CSV 已导出"));
+                     QStringLiteral("飞行记录 CSV 已导出到 %1").arg(destinationPath));
+    useStatus(QStringLiteral("飞行记录 CSV 已导出"));
     return QDir::toNativeSeparators(destinationPath);
 }
 
@@ -2451,7 +2451,7 @@ bool AppController::openSessionFolder(const QString &sessionId)
     const QString folderPath = m_sessionRecorder.folderPathForSession(sessionId);
     if (folderPath.isEmpty()) return false;
     const bool opened = QDesktopServices::openUrl(QUrl::fromLocalFile(folderPath));
-    if (!opened) useStatus(QStringLiteral("无法打开会话目录"));
+    if (!opened) useStatus(QStringLiteral("无法打开这条飞行记录的文件夹"));
     return opened;
 }
 
@@ -2459,7 +2459,7 @@ bool AppController::openSessionsFolder()
 {
     const bool opened = QDesktopServices::openUrl(
         QUrl::fromLocalFile(m_sessionRecorder.sessionsDirectory()));
-    if (!opened) useStatus(QStringLiteral("无法打开飞行会话目录"));
+    if (!opened) useStatus(QStringLiteral("无法打开飞行记录文件夹"));
     return opened;
 }
 
@@ -2494,18 +2494,18 @@ bool AppController::clearSessionTrash()
 {
     const int count = m_sessionRecorder.trashedSessions().size();
     if (count == 0) {
-        useStatus(QStringLiteral("会话回收站已经是空的"));
+        useStatus(QStringLiteral("飞行记录回收站已经是空的"));
         return true;
     }
     const int removed = m_sessionRecorder.clearTrash();
     refreshSessionStorageUsage();
     if (removed != count) {
-        useStatus(QStringLiteral("部分会话未能删除，请检查文件是否被占用"));
+        useStatus(QStringLiteral("部分飞行记录未能删除，请检查文件是否被占用"));
         return false;
     }
     appendDiagnostic(QStringLiteral("记录"),
-                     QStringLiteral("已清空会话回收站，共 %1 条").arg(removed));
-    useStatus(QStringLiteral("会话回收站已清空"));
+                     QStringLiteral("已清空飞行记录回收站，共 %1 条").arg(removed));
+    useStatus(QStringLiteral("飞行记录回收站已清空"));
     return true;
 }
 
@@ -2640,14 +2640,14 @@ bool AppController::copyEnvironmentInformation()
     QClipboard *clipboard = QGuiApplication::clipboard();
     if (!clipboard) return false;
     const QString information = QStringList{
-        QStringLiteral("FlightBench %1").arg(applicationVersion()),
+        QStringLiteral("FlightRig %1").arg(applicationVersion()),
         QStringLiteral("Qt %1").arg(qtRuntimeVersion()),
         QStringLiteral("MAVSDK %1").arg(mavsdkVersion()),
         buildDescription(),
         platformDescription(),
-        QStringLiteral("当前机型：%1 (%2)").arg(selectedModelName(), selectedModelId()),
-        QStringLiteral("当前世界：%1 (%2)").arg(selectedWorldName(), selectedWorldId()),
-        QStringLiteral("会话目录：%1").arg(QDir::toNativeSeparators(sessionsDirectory())),
+        QStringLiteral("当前飞行器：%1 (%2)").arg(selectedModelName(), selectedModelId()),
+        QStringLiteral("当前仿真场景：%1 (%2)").arg(selectedWorldName(), selectedWorldId()),
+        QStringLiteral("飞行记录文件夹：%1").arg(QDir::toNativeSeparators(sessionsDirectory())),
         QStringLiteral("航线目录：%1").arg(QDir::toNativeSeparators(routesDirectory())),
         QStringLiteral("方案目录：%1").arg(QDir::toNativeSeparators(plansDirectory()))
     }.join(QLatin1Char('\n'));
@@ -2660,7 +2660,7 @@ QString AppController::generateSessionReport(const QString &sessionId)
 {
     const QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
     if (details.isEmpty()) {
-        useStatus(QStringLiteral("找不到要生成报告的飞行会话"));
+        useStatus(QStringLiteral("找不到要生成报告的飞行记录"));
         return {};
     }
     const QString reportsDirectory = StoragePaths::directory(QStringLiteral("Reports"));
@@ -2684,19 +2684,19 @@ QString AppController::exportSessionBundle(const QString &sessionId)
     const QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
     const QString folder = details.value(QStringLiteral("folderPath")).toString();
     if (details.isEmpty() || folder.isEmpty() || !QDir(folder).exists()) {
-        useStatus(QStringLiteral("找不到要导出的完整会话"));
+        useStatus(QStringLiteral("找不到要导出的完整飞行记录"));
         return {};
     }
     QString reportError;
     const QString reportPath = TestReportGenerator::generate(details, folder, &reportError);
     if (reportPath.isEmpty()) {
-        useStatus(QStringLiteral("完整会话包导出失败：无法生成测试报告（%1）")
+        useStatus(QStringLiteral("完整飞行记录包导出失败：无法生成测试报告（%1）")
                       .arg(reportError));
         return {};
     }
     const QString exportDirectory = StoragePaths::directory(QStringLiteral("Exports"));
     if (!QDir().mkpath(exportDirectory)) {
-        useStatus(QStringLiteral("无法创建会话导出目录"));
+        useStatus(QStringLiteral("无法创建飞行记录导出文件夹"));
         return {};
     }
     const QString destination = QDir(exportDirectory).filePath(sessionId + QStringLiteral(".zip"));
@@ -2715,12 +2715,12 @@ QString AppController::exportSessionBundle(const QString &sessionId)
     if (!process.waitForStarted(5000) || !process.waitForFinished(60000)
         || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0
         || !QFileInfo::exists(destination)) {
-        useStatus(QStringLiteral("完整会话包导出失败"));
+        useStatus(QStringLiteral("完整飞行记录包导出失败"));
         return {};
     }
     const QString nativePath = QDir::toNativeSeparators(destination);
-    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已导出完整会话包：%1").arg(nativePath));
-    useStatus(QStringLiteral("完整会话包已导出"));
+    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已导出完整飞行记录包：%1").arg(nativePath));
+    useStatus(QStringLiteral("完整飞行记录包已导出"));
     return nativePath;
 }
 
@@ -2737,12 +2737,12 @@ bool AppController::updateSessionDetails(const QString &sessionId,
                                   : customName;
         if (m_replaySessionName.isEmpty()) {
             m_replaySessionName = details.value(
-                QStringLiteral("startedLabel"), QStringLiteral("历史会话")).toString();
+                QStringLiteral("startedLabel"), QStringLiteral("历史飞行记录")).toString();
         }
         emit replayStateChanged();
     }
-    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已更新飞行会话信息：%1").arg(sessionId));
-    useStatus(QStringLiteral("会话信息已保存"));
+    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已更新飞行记录信息：%1").arg(sessionId));
+    useStatus(QStringLiteral("飞行记录信息已保存"));
     return true;
 }
 
@@ -2750,11 +2750,11 @@ bool AppController::deleteSession(const QString &sessionId)
 {
     if (replayActive() && m_replaySessionId == sessionId) stopSessionReplay();
     if (!m_sessionRecorder.deleteSession(sessionId)) return false;
-    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已移入会话回收站：%1").arg(sessionId));
+    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已移入飞行记录回收站：%1").arg(sessionId));
     useStatus(m_preferences.trashRetentionDays() > 0
-                  ? QStringLiteral("会话已移到回收站，将保留 %1 天")
+                  ? QStringLiteral("飞行记录已移到回收站，将保留 %1 天")
                         .arg(m_preferences.trashRetentionDays())
-                  : QStringLiteral("会话已移到回收站，可随时恢复"));
+                  : QStringLiteral("飞行记录已移到回收站，可随时恢复"));
     return true;
 }
 
@@ -2762,11 +2762,11 @@ bool AppController::deleteSessionSensorData(const QString &sessionId)
 {
     if (replayActive() && m_replaySessionId == sessionId) stopSessionReplay();
     if (!m_sessionRecorder.deleteSessionSensorData(sessionId)) {
-        useStatus(QStringLiteral("没有可删除的传感器数据，或会话仍在记录中"));
+        useStatus(QStringLiteral("没有可删除的传感器数据，或本次飞行仍在记录中"));
         return false;
     }
     appendDiagnostic(QStringLiteral("记录"),
-                     QStringLiteral("已删除会话传感器数据：%1").arg(sessionId));
+                     QStringLiteral("已删除飞行记录中的传感器数据：%1").arg(sessionId));
     useStatus(QStringLiteral("传感器数据已删除，遥测、事件和报告仍然保留"));
     return true;
 }
@@ -2774,16 +2774,16 @@ bool AppController::deleteSessionSensorData(const QString &sessionId)
 bool AppController::restoreSession(const QString &sessionId)
 {
     if (!m_sessionRecorder.restoreSession(sessionId)) return false;
-    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已恢复飞行会话：%1").arg(sessionId));
-    useStatus(QStringLiteral("飞行会话已恢复"));
+    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已恢复飞行记录：%1").arg(sessionId));
+    useStatus(QStringLiteral("飞行记录已恢复"));
     return true;
 }
 
 bool AppController::permanentlyDeleteSession(const QString &sessionId)
 {
     if (!m_sessionRecorder.permanentlyDeleteSession(sessionId)) return false;
-    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已永久删除飞行会话：%1").arg(sessionId));
-    useStatus(QStringLiteral("飞行会话已永久删除"));
+    appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已永久删除飞行记录：%1").arg(sessionId));
+    useStatus(QStringLiteral("飞行记录已永久删除"));
     return true;
 }
 
@@ -2812,7 +2812,7 @@ bool AppController::setReplayWorldId(const QString &worldId)
 bool AppController::startSessionReplay(const QString &sessionId)
 {
     if (simulationRunning() || flightSessionActive()) {
-        useStatus(QStringLiteral("停止当前仿真后才能回放历史会话"));
+        useStatus(QStringLiteral("停止当前仿真后才能回放历史飞行记录"));
         return false;
     }
     m_lastReplayCapturePath.clear();
@@ -2822,13 +2822,13 @@ bool AppController::startSessionReplay(const QString &sessionId)
     m_lastReplayDepthMappingTimeMs = -1;
     const QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
     if (details.isEmpty()) {
-        useStatus(QStringLiteral("没有找到这个飞行会话"));
+        useStatus(QStringLiteral("没有找到这条飞行记录"));
         return false;
     }
     const QString recordedWorldId = details.value(QStringLiteral("worldId")).toString();
     const auto *recordedWorld = findSimulationWorld(recordedWorldId);
     if (recordedWorldId.isEmpty() || !recordedWorld) {
-        useStatus(QStringLiteral("该会话没有当前可用的仿真场景，无法回放"));
+        useStatus(QStringLiteral("该飞行记录使用的仿真场景当前不可用，无法回放"));
         return false;
     }
     const QString csvPath = details.value(QStringLiteral("csvPath")).toString();
@@ -2837,7 +2837,7 @@ bool AppController::startSessionReplay(const QString &sessionId)
                         details.value(QStringLiteral("startedAt")).toString(),
                         details.value(QStringLiteral("folderPath")).toString())) {
         useStatus(m_replay.errorMessage().isEmpty()
-                      ? QStringLiteral("该会话缺少可回放的位置数据")
+                      ? QStringLiteral("该飞行记录缺少可回放的位置数据")
                       : m_replay.errorMessage());
         return false;
     }
@@ -2848,7 +2848,7 @@ bool AppController::startSessionReplay(const QString &sessionId)
     if (m_replaySessionName.isEmpty())
         m_replaySessionName = details.value(QStringLiteral("missionRouteName")).toString();
     if (m_replaySessionName.isEmpty())
-        m_replaySessionName = details.value(QStringLiteral("startedLabel"), QStringLiteral("历史会话")).toString();
+        m_replaySessionName = details.value(QStringLiteral("startedLabel"), QStringLiteral("历史飞行记录")).toString();
     m_replayModelId = details.value(QStringLiteral("modelId")).toString();
     m_replayModelName = details.value(QStringLiteral("modelName")).toString();
     m_replayWorldId = recordedWorldId;
@@ -2881,7 +2881,7 @@ bool AppController::startSessionReplay(const QString &sessionId)
     m_replayPlannedPathGeometry.setPoints(plannedPoints);
     emit replayStateChanged();
     appendDiagnostic(QStringLiteral("回放"),
-                     QStringLiteral("开始回放会话：%1").arg(m_replaySessionName));
+                     QStringLiteral("开始回放飞行记录：%1").arg(m_replaySessionName));
     useStatus(QStringLiteral("正在回放历史飞行"));
     return true;
 }
@@ -3123,7 +3123,7 @@ QVariantMap AppController::importTestPlan(const QUrl &fileUrl)
     const QVariantMap plan = document.object().toVariantMap();
     if (!document.isObject()
         || plan.value(QStringLiteral("format")).toString() != QStringLiteral("FlightBenchTestPlan")) {
-        return failure(QStringLiteral("这不是有效的 FlightBench 测试方案"));
+        return failure(QStringLiteral("这不是有效的 FlightRig 测试方案"));
     }
     const QVariantMap saved = m_testPlanRepository.savePlan(
         {}, plan.value(QStringLiteral("name"), QStringLiteral("导入的测试方案")).toString(),
@@ -3162,7 +3162,7 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
 
     const QVariantMap session = m_sessionRecorder.sessionDetails(sessionId);
     if (session.isEmpty()) {
-        const QString message = QStringLiteral("找不到这次飞行会话");
+        const QString message = QStringLiteral("找不到这条飞行记录");
         useStatus(message);
         return response(false, message);
     }
@@ -3171,7 +3171,7 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
     if (!recordedPlanId.isEmpty() && !m_testPlanRepository.plan(recordedPlanId).isEmpty()) {
         setSelectedTestPlanId(recordedPlanId);
         if (selectedTestPlanId() != recordedPlanId) {
-            const QString message = QStringLiteral("历史方案存在，但当前机型或场景已不可用");
+            const QString message = QStringLiteral("历史方案存在，但对应的飞行器或仿真场景当前不可用");
             useStatus(message);
             return response(false, message);
         }
@@ -3185,7 +3185,7 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
     const QString modelId = session.value(QStringLiteral("modelId")).toString();
     const QString worldId = session.value(QStringLiteral("worldId")).toString();
     if (!findSimulationModel(modelId) || !findSimulationWorld(worldId)) {
-        const QString message = QStringLiteral("会话缺少当前可用的机型或仿真场景，无法直接复用");
+        const QString message = QStringLiteral("该记录使用的飞行器或仿真场景当前不可用，无法使用这次测试配置");
         useStatus(message);
         return response(false, message);
     }
@@ -3231,7 +3231,7 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
 
     setSelectedTestPlanId(saved.value(QStringLiteral("id")).toString());
     const QString finalMessage = routeAvailable || planType == QStringLiteral("free-flight")
-                                     ? QStringLiteral("已从历史会话创建可复用方案")
+                                     ? QStringLiteral("已从历史记录创建可编辑的测试方案")
                                      : QStringLiteral("已恢复配置；原航线不存在，请重新选择航线");
     useStatus(finalMessage);
     appendDiagnostic(QStringLiteral("测试方案"), finalMessage);
@@ -3306,15 +3306,15 @@ QString AppController::exportDiagnosticReport()
     }
 
     QTextStream stream(&file);
-    stream << "FlightBench 诊断报告" << Qt::endl;
+    stream << "FlightRig 诊断报告" << Qt::endl;
     stream << "生成时间：" << QDateTime::currentDateTime().toString(Qt::ISODate) << Qt::endl;
-    stream << "FlightBench：" << applicationVersion() << Qt::endl;
+    stream << "FlightRig：" << applicationVersion() << Qt::endl;
     stream << "Qt：" << qtRuntimeVersion() << Qt::endl;
     stream << "MAVSDK：" << mavsdkVersion() << Qt::endl;
     stream << "构建：" << buildDescription() << Qt::endl;
     stream << "系统：" << platformDescription() << Qt::endl;
-    stream << "仿真机型：" << selectedModelName() << " (" << selectedModelId() << ")" << Qt::endl;
-    stream << "仿真世界：" << selectedWorldName() << " (" << selectedWorldId() << ")" << Qt::endl;
+    stream << "仿真飞行器：" << selectedModelName() << " (" << selectedModelId() << ")" << Qt::endl;
+    stream << "仿真场景：" << selectedWorldName() << " (" << selectedWorldId() << ")" << Qt::endl;
     stream << "容器名称：" << containerName() << Qt::endl;
     stream << "Docker：" << (dockerAvailable() ? "可用" : "不可用") << Qt::endl;
     stream << "PX4 镜像：" << (imageAvailable() ? "已找到" : "未就绪") << Qt::endl;
@@ -3407,14 +3407,14 @@ void AppController::updateIssueState()
         label = QStringLiteral("重新启动");
     } else if (m_healthTimedOut) {
         code = QStringLiteral("health-timeout");
-        message = QStringLiteral("PX4 健康检查尚未稳定，请查看未通过项目");
+        message = QStringLiteral("PX4 起飞检查尚未稳定，请查看未通过项目");
         action = QStringLiteral("health");
-        label = QStringLiteral("健康检查");
+        label = QStringLiteral("起飞检查");
     } else if (m_commandIssue) {
         code = QStringLiteral("command-failed");
         message = m_commandIssueMessage;
         action = QStringLiteral("health");
-        label = QStringLiteral("健康检查");
+        label = QStringLiteral("起飞检查");
     }
 
     if (m_issueCode == code && m_issueMessage == message

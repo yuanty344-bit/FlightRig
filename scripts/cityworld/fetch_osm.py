@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import argparse
+from http.client import IncompleteRead
 import json
 import math
 from pathlib import Path
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 
-USER_AGENT = "FlightBench-city-world-generator/0.9 (local development tool)"
+USER_AGENT = "FlightRig-city-world-generator/0.13 (local development tool)"
 
 
 def arguments() -> argparse.Namespace:
@@ -27,14 +30,28 @@ def arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def request_json(url: str, data: bytes | None = None) -> object:
-    request = Request(url, data=data, headers={
-        "User-Agent": USER_AGENT,
-        "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
-    })
-    with urlopen(request, timeout=240) as response:
-        return json.loads(response.read().decode("utf-8"))
+def request_json(url: str, data: bytes | None = None, attempts: int = 3) -> object:
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        request = Request(url, data=data, headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+        })
+        try:
+            with urlopen(request, timeout=240) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            if error.code != 429 and error.code < 500:
+                raise
+            last_error = error
+        except (IncompleteRead, TimeoutError, URLError, json.JSONDecodeError) as error:
+            last_error = error
+        if attempt < attempts:
+            delay = 5 * attempt
+            print(f"Request failed; retrying in {delay} seconds ({attempt}/{attempts})")
+            time.sleep(delay)
+    raise RuntimeError(f"OpenStreetMap request failed after {attempts} attempts: {last_error}")
 
 
 def geocode(place: str, endpoint: str) -> tuple[float, float, str]:
@@ -59,13 +76,14 @@ def overpass_query(bounds: list[float]) -> str:
     box = ",".join(f"{value:.8f}" for value in bounds)
     return f"""[out:json][timeout:180];
 (
-  nwr[\"building\"]({box});
+  wr[\"building\"]({box});
   way[\"highway\"]({box});
-  nwr[\"leisure\"]({box});
-  nwr[\"natural\"]({box});
-  nwr[\"landuse\"]({box});
-  nwr[\"amenity\"]({box});
-  nwr[\"man_made\"]({box});
+  way[\"leisure\"~\"^(park|garden|pitch|track)$\"]({box});
+  way[\"natural\"=\"water\"]({box});
+  way[\"water\"]({box});
+  way[\"landuse\"~\"^(grass|recreation_ground|forest)$\"]({box});
+  node[\"amenity\"]({box});
+  node[\"man_made\"]({box});
 );
 out body geom;
 """

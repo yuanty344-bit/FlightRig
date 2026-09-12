@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "chengdu_tianfu_park",
+  "sourceScene": "city-sources/chengdu_tianfu_park/chengdu_tianfu_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 374,
+      "triangles": 688
+    },
+    "roads": {
+      "vertices": 4076,
+      "triangles": 2038
+    },
+    "green_areas": {
+      "vertices": 73,
+      "triangles": 55
+    },
+    "water": {
+      "vertices": 4,
+      "triangles": 2
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/chengdu_tianfu_park.sdf": "aa24cf8ac350feba6387148b57d29602fbd86b1c7fa7cae0c3820358a7f63323",
+    "simulation/models/chengdu_tianfu_park/model.sdf": "d3cc01baa0c9542a3d9bbb45700bbdb584fe98ca21eb788ade54e125b490fcb4",
+    "simulation/models/chengdu_tianfu_park/model.config": "7f21df0188ff650aa08c75a76b2d809a1a51d234c15d5e83679d3e8b8adfa16d",
+    "simulation/models/chengdu_tianfu_park/ATTRIBUTION.md": "1d947f9a00aa499360dd65903c0f1a08d83b410153a1ad24ecab9de110f2e6f1",
+    "simulation/models/chengdu_tianfu_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/chengdu_tianfu_park/meshes/buildings.obj": "9699ea2c3d28914f92b1623e4c10adfd4e6c980699a74131fac75d5945408c59",
+    "simulation/models/chengdu_tianfu_park/meshes/roads.obj": "2b27324d8e4c8e9d4353f1401837f1e2ae1f443bc515b148fa2a17cbdeb6e34a",
+    "simulation/models/chengdu_tianfu_park/meshes/green_areas.obj": "dfdae215cf017061d84a87716df48d245f3be7df1c5ddac6a611f02fe5a42572",
+    "simulation/models/chengdu_tianfu_park/meshes/water.obj": "ead773771fad6d5283436a48b784c74ec517aa3d19294a06c80bdf6db323535f"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

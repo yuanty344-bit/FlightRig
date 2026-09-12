@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     QGuiApplication application(argc, argv);
     application.setFont(QFont(QStringLiteral("Microsoft YaHei UI")));
     application.setWindowIcon(QIcon(QStringLiteral(":/icons/flightbench-app.svg")));
-    QCoreApplication::setApplicationName(QStringLiteral("FlightBench"));
+    QCoreApplication::setApplicationName(QStringLiteral("FlightRig"));
     QCoreApplication::setOrganizationName(QStringLiteral("FlightBench"));
 #ifdef FLIGHTBENCH_VERSION
     QCoreApplication::setApplicationVersion(QStringLiteral(FLIGHTBENCH_VERSION));

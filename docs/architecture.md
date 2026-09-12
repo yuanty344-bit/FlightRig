@@ -1,5 +1,26 @@
 # Source organization and refactoring boundaries
 
+## Public product name and stable internal identifiers
+
+The public Windows product name is **FlightRig** from version 0.13.0. Window
+titles, reports, release archives, documentation and user-facing messages use
+that name. The generated executable is `FlightRig.exe`, while the CMake target
+remains `FlightBench`.
+
+`FlightBench` is intentionally retained for the QML module URI, CMake/test
+targets, serialized format identifiers such as `FlightBenchSession`, ROS topic
+names, Docker network/container prefixes and `FLIGHTBENCH_*` environment
+variables. These values are technical interfaces rather than visible branding;
+renaming them would create compatibility risk without improving the interface.
+
+The optional ROS 2 sensor image is user-visible setup material and therefore
+uses the public name `flightrig/ros-sensor-bridge` from version 0.13.0.
+
+User data created by the renamed product is stored under `Documents/FlightRig`.
+No automatic migration from the former `Documents/FlightBench` directory is
+performed. This keeps the brand change explicit and does not modify or delete
+older files.
+
 ## Directory migration
 
 The first structural change moves files without changing algorithms, settings

@@ -6,7 +6,7 @@ import FlightBench
 
 MotionDialog {
     id: root
-    property string fallbackTitle: "飞行会话"
+    property string fallbackTitle: "飞行记录"
     signal saveRequested(string displayName, string notes)
 
     function prepare(displayName, notes, fallbackTitle) {
@@ -35,7 +35,7 @@ MotionDialog {
             spacing: 10
             Text {
                 Layout.fillWidth: true
-                text: "编辑会话信息"
+                text: "编辑飞行记录"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTitle
@@ -44,7 +44,7 @@ MotionDialog {
             }
             PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
-                accessibleLabel: "关闭会话编辑"
+                accessibleLabel: "关闭飞行记录编辑"
                 toolTipText: "关闭"
                 onClicked: root.close()
             }
@@ -96,7 +96,7 @@ MotionDialog {
         }
         Text {
             Layout.fillWidth: true
-            text: "名称留空时仍显示原航线名称或机型名称。"
+            text: "名称留空时仍显示原航线名称或飞行器名称。"
             color: Theme.textFaint
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textTiny

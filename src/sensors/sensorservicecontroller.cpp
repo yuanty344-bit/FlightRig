@@ -308,18 +308,18 @@ void SensorServiceController::start(const QString &modelId, const QString &world
     const QString nextSensorKind = sensorKindForModel(modelId);
     if (nextSensorKind.isEmpty()) {
         setProblemCode(QStringLiteral("sensor-not-supported"));
-        setStatusMessage(QStringLiteral("当前机型尚未接入 ROS 2 传感器数据"));
+        setStatusMessage(QStringLiteral("当前飞行器尚未接入 ROS 2 传感器数据"));
         return;
     }
     if (!m_imageAvailable) {
         setProblemCode(QStringLiteral("sensor-image-missing"));
-        setStatusMessage(QStringLiteral("尚未生成 FlightBench ROS 2 数据服务镜像"));
+        setStatusMessage(QStringLiteral("尚未生成 FlightRig ROS 2 数据服务镜像"));
         return;
     }
     static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9_-]+$"));
     if (!safeId.match(worldId).hasMatch()) {
         setProblemCode(QStringLiteral("world-invalid"));
-        setStatusMessage(QStringLiteral("ROS 2 数据服务收到无效的世界编号"));
+        setStatusMessage(QStringLiteral("ROS 2 数据服务收到无效的仿真场景编号"));
         return;
     }
 
@@ -393,7 +393,7 @@ void SensorServiceController::handleFinished(int exitCode,
         setImageAvailable(success);
         setProblemCode(success ? QString() : QStringLiteral("sensor-image-missing"));
         setStatusMessage(success ? QStringLiteral("ROS 2 数据服务镜像已就绪")
-                                 : QStringLiteral("未找到 flightbench/ros-sensor-bridge:0.12.0"));
+                                 : QStringLiteral("未找到 flightrig/ros-sensor-bridge:0.13.0"));
         break;
     case Operation::Start:
         if (success) {
@@ -782,7 +782,7 @@ QString SensorServiceController::depthFrameDataUrl() const
 QString SensorServiceController::capturesDirectory() const
 {
     const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    return QDir(documents).filePath(QStringLiteral("FlightBench/Captures"));
+    return QDir(documents).filePath(QStringLiteral("FlightRig/Captures"));
 }
 
 double SensorServiceController::depthDistanceAt(double normalizedX, double normalizedY) const

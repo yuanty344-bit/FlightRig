@@ -31,7 +31,7 @@ ApplicationWindow {
     minimumWidth: 760
     minimumHeight: 590
     visible: true
-    title: "FlightBench · PX4 本地仿真"
+    title: "FlightRig · PX4 本地仿真"
     color: Theme.canvas
 
     onActiveChanged: {

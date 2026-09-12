@@ -44,7 +44,7 @@ QVariantMap Px4EventTranslator::explain(const QString &issueCode,
     }
     if (issueCode.contains(QStringLiteral("timeout")) || issueCode.contains(QStringLiteral("connection")))
         return explanation(QStringLiteral("飞行器连接中断"),
-                           QStringLiteral("FlightBench 没有继续收到 PX4 心跳。"),
+                           QStringLiteral("FlightRig 没有继续收到 PX4 心跳。"),
                            QStringLiteral("所有飞行操作均已停止发送。"),
                            QStringLiteral("检查容器是否仍在运行，然后执行重新检测或重启仿真。"), technicalMessage);
     if (issueCode.contains(QStringLiteral("container")) || issueCode.contains(QStringLiteral("docker")))

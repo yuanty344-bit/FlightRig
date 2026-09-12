@@ -323,7 +323,7 @@ QVariantMap ApplicationPreferences::decodeDocument(const QByteArray &bytes, QStr
     if (parseError.error != QJsonParseError::NoError
         || document.value(QStringLiteral("format")).toString() != QStringLiteral("FlightBenchSettings")
         || document.value(QStringLiteral("formatVersion")).toInt() != 1) {
-        if (error) *error = QStringLiteral("这不是可用的 FlightBench 设置文件");
+        if (error) *error = QStringLiteral("这不是可用的 FlightRig 设置文件");
         return {};
     }
     if (error) error->clear();

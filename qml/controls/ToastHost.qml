@@ -8,12 +8,15 @@ Item {
     property bool warning: false
     property string lastMessage: ""
     property bool acceptingMessages: false
+    readonly property string displayedMessage: message.endsWith("…")
+                                               ? message.slice(0, -1)
+                                               : message
 
-    width: Math.min(440, parent ? parent.width - 48 : 440)
+    width: Math.min(520, parent ? parent.width - 48 : 520)
     height: toastCard.implicitHeight
     visible: opacity > 0
     opacity: 0
-    Accessible.name: message
+    Accessible.name: displayedMessage
     Accessible.role: Accessible.StaticText
 
     function showMessage(value) {
@@ -72,14 +75,15 @@ Item {
             }
             Text {
                 id: toastText
+                objectName: "toastText"
                 Layout.fillWidth: true
-                text: root.message
+                Layout.minimumWidth: 0
+                text: root.displayedMessage
                 color: "#F4F7FA"
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall
-                maximumLineCount: 2
-                wrapMode: Text.Wrap
-                elide: Text.ElideRight
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                elide: Text.ElideNone
             }
         }
     }

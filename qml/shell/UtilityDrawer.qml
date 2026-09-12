@@ -19,7 +19,7 @@ Drawer {
     property double telemetryClockMs: Date.now()
     signal flightRequested()
     signal planEditRequested()
-    readonly property string panelTitle: mode === "settings" ? "设置" : mode === "health" ? "健康检查" : mode === "telemetry" ? "更多遥测" : "运行环境"
+    readonly property string panelTitle: mode === "settings" ? "设置" : mode === "health" ? "起飞检查" : mode === "telemetry" ? "详细遥测" : "运行环境"
     readonly property int panelIndex: mode === "settings" ? 0 : mode === "health" ? 2 : mode === "telemetry" ? 3 : 1
     readonly property bool sensorsReady: App.gyrometerOk && App.accelerometerOk && App.magnetometerOk
     readonly property bool positionReady: App.localPositionOk
@@ -311,7 +311,7 @@ Drawer {
                             spacing: 5
                             Text { Layout.fillWidth: true; text: String(App.currentIssueExplanation.title || "当前问题"); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
                             Text { Layout.fillWidth: true; text: String(App.currentIssueExplanation.what || ""); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
-                            Text { Layout.fillWidth: true; text: "建议：" + String(App.currentIssueExplanation.action || "查看健康检查详情"); color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                            Text { Layout.fillWidth: true; text: "建议：" + String(App.currentIssueExplanation.action || "查看起飞检查详情"); color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
                         }
                     }
 
@@ -386,7 +386,7 @@ Drawer {
                         }
                     }
 
-                    Text { Layout.fillWidth: true; Layout.topMargin: 14; text: "检查结果直接来自当前 PX4 健康状态；FlightBench 不会绕过任何起飞条件。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
+                    Text { Layout.fillWidth: true; Layout.topMargin: 14; text: "检查结果直接来自当前 PX4 健康状态；FlightRig 不会绕过任何起飞条件。"; color: Theme.textFaint; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny; wrapMode: Text.WordWrap }
                 }
             }
 

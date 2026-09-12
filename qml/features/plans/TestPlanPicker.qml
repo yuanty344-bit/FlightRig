@@ -118,7 +118,7 @@ MotionDialog {
                 CompactIconButton {
                     iconSource: "qrc:/icons/folder-open.svg"
                     accessibleLabel: "打开测试方案目录"
-                    toolTipText: "打开保存位置"
+                    toolTipText: "打开测试方案文件夹"
                     onClicked: App.openPlansFolder()
                 }
             }
@@ -269,10 +269,10 @@ MotionDialog {
                 Layout.preferredWidth: 112
                 compact: true
                 text: "新建方案"
-                iconSource: "qrc:/icons/save.svg"
+                iconSource: "qrc:/icons/clipboard-plus.svg"
                 kind: "secondary"
                 enabled: !App.simulationRunning && !App.busy
-                toolTipText: enabled ? "把当前机型、场景和飞行设置保存为新方案"
+                toolTipText: enabled ? "把当前飞行器、仿真场景和飞行设置保存为新方案"
                                      : "停止仿真后才能保存方案"
                 onClicked: root.createRequested()
             }
@@ -310,7 +310,7 @@ MotionDialog {
                 compact: true
                 text: "使用"
                 enabled: root.pendingId.length > 0 && !App.simulationRunning && !App.busy
-                toolTipText: enabled ? "应用选中的机型、世界和起飞高度"
+                toolTipText: enabled ? "应用选中的飞行器、仿真场景和起飞高度"
                                      : "停止仿真后才能更换方案"
                 onClicked: root.applyRequested(root.pendingId)
             }
@@ -319,9 +319,9 @@ MotionDialog {
 
     PlatformDialogs.FileDialog {
         id: importDialog
-        title: "导入 FlightBench 测试方案"
+        title: "导入 FlightRig 测试方案"
         fileMode: PlatformDialogs.FileDialog.OpenFile
-        nameFilters: ["FlightBench 测试方案 (*.fbplan.json *.json)"]
+        nameFilters: ["FlightRig 测试方案 (*.fbplan.json *.json)"]
         onAccepted: {
             const result = App.importTestPlan(selectedFile)
             if (result.success) root.pendingId = String(result.id || App.selectedTestPlanId)

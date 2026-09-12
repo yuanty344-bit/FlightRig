@@ -38,7 +38,7 @@ MotionDialog {
                 spacing: 2
                 Text {
                     Layout.fillWidth: true
-                    text: "会话 DepthFusion 三维地图"
+                    text: "飞行记录的 DepthFusion 三维地图"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textTitle

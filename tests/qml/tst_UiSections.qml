@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtTest
 import FlightBench
+import "../../qml/controls"
 import "../../qml/features/settings"
 import "../../qml/features/records"
 
@@ -25,6 +26,10 @@ TestCase {
         SessionAcceptanceSection { id: acceptance; session: ({}) }
     }
     SignalSpy { id: returnSpy; target: appearance; signalName: "returnRequested" }
+    ToastHost {
+        id: toast
+        acceptingMessages: true
+    }
 
     function init() {
         failOnWarning(/.*(recursive rearrange|Binding loop|Unable to assign|is not defined).*/)
@@ -49,7 +54,7 @@ TestCase {
                     acceptancePassedCount: 1,
                     acceptanceWarningCount: 0,
                     acceptanceFailedCount: 0,
-                    acceptanceChecks: [{label: "测试结果", status: "pass", detail: "历史会话验收说明"}]
+                    acceptanceChecks: [{label: "测试结果", status: "pass", detail: "历史飞行记录验收说明"}]
                 }
                 wait(30)
                 verify(acceptance.visible)
@@ -58,5 +63,18 @@ TestCase {
                 verify(appearance.contentWidth <= appearance.availableWidth)
             }
         }
+    }
+    function test_toastShowsCompleteMessage() {
+        toast.width = 240
+        toast.message = "PX4 起飞检查通过，正在确认状态稳定…"
+        toast.opacity = 1
+        wait(20)
+        const textItem = findChild(toast, "toastText")
+        verify(textItem !== null)
+        compare(textItem.text, "PX4 起飞检查通过，正在确认状态稳定")
+        compare(textItem.elide, Text.ElideNone)
+        verify(!textItem.truncated)
+        verify(textItem.lineCount > 1)
+        verify(toast.height >= textItem.contentHeight + 18)
     }
 }

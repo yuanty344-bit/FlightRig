@@ -77,7 +77,7 @@ Rectangle {
             text: App.replayEvents.length > 0
                   ? "事件 " + Math.max(1, App.replayCurrentEventIndex + 1)
                     + "/" + App.replayEvents.length + "  " + App.replayCurrentEventLabel
-                  : "本次会话没有事件标记"
+                  : "本次飞行记录没有事件标记"
             color: Theme.textMuted
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textTiny

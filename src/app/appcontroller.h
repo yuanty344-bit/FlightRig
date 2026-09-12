@@ -316,7 +316,7 @@ public:
     [[nodiscard]] bool sensorServiceBusy() const { return m_sensorService.busy(); }
     [[nodiscard]] QString sensorServiceStatus() const
     {
-        return replayActive() ? QStringLiteral("正在显示会话中的传感器记录")
+        return replayActive() ? QStringLiteral("正在显示飞行记录中的传感器数据")
                               : m_sensorService.statusMessage();
     }
     [[nodiscard]] QString sensorServiceProblemCode() const { return m_sensorService.problemCode(); }
@@ -894,7 +894,7 @@ private:
     QString m_issueMessage;
     QString m_recoveryAction;
     QString m_recoveryLabel;
-    QString m_statusMessage{QStringLiteral("FlightBench 正在进行环境检查…")};
+    QString m_statusMessage{QStringLiteral("FlightRig 正在检查本机环境…")};
     QStringList m_diagnosticEntries;
     QString m_selectedModelId{QStringLiteral("gz_x500")};
     QString m_selectedWorldId{QStringLiteral("default")};

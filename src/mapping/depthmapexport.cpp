@@ -19,7 +19,7 @@ bool DepthMapExport::writePointCloud(const QHash<quint64, QVector3D> &centers,
         if (errorMessage) *errorMessage = QStringLiteral("无法创建障碍点云文件：%1 %2")
             .arg(plyFile.errorString(), csvFile.errorString()); return false;
     }
-    QByteArray header = "ply\nformat ascii 1.0\ncomment FlightBench DepthFusion surface\nelement vertex ";
+    QByteArray header = "ply\nformat ascii 1.0\ncomment FlightRig DepthFusion surface\nelement vertex ";
     header += QByteArray::number(centers.size()) + "\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n";
     plyFile.write(header);
     csvFile.write("east_m,up_m,south_m,observations,weight,tsdf,occupancy,free_observations\n");
@@ -38,7 +38,7 @@ bool DepthMapExport::writeMesh(const QHash<quint64, QVector3D> &centers, float r
 {
     const QString path = QDir(directoryPath).filePath(QStringLiteral("depth-surface.obj"));
     QSaveFile file(path); if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) { if (errorMessage) *errorMessage = QStringLiteral("无法创建三角网格文件"); return false; }
-    file.write("# FlightBench DepthFusion exposed-face mesh\n");
+    file.write("# FlightRig DepthFusion exposed-face mesh\n");
     int vertexBase = 1, triangles = 0; const float h = resolution * 0.46f;
     const std::array<std::array<int, 3>, 6> neighbours{{{{0,0,-1}},{{0,0,1}},{{-1,0,0}},{{1,0,0}},{{0,1,0}},{{0,-1,0}}}};
     for (auto it = centers.cbegin(); it != centers.cend(); ++it) {

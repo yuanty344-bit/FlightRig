@@ -565,7 +565,7 @@ void VehicleConnection::takeoff()
         return;
     }
     if (!m_ready) {
-        setStatusMessage(QStringLiteral("起飞被阻止：飞行器健康检查尚未通过"));
+        setStatusMessage(QStringLiteral("起飞被阻止：飞行器起飞检查尚未通过"));
         return;
     }
     if (!m_telemetryAvailable) {
@@ -593,7 +593,7 @@ void VehicleConnection::takeoff()
         }
 
         impl->post([](VehicleConnection &owner) {
-            owner.setStatusMessage(QStringLiteral("健康检查通过，正在解锁飞行器…"));
+            owner.setStatusMessage(QStringLiteral("起飞检查通过，正在解锁飞行器…"));
         });
         impl->action->arm_async([impl, targetAltitude](Action::Result armResult) {
             if (armResult != Action::Result::Success) {
@@ -696,7 +696,7 @@ void VehicleConnection::startKeyboardControl()
         return;
     }
     if (!m_ready || !m_telemetryAvailable || !m_armed || !m_inAir) {
-        setStatusMessage(QStringLiteral("键盘控制无法启用：请先完成健康检查并起飞悬停"));
+        setStatusMessage(QStringLiteral("键盘控制无法启用：请先完成起飞检查并起飞悬停"));
         return;
     }
     if (m_keyboardControlActive) return;
@@ -935,8 +935,8 @@ void VehicleConnection::uploadAndStartMission(const QVariantList &waypoints,
     }
     if (!m_ready || !m_telemetryAvailable || !m_globalPositionAvailable) {
         setMissionState(false, m_missionUploaded, false, false,
-                        QStringLiteral("无法上传：请等待健康检查和全局定位通过"));
-        setStatusMessage(QStringLiteral("航点任务被阻止：健康检查或全局定位尚未完成"));
+                        QStringLiteral("无法上传：请等待起飞检查和全局定位通过"));
+        setStatusMessage(QStringLiteral("航点任务被阻止：起飞检查或全局定位尚未完成"));
         return;
     }
     if (m_keyboardControlActive || keyboardControlTransitioning()) {
@@ -1434,7 +1434,7 @@ void VehicleConnection::updateReadyCandidate(bool value)
 
     m_readyCandidatePending = true;
     const quint64 generation = ++m_readyGeneration;
-    setStatusMessage(QStringLiteral("PX4 健康检查通过，正在确认状态稳定…"));
+    setStatusMessage(QStringLiteral("PX4 起飞检查通过，正在确认状态稳定…"));
     QTimer::singleShot(5000, this, [this, generation] {
         if (m_connected && !m_ready && generation == m_readyGeneration) {
             m_readyCandidatePending = false;

@@ -160,7 +160,7 @@ Item {
     function takeoffHint() {
         if (App.busy) return "请等待当前操作完成"
         if (!App.vehicleConnected) return "等待飞行器连接"
-        if (!App.vehicleReady) return "健康检查尚未通过"
+        if (!App.vehicleReady) return "起飞检查尚未通过"
         if (!App.telemetryAvailable) return "等待完整遥测数据"
         return "起飞至 " + App.takeoffAltitude.toFixed(1) + " 米"
     }
@@ -169,7 +169,7 @@ Item {
         if (App.keyboardControlTransitioning) return "正在切换控制模式"
         if (App.keyboardControlActive) return "退出键盘飞行控制"
         if (!App.vehicleConnected) return "等待飞行器连接"
-        if (!App.vehicleReady) return "健康检查尚未通过"
+        if (!App.vehicleReady) return "起飞检查尚未通过"
         if (!App.telemetryAvailable) return "等待完整遥测数据"
         if (!App.armed || !App.inAir) return "起飞后可以启用键盘控制"
         return "启用 WASD 键盘飞行控制"
@@ -301,10 +301,10 @@ Item {
                 CompactIconButton {
                     visible: App.simulationRunning && !App.replayActive
                     iconSource: "qrc:/icons/octagon-pause.svg"
-                    accessibleLabel: "中止当前测试"
+                    accessibleLabel: "结束当前测试"
                     toolTipText: App.inAir || App.armed
-                                 ? "中止测试并安全降落后停止仿真"
-                                 : "中止测试并停止仿真"
+                                 ? "结束测试：安全降落后停止仿真"
+                                 : "结束测试并停止仿真"
                     danger: true
                     onDarkSurface: true
                     onClicked: abortTestDialog.open()
@@ -322,8 +322,8 @@ Item {
                 CompactIconButton {
                     visible: root.viewIndex < 2 && !App.replayActive
                     iconSource: "qrc:/icons/gauge.svg"
-                    accessibleLabel: "打开更多遥测"
-                    toolTipText: "更多遥测"
+                    accessibleLabel: "打开详细遥测"
+                    toolTipText: "详细遥测"
                     onDarkSurface: true
                     onClicked: root.openTelemetry()
                 }
@@ -331,8 +331,8 @@ Item {
                 CompactIconButton {
                     visible: root.viewIndex < 2 && !App.replayActive
                     iconSource: "qrc:/icons/heart-pulse.svg"
-                    accessibleLabel: "打开健康检查"
-                    toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
+                    accessibleLabel: "打开起飞检查"
+                    toolTipText: App.vehicleReady ? "起飞检查通过" : "起飞检查"
                     onDarkSurface: true
                     normalIconColor: App.vehicleReady ? Theme.success : Theme.heroIcon
                     onClicked: root.openHealth()
@@ -780,7 +780,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "会话已记录原始场景；也可以在本次回放中临时切换查看。"
+                text: "飞行记录已保存原始场景；也可以在本次回放中临时切换查看。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall
@@ -934,12 +934,12 @@ Item {
         background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
-            Text { text: "中止当前测试？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
+            Text { text: "结束当前测试？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
             Text {
                 Layout.fillWidth: true
                 text: App.inAir || App.armed
-                      ? "FlightBench 会先发送降落指令，确认落地并锁定后停止仿真。本次记录将标记为“用户中止”。"
-                      : "仿真将停止，本次记录会标记为“用户中止”。"
+                      ? "FlightRig 会先发送降落指令，确认落地并锁定后停止仿真。本次记录将标记为“用户结束”。"
+                      : "仿真将停止，本次记录会标记为“用户结束”。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textBody
@@ -951,7 +951,7 @@ Item {
                 ActionButton { implicitWidth: 86; text: "继续测试"; kind: "secondary"; onClicked: abortTestDialog.close() }
                 ActionButton {
                     implicitWidth: 104
-                    text: "确认中止"
+                    text: "结束测试"
                     kind: "danger"
                     iconSource: "qrc:/icons/octagon-pause.svg"
                     onClicked: { abortTestDialog.close(); App.abortTest() }

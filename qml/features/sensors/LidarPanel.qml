@@ -340,9 +340,9 @@ SurfaceCard {
                                                            mapViewport.height / 2)
                             }
                             CompactIconButton {
-                                iconSource: "qrc:/icons/locate-fixed.svg"
-                                accessibleLabel: "复位地图视图"
-                                toolTipText: "恢复自适应大小和居中位置"
+                                iconSource: "qrc:/icons/focus.svg"
+                                accessibleLabel: "显示全部地图内容"
+                                toolTipText: "显示全部地图内容并恢复居中"
                                 onClicked: root.resetMapView()
                             }
                         }
@@ -563,9 +563,9 @@ SurfaceCard {
                         onClicked: App.lidarMapping.clear()
                     }
                     CompactIconButton {
-                        iconSource: "qrc:/icons/save.svg"
-                        accessibleLabel: "保存二维 SLAM 地图"
-                        toolTipText: "保存 PNG、PGM、YAML 和 SLAM 元数据"
+                        iconSource: "qrc:/icons/file-down.svg"
+                        accessibleLabel: "导出二维累计地图"
+                        toolTipText: "导出 PNG、PGM、YAML 和地图元数据"
                         enabled: root.mapReady
                         disabledReason: "飞行一段距离后才能保存地图"
                         onClicked: App.saveLidarMap()

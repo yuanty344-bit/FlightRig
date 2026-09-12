@@ -1,34 +1,114 @@
 [
-    {
-        "id":  "xatu_weiyang",
-        "name":  "西安工业大学未央校区",
-        "description":  "校园白模，包含建筑、道路、绿地和水面",
-        "previewModelDirectory":  "xatu_weiyang/meshes",
-        "sceneType":  "campus",
-        "attribution":  "© OpenStreetMap contributors"
-    },
-    {
-        "id":  "xian_bowen_dense_city",
-        "name":  "西安博文路密集街区",
-        "description":  "高新区密集商业住宅街区，中心为博文路广场开放起点，适合城市巡检和建筑避障仿真",
-        "previewModelDirectory":  "xian_bowen_dense_city/meshes",
-        "sceneType":  "urban",
-        "attribution":  "© OpenStreetMap contributors"
-    },
-    {
-        "id":  "xian_mutasi",
-        "name":  "西安木塔寺城市公园",
-        "description":  "城市公园与周边商业住宅街区，适合建筑避障和混合航线测试",
-        "previewModelDirectory":  "xian_mutasi/meshes",
-        "sceneType":  "park",
-        "attribution":  "© OpenStreetMap contributors"
-    },
-    {
-        "id":  "xian_software_city",
-        "name":  "西安软件新城示范街区",
-        "description":  "软件新城办公、住宅与公园混合街区，适合城市巡检和建筑避障测试",
-        "previewModelDirectory":  "xian_software_city/meshes",
-        "sceneType":  "urban",
-        "attribution":  "© OpenStreetMap contributors"
-    }
+  {
+    "id": "beijing_olympic_axis",
+    "name": "北京奥林匹克公园中轴",
+    "description": "奥林匹克公园中轴与大型公共建筑，适合规则航线和城市巡检",
+    "previewModelDirectory": "beijing_olympic_axis/meshes",
+    "sceneType": "urban",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "chengdu_tianfu_park",
+    "name": "成都天府公园",
+    "description": "大型公园与现代办公区，适合开阔区域和建筑巡检测试",
+    "previewModelDirectory": "chengdu_tianfu_park/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "chongqing_central_park",
+    "name": "重庆中央公园",
+    "description": "长条形城市公园与周边街区，适合纵向航线和城市巡检",
+    "previewModelDirectory": "chongqing_central_park/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "guangzhou_haixinsha",
+    "name": "广州海心沙",
+    "description": "珠江岛屿、公园与两岸建筑，适合滨水航线和视觉巡检",
+    "previewModelDirectory": "guangzhou_haixinsha/meshes",
+    "sceneType": "waterfront",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "hangzhou_qianjiang_park",
+    "name": "杭州钱江世纪公园",
+    "description": "钱江沿岸公园与新城建筑，适合公园巡检和城市航线测试",
+    "previewModelDirectory": "hangzhou_qianjiang_park/meshes",
+    "sceneType": "waterfront",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "hefei_luogang_park",
+    "name": "合肥骆岗中央公园",
+    "description": "旧机场公园与开阔跑道区域，适合长距离航线和速度测试",
+    "previewModelDirectory": "hefei_luogang_park/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "nanjing_youth_olympic_park",
+    "name": "南京青奥体育公园",
+    "description": "体育公园、开阔场地与滨水区域，适合长航线和视觉巡检",
+    "previewModelDirectory": "nanjing_youth_olympic_park/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "qingdao_may_fourth_square",
+    "name": "青岛五四广场",
+    "description": "滨海广场、绿地与城市建筑群，适合广场航线和建筑避障测试",
+    "previewModelDirectory": "qingdao_may_fourth_square/meshes",
+    "sceneType": "waterfront",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "shanghai_century_park",
+    "name": "上海世纪公园",
+    "description": "大型城市公园与周边建筑，适合开阔区域和混合航线测试",
+    "previewModelDirectory": "shanghai_century_park/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "shenzhen_civic_square",
+    "name": "深圳市民广场",
+    "description": "市民广场与城市高层建筑，适合城市巡检和建筑避障测试",
+    "previewModelDirectory": "shenzhen_civic_square/meshes",
+    "sceneType": "commercial",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "xatu_weiyang",
+    "name": "西安工业大学未央校区",
+    "description": "校园白模，包含建筑、道路、绿地和水面",
+    "previewModelDirectory": "xatu_weiyang/meshes",
+    "sceneType": "campus",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "xian_bowen_dense_city",
+    "name": "西安博文路密集街区",
+    "description": "高新区密集商业住宅街区，中心为博文路广场开放起点，适合城市巡检和建筑避障仿真",
+    "previewModelDirectory": "xian_bowen_dense_city/meshes",
+    "sceneType": "urban",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "xian_mutasi",
+    "name": "西安木塔寺城市公园",
+    "description": "城市公园与周边商业住宅街区，适合建筑避障和混合航线测试",
+    "previewModelDirectory": "xian_mutasi/meshes",
+    "sceneType": "park",
+    "attribution": "© OpenStreetMap contributors"
+  },
+  {
+    "id": "xian_software_city",
+    "name": "西安软件新城示范街区",
+    "description": "软件新城办公、住宅与公园混合街区，适合城市巡检和建筑避障测试",
+    "previewModelDirectory": "xian_software_city/meshes",
+    "sceneType": "urban",
+    "attribution": "© OpenStreetMap contributors"
+  }
 ]

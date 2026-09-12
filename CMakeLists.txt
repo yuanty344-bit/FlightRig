@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(FlightBench VERSION 0.12.0 LANGUAGES CXX)
+project(FlightBench VERSION 0.13.0 LANGUAGES CXX)
 
 include(CTest)
 
@@ -108,9 +108,13 @@ qt_add_executable(FlightBench
     src/flight/vehicleconnection.h
 )
 
-# Opt-in console subsystem for sanitizer/debugger runs. Normal Windows builds
+# Keep the long-lived CMake target and QML module names stable while exposing
+# the public product name in Windows Explorer and release packages.
+set_target_properties(FlightBench PROPERTIES OUTPUT_NAME FlightRig)
+
 target_include_directories(FlightBench PRIVATE src)
 
+# Opt-in console subsystem for sanitizer/debugger runs. Normal Windows builds
 # remain GUI applications and do not open a terminal window.
 option(FLIGHTBENCH_CONSOLE_DIAGNOSTICS "Build FlightBench with a diagnostic console" OFF)
 if(FLIGHTBENCH_CONSOLE_DIAGNOSTICS)
@@ -239,11 +243,16 @@ qt_add_resources(FlightBench "flightbench_assets"
         resources/icons/chevron-down.svg
         resources/icons/copy.svg
         resources/icons/clipboard-check.svg
+        resources/icons/clipboard-copy.svg
+        resources/icons/clipboard-plus.svg
+        resources/icons/circle-play.svg
+        resources/icons/drone.svg
         resources/icons/flightbench-app.svg
         resources/icons/file-down.svg
         resources/icons/file-chart-column.svg
         resources/icons/ellipsis.svg
         resources/icons/folder-open.svg
+        resources/icons/focus.svg
         resources/icons/gauge.svg
         resources/icons/heart-pulse.svg
         resources/icons/keyboard.svg
@@ -268,11 +277,16 @@ qt_add_resources(FlightBench "flightbench_assets"
         resources/icons/zoom-in.svg
         resources/icons/zoom-out.svg
         resources/icons/locate-fixed.svg
+        resources/icons/list-filter.svg
         resources/icons/pause.svg
         resources/icons/octagon-pause.svg
         resources/icons/package.svg
+        resources/icons/package-open.svg
+        resources/icons/radio-tower.svg
         resources/icons/rotate-ccw.svg
         resources/icons/rocket.svg
+        resources/icons/route-off.svg
+        resources/icons/settings.svg
         resources/icons/shield-check.svg
         resources/icons/triangle-alert.svg
         resources/icons/archive-restore.svg

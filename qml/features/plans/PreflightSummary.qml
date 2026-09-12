@@ -181,7 +181,7 @@ MotionDialog {
                 ActionButton {
                     implicitWidth: 118
                     text: "启动仿真"
-                    iconSource: "qrc:/icons/rocket.svg"
+                    iconSource: "qrc:/icons/circle-play.svg"
                     enabled: Boolean(root.summary.canStart)
                     disabledReason: String(root.summary.summary || "存在必须处理的问题")
                     onClicked: root.startRequested()

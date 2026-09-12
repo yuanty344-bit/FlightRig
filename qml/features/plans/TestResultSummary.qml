@@ -33,7 +33,7 @@ MotionDialog {
             Text { Layout.fillWidth: true; text: "测试" + String(root.session.testResultLabel || "已结束"); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
             PanelCloseButton { accessibleLabel: "关闭测试结果"; onClicked: root.close() }
         }
-        Text { Layout.fillWidth: true; text: String(root.session.testResultReason || "本次会话已经保存"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; wrapMode: Text.WordWrap }
+        Text { Layout.fillWidth: true; text: String(root.session.testResultReason || "本次飞行记录已经保存"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; wrapMode: Text.WordWrap }
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 72; radius: Theme.radiusMedium; color: Theme.surface
             RowLayout {
@@ -46,7 +46,7 @@ MotionDialog {
         RowLayout {
             Layout.fillWidth: true
             ActionButton { Layout.fillWidth: true; text: "查看记录"; kind: "secondary"; onClicked: { root.close(); root.recordsRequested() } }
-            ActionButton { Layout.fillWidth: true; text: "回放"; kind: "secondary"; enabled: Boolean(root.session.replayAvailable); disabledReason: "该会话缺少位置数据"; onClicked: { root.close(); root.replayRequested(String(root.session.id || "")) } }
+            ActionButton { Layout.fillWidth: true; text: "回放"; kind: "secondary"; enabled: Boolean(root.session.replayAvailable); disabledReason: "该记录缺少位置数据"; onClicked: { root.close(); root.replayRequested(String(root.session.id || "")) } }
             ActionButton { Layout.fillWidth: true; text: "打开报告"; iconSource: "qrc:/icons/file-chart-column.svg"; onClicked: App.generateSessionReport(String(root.session.id || "")) }
         }
     }

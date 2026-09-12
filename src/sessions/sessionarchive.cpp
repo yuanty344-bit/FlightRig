@@ -80,7 +80,7 @@ QVariantList SessionArchive::loadCompleted(const QString &directory)
             || metadata.value(QStringLiteral("id")).toString().isEmpty()) continue;
         if (metadata.value(QStringLiteral("status")).toString() == QStringLiteral("记录中")) {
             metadata.insert(QStringLiteral("status"), QStringLiteral("未完成"));
-            metadata.insert(QStringLiteral("endReason"), QStringLiteral("上次会话未正常结束"));
+            metadata.insert(QStringLiteral("endReason"), QStringLiteral("上次飞行记录未正常结束"));
         }
         sessions.append(metadata);
         if (sessions.size() >= 50) break;

@@ -576,7 +576,7 @@ Item {
         if (!App.vehicleConnected)
             return "等待飞行器连接"
         if (!App.vehicleReady)
-            return "等待健康检查通过"
+            return "等待起飞检查通过"
         if (!App.telemetryAvailable)
             return "等待完整遥测数据"
         if (!App.localPositionAvailable)
@@ -1223,12 +1223,12 @@ Item {
                     }
                     ActionButton {
                         visible: App.missionRunning || App.missionPaused
-                        Layout.preferredWidth: 78
+                        Layout.preferredWidth: 104
                         compact: true
-                        text: "终止"
-                        accessibleLabel: "终止任务并悬停"
-                        toolTipText: "终止任务并悬停"
-                        iconSource: "qrc:/icons/x.svg"
+                        text: "停止任务"
+                        accessibleLabel: "停止航点任务并原地悬停"
+                        toolTipText: "停止航点任务，飞行器将在当前位置悬停"
+                        iconSource: "qrc:/icons/route-off.svg"
                         kind: "secondary"
                         enabled: !App.missionBusy
                         onClicked: App.abortMissionToHold()

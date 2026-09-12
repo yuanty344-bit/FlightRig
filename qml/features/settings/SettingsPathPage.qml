@@ -16,7 +16,7 @@ ScrollView {
     ColumnLayout {
         width: root.availableWidth; spacing: 3
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "飞行轨迹"; subtitle: "同样作用于三维视图和任务地图" }
-        SettingsSwitchRow { title: "显示飞行轨迹"; summary: "隐藏后仍继续写入会话记录"; checked: App.flightPathVisible; onToggled: App.flightPathVisible = !App.flightPathVisible }
+        SettingsSwitchRow { title: "显示飞行轨迹"; summary: "隐藏后仍继续写入飞行记录"; checked: App.flightPathVisible; onToggled: App.flightPathVisible = !App.flightPathVisible }
         SettingsNumberRow { controlColumnWidth: root.controlColumnWidth; title: "轨迹粗细"; value: App.flightPathWidthMeters * 100; from: 2; to: 12; stepSize: 1; decimals: 0; unit: "cm"; onValueEdited: value => App.flightPathWidthMeters = value / 100 }
         SettingsChoiceRow { controlColumnWidth: root.controlColumnWidth; title: "可见长度"; choices: [{label:"25 m",value:25},{label:"50 m",value:50},{label:"100 m",value:100},{label:"全部",value:0}]; selectedValue: App.flightPathMaxVisibleLengthMeters; onValuePicked: value => App.flightPathMaxVisibleLengthMeters = Number(value) }
         Item {

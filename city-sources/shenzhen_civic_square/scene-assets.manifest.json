@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "shenzhen_civic_square",
+  "sourceScene": "city-sources/shenzhen_civic_square/shenzhen_civic_square.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 1444,
+      "triangles": 2676
+    },
+    "roads": {
+      "vertices": 7516,
+      "triangles": 3758
+    },
+    "green_areas": {
+      "vertices": 142,
+      "triangles": 122
+    },
+    "water": {
+      "vertices": 17,
+      "triangles": 11
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/shenzhen_civic_square.sdf": "74d1c93ffe0c7db0467de83af050174c818d8c3384849386b5987c75be623fc4",
+    "simulation/models/shenzhen_civic_square/model.sdf": "2e81009f4c7b5e4f2911a8d64431321e9cbe484b1170317e3313eba285842563",
+    "simulation/models/shenzhen_civic_square/model.config": "5c6d599b681776f7d7e54a998f7ceec5c050ddc672bbeb26f532932cbab16cde",
+    "simulation/models/shenzhen_civic_square/ATTRIBUTION.md": "d7b180efc8035eeb0a35e6359f5ed92200b5040f820360f6ed99be2c899764e6",
+    "simulation/models/shenzhen_civic_square/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/shenzhen_civic_square/meshes/buildings.obj": "35af212b1bb62908bde1ecc6b21bfd97d51a53f4d81a0d22738d5d7316cef238",
+    "simulation/models/shenzhen_civic_square/meshes/roads.obj": "ff499ee66f648281b8eb670d11df88d5cc1bbc33e7569aaf75ded801c1779dd3",
+    "simulation/models/shenzhen_civic_square/meshes/green_areas.obj": "2222fa74d4e006f27b2eecf4b1dea64f95c04630d9349d97dcc09d6651c754b2",
+    "simulation/models/shenzhen_civic_square/meshes/water.obj": "a68706aaf1121180aa11e9f42494c800f583d384e6748f2eb0cf0531899f944f"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}

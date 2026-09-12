@@ -49,7 +49,7 @@ Item {
     function primaryHint() {
         if (App.busy) return "请等待当前操作完成"
         if (App.hasIssue) return App.issueMessage
-        if (root.noPlan) return "保存当前机型、场景和飞行设置"
+        if (root.noPlan) return "保存当前飞行器、仿真场景和飞行设置"
         if (App.vehicleReady) return "进入飞行页面"
         if (App.simulationRunning) return "停止当前本地仿真"
         if (root.planNeedsRoute) return "请先为测试方案选择一条航线"
@@ -143,7 +143,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 2
                 Text {
-                    text: "飞行测试工作台"
+                    text: "测试准备"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: root.compactLayout ? 23 : 27
@@ -249,7 +249,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: 18
                                 height: 18
-                                source: root.noPlan ? "qrc:/icons/save.svg"
+                                source: root.noPlan ? "qrc:/icons/clipboard-plus.svg"
                                                     : App.simulationRunning ? "qrc:/icons/square.svg"
                                                                             : "qrc:/icons/play.svg"
                                 iconColor: "#79ADFF"
@@ -377,7 +377,7 @@ Item {
                         ActionButton {
                             Layout.preferredWidth: 116
                             text: root.primaryText()
-                            iconSource: root.noPlan ? "qrc:/icons/save.svg"
+                            iconSource: root.noPlan ? "qrc:/icons/clipboard-plus.svg"
                                                    : App.simulationRunning && !App.vehicleReady
                                                      ? "qrc:/icons/square.svg" : "qrc:/icons/play.svg"
                             kind: App.hasIssue ? "glass" : "primary"

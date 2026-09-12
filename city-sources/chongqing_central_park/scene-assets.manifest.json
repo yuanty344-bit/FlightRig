@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sceneId": "chongqing_central_park",
+  "sourceScene": "city-sources/chongqing_central_park/chongqing_central_park.scene.json",
+  "coordinateTransforms": {
+    "gazebo": "ENU: (east, north, up)",
+    "qtQuick3D": "RuntimeLoader rotates ENU to (east, up, south)"
+  },
+  "gazeboMeshes": {
+    "buildings": {
+      "vertices": 320,
+      "triangles": 576
+    },
+    "roads": {
+      "vertices": 5256,
+      "triangles": 2628
+    },
+    "green_areas": {
+      "vertices": 409,
+      "triangles": 375
+    },
+    "water": {
+      "vertices": 164,
+      "triangles": 158
+    }
+  },
+  "generatedFiles": {
+    "simulation/worlds/chongqing_central_park.sdf": "75e8179d9c11ea993c3bafc8f71a47595cbda5c2b01472f2e1fd781a4aab80eb",
+    "simulation/models/chongqing_central_park/model.sdf": "da4a468d59c18b0ec591be10d564abe0463ca17f44fc1e3e33e01186b79ec209",
+    "simulation/models/chongqing_central_park/model.config": "b466fb112ea1c5ae96d1cb098852c946b0a2217199988a9dbd7c3a2551eaa4fc",
+    "simulation/models/chongqing_central_park/ATTRIBUTION.md": "42ded455fcfb373ee0adacc7cf3ff169abc35c0950a57533256d49e5ab1363ca",
+    "simulation/models/chongqing_central_park/meshes/flightbench_city.mtl": "328e9247de61216b4400b2b5787753098c33bd5bf050600e7e4cc0292d24ca72",
+    "simulation/models/chongqing_central_park/meshes/buildings.obj": "b32eb5349b1ffd1366ad8d7f8c06ae397e0e4dcfebb51eee5f9a1592dc477598",
+    "simulation/models/chongqing_central_park/meshes/roads.obj": "2ba3e494d009cee755af35c723aae32084a62bc9d5aacc1aa7658ec6a62a48da",
+    "simulation/models/chongqing_central_park/meshes/green_areas.obj": "2b8ab2155d93eef320ac7a60535885339082eea3a511254626416ae03b9af682",
+    "simulation/models/chongqing_central_park/meshes/water.obj": "ed7b7ffc229088653ee091acaaf9c6b4e240729c2593a9b57b1b2ec1e16075de"
+  },
+  "attribution": "© OpenStreetMap contributors"
+}
