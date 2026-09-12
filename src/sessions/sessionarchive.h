@@ -3,8 +3,7 @@
 #include <QVariantMap>
 #include <QVariantList>
 
-// On-disk catalog and legacy metadata repair. No active flight/timers/signals.
-// Loading preserves the existing repair writes; it is not a read-only API.
+// On-disk catalog for the current session format. No active flight/timers/signals.
 namespace SessionArchive {
 bool saveMetadata(QVariantMap &metadata, const QString &folderPath);
 QVariantList loadCompleted(const QString &directory);

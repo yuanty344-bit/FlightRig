@@ -5,7 +5,6 @@
 #include <QFileInfo>
 #include <QPointF>
 #include <QSaveFile>
-#include <QSet>
 #include <QTextStream>
 #include <QVariantList>
 
@@ -289,7 +288,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                           .arg(h(item.value(QStringLiteral("label"))), status,
                                statusLabel, h(item.value(QStringLiteral("detail"))));
     }
-    if (checksHtml.isEmpty()) checksHtml = QStringLiteral("<tr><td colspan=3>旧会话没有验收明细</td></tr>");
+    if (checksHtml.isEmpty()) checksHtml = QStringLiteral("<tr><td colspan=3>没有验收明细</td></tr>");
 
     QString eventsHtml;
     for (const QVariant &event : session.value(QStringLiteral("events")).toList())
@@ -441,24 +440,19 @@ QString TestReportGenerator::generate(const QVariantMap &session,
         sensorRows += row(QStringLiteral("最长数据中断"),
                           QString::number(sensor.value(QStringLiteral("maximumDataGapSeconds")).toDouble(), 'f', 1)
                               + QStringLiteral(" s"));
-        const bool calibratedLatency = sensor.value(QStringLiteral("latencyMethod")).toString()
-                                       == QStringLiteral("monotonic-sync-v1");
         sensorRows += row(QStringLiteral("平均传输延迟（估计）"),
-                          calibratedLatency && sensor.value(QStringLiteral("latencyMeasured")).toBool()
+                          sensor.value(QStringLiteral("latencyMeasured")).toBool()
                               ? QString::number(sensor.value(QStringLiteral("averageLatencyMilliseconds")).toDouble(), 'f', 0)
                                     + QStringLiteral(" ms")
-                              : calibratedLatency ? QStringLiteral("未测量（未完成有效时钟校准）")
-                              : QStringLiteral("未测量（旧版时钟差未经校准）"));
-        if (calibratedLatency) {
-            sensorRows += row(QStringLiteral("延迟口径"),
-                QStringLiteral("单调时钟往返校准后的单向估计；从网关数据准备完成至应用接收，不含曝光、前置 ROS 处理和画面解码。仅统计有效校准样本。"));
-            sensorRows += row(QStringLiteral("有效延迟样本"),
-                QString::number(sensor.value(QStringLiteral("latencySampleCount")).toInt()));
-        }
+                              : QStringLiteral("未测量（未完成有效时钟校准）"));
+        sensorRows += row(QStringLiteral("延迟口径"),
+            QStringLiteral("单调时钟往返校准后的单向估计；从网关数据准备完成至应用接收，不含曝光、前置 ROS 处理和画面解码。仅统计有效校准样本。"));
+        sensorRows += row(QStringLiteral("有效延迟样本"),
+            QString::number(sensor.value(QStringLiteral("latencySampleCount")).toInt()));
         if (kind == QStringLiteral("lidar-2d") || kind == QStringLiteral("depth-camera")) {
             const double nearest = sensor.value(QStringLiteral("nearestObstacleMeters")).toDouble();
             const bool distanceMeasured = sensor.value(
-                QStringLiteral("obstacleDistanceMeasured"), nearest > 0.0).toBool();
+                QStringLiteral("obstacleDistanceMeasured")).toBool();
             sensorRows += row(QStringLiteral("最近障碍"), distanceMeasured && nearest > 0.0
                 ? QString::number(nearest, 'f', 2) + QStringLiteral(" m")
                 : QStringLiteral("未测量"));
@@ -503,8 +497,7 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                         .arg(lidarMap.value(QStringLiteral("widthMeters")).toDouble(), 0, 'f', 1)
                         .arg(lidarMap.value(QStringLiteral("heightMeters")).toDouble(), 0, 'f', 1)
                         .arg(lidarMap.value(QStringLiteral("resolutionMeters")).toDouble(), 0, 'f', 2));
-                if (lidarMap.value(QStringLiteral("formatVersion")).toInt() >= 2) {
-                    sensorRows += row(QStringLiteral("SLAM 定位"),
+                sensorRows += row(QStringLiteral("SLAM 定位"),
                         QStringLiteral("%1 个关键帧 · %2 次扫描匹配 · 置信度 %3% · %4 次回环修正")
                             .arg(lidarMap.value(QStringLiteral("keyframeCount")).toInt())
                             .arg(lidarMap.value(QStringLiteral("scanMatchedCount")).toInt())
@@ -512,22 +505,17 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                                 lidarMap.value(QStringLiteral("localizationConfidence")).toDouble()
                                 * 100.0)))
                             .arg(lidarMap.value(QStringLiteral("loopClosureCount")).toInt()));
-                    if (lidarMap.value(QStringLiteral("formatVersion")).toInt() >= 3) {
-                        sensorRows += row(QStringLiteral("位姿图优化"),
+                sensorRows += row(QStringLiteral("位姿图优化"),
                             QStringLiteral("%1 条约束 · %2 次全图优化 · 扫描与飞控位姿已按时间对齐")
                                 .arg(lidarMap.value(QStringLiteral("poseGraphConstraintCount")).toInt())
                                 .arg(lidarMap.value(QStringLiteral("optimizationCount")).toInt()));
-                    }
-                    sensorRows += row(QStringLiteral("累计位姿修正"),
+                sensorRows += row(QStringLiteral("累计位姿修正"),
                         QStringLiteral("东 %1 m · 北 %2 m · 航向 %3°")
                             .arg(lidarMap.value(QStringLiteral("correctionEastMeters")).toDouble(), 0, 'f', 2)
                             .arg(lidarMap.value(QStringLiteral("correctionNorthMeters")).toDouble(), 0, 'f', 2)
                             .arg(lidarMap.value(QStringLiteral("correctionHeadingDegrees")).toDouble(), 0, 'f', 1));
-                }
                 sensorRows += row(QStringLiteral("地图文件"),
-                    lidarMap.value(QStringLiteral("formatVersion")).toInt() >= 3
-                        ? QStringLiteral("地图 PNG/PGM/YAML/JSON + lidar-pose-graph.json")
-                        : QStringLiteral("sensor/lidar-map.png、.pgm、.yaml、.json"));
+                    QStringLiteral("地图 PNG/PGM/YAML/JSON + lidar-pose-graph.json"));
             } else {
                 sensorRows += row(QStringLiteral("二维 SLAM 地图"),
                                   QStringLiteral("未生成；需要有效本地位姿并飞行扫描"));
@@ -537,40 +525,19 @@ QString TestReportGenerator::generate(const QVariantMap &session,
             const QVariantMap survey = sensor.value(QStringLiteral("visualSurvey")).toMap();
             if (sensor.value(QStringLiteral("visualSurveyAvailable")).toBool()) {
                 const QVariantList frames = survey.value(QStringLiteral("keyframes")).toList();
-                int visitedAreaCount = survey.value(QStringLiteral("visitedAreaCount")).toInt();
-                if (visitedAreaCount <= 0) {
-                    QSet<QString> reconstructedAreas;
-                    for (const QVariant &entry : frames) {
-                        const QVariantMap frame = entry.toMap();
-                        reconstructedAreas.insert(QStringLiteral("%1:%2")
-                            .arg(static_cast<int>(std::floor(
-                                frame.value(QStringLiteral("eastMeters")).toDouble() / 20.0)))
-                            .arg(static_cast<int>(std::floor(
-                                frame.value(QStringLiteral("northMeters")).toDouble() / 20.0))));
-                    }
-                    visitedAreaCount = reconstructedAreas.size();
-                }
+                const int visitedAreaCount = survey.value(QStringLiteral("visitedAreaCount")).toInt();
                 sensorRows += row(QStringLiteral("视觉巡检影像地图"),
                     QStringLiteral("已生成 · %1 张关键帧 · %2 张清晰 · %3 张需复核")
                         .arg(survey.value(QStringLiteral("keyframeCount")).toInt())
                         .arg(survey.value(QStringLiteral("goodKeyframeCount")).toInt())
                         .arg(survey.value(QStringLiteral("warningKeyframeCount")).toInt()));
                 sensorRows += row(QStringLiteral("自动质量筛选"),
-                    QStringLiteral("采集覆盖 %1%%6 · 清晰帧 %2% · 覆盖 %3 个区域格 · 跳过 %4 张（重复 %5 张）")
-                        .arg(survey.contains(QStringLiteral("spatialCoveragePercent"))
-                                 ? survey.value(QStringLiteral("spatialCoveragePercent")).toDouble()
-                                 : survey.value(QStringLiteral("coveragePercent")).toDouble(), 0, 'f', 0)
-                        .arg(survey.contains(QStringLiteral("qualityPassPercent"))
-                                 ? survey.value(QStringLiteral("qualityPassPercent")).toDouble()
-                                 : (survey.value(QStringLiteral("keyframeCount")).toInt() > 0
-                                    ? 100.0 * survey.value(QStringLiteral("goodKeyframeCount")).toInt()
-                                        / survey.value(QStringLiteral("keyframeCount")).toInt() : 0.0), 0, 'f', 0)
+                    QStringLiteral("采集覆盖 %1% · 清晰帧 %2% · 覆盖 %3 个区域格 · 跳过 %4 张（重复 %5 张）")
+                        .arg(survey.value(QStringLiteral("spatialCoveragePercent")).toDouble(), 0, 'f', 0)
+                        .arg(survey.value(QStringLiteral("qualityPassPercent")).toDouble(), 0, 'f', 0)
                         .arg(visitedAreaCount)
                         .arg(survey.value(QStringLiteral("rejectedCount")).toInt())
-                        .arg(survey.value(QStringLiteral("duplicateCount")).toInt())
-                        .arg(survey.value(QStringLiteral("coverageDefinition")).toString()
-                                     == QStringLiteral("legacy-candidate-frame-estimate")
-                                 ? QStringLiteral("（旧记录估算）") : QString()));
+                        .arg(survey.value(QStringLiteral("duplicateCount")).toInt()));
                 int anomalyCount = 0;
                 QStringList surveyNotes;
                 for (const QVariant &entry : frames) {
@@ -597,17 +564,15 @@ QString TestReportGenerator::generate(const QVariantMap &session,
         if (kind == QStringLiteral("depth-camera")) {
             const QVariantMap depthMap = sensor.value(QStringLiteral("depthObstacleMap")).toMap();
             if (sensor.value(QStringLiteral("depthMapAvailable")).toBool()) {
-                const bool depthFusion = depthMap.value(QStringLiteral("formatVersion")).toInt() >= 2;
                 sensorRows += row(QStringLiteral("三维障碍地图"),
-                    QStringLiteral("%1 · %2 个稳定体素 · %3 × %4 × %5 m · 分辨率 %6 m")
-                        .arg(depthFusion ? QStringLiteral("DepthFusion") : QStringLiteral("已生成"))
+                    QStringLiteral("DepthFusion · %1 个稳定体素 · %2 × %3 × %4 m · 分辨率 %5 m")
                         .arg(depthMap.value(QStringLiteral("confirmedVoxelCount")).toInt())
                         .arg(depthMap.value(QStringLiteral("widthMeters")).toDouble(), 0, 'f', 1)
                         .arg(depthMap.value(QStringLiteral("depthMeters")).toDouble(), 0, 'f', 1)
                         .arg(depthMap.value(QStringLiteral("heightMeters")).toDouble(), 0, 'f', 1)
                         .arg(depthMap.value(QStringLiteral("resolutionMeters")).toDouble(), 0, 'f', 2));
-                const double corridor = depthMap.value(QStringLiteral("minimumObservedCorridorMeters"),
-                                                        depthMap.value(QStringLiteral("corridorClearanceMeters"))).toDouble();
+                const double corridor = depthMap.value(
+                    QStringLiteral("minimumObservedCorridorMeters")).toDouble();
                 sensorRows += row(QStringLiteral("前向安全走廊"),
                     corridor > 0.0
                         ? QStringLiteral("整场最小净空 %1 m · 结束时当前净空 %2 m")
@@ -615,26 +580,19 @@ QString TestReportGenerator::generate(const QVariantMap &session,
                               .arg(depthMap.value(QStringLiteral("currentCorridorClearanceMeters")).toDouble(), 0, 'f', 2)
                         : QStringLiteral("量程内未发现走廊障碍"));
                 sensorRows += row(QStringLiteral("融合质量"),
-                    depthFusion
-                    ? QStringLiteral("%1 帧 · 置信度 %2% · 稳定表面 %3% · 噪声 %4% · 射线清除 %5 个幽灵体素")
+                    QStringLiteral("%1 帧 · 置信度 %2% · 稳定表面 %3% · 噪声 %4% · 射线清除 %5 个幽灵体素")
                         .arg(depthMap.value(QStringLiteral("processedFrameCount")).toInt())
                         .arg(depthMap.value(QStringLiteral("mapConfidencePercent")).toDouble(), 0, 'f', 0)
                         .arg(depthMap.value(QStringLiteral("coveragePercent")).toDouble(), 0, 'f', 0)
                         .arg(depthMap.value(QStringLiteral("noisePercent")).toDouble(), 0, 'f', 1)
-                        .arg(depthMap.value(QStringLiteral("clearedVoxelCount")).toInt())
-                    : QStringLiteral("%1 帧参与融合 · 过滤 %2 个近地面采样")
-                        .arg(depthMap.value(QStringLiteral("processedFrameCount")).toInt())
-                        .arg(depthMap.value(QStringLiteral("filteredGroundPointCount")).toInt()));
-                if (depthFusion) {
-                    sensorRows += row(QStringLiteral("分块与地面"),
+                        .arg(depthMap.value(QStringLiteral("clearedVoxelCount")).toInt()));
+                sensorRows += row(QStringLiteral("分块与地面"),
                         QStringLiteral("%1 个空间分块 · 地面坡度 %2° · %3 个三角面")
                             .arg(depthMap.value(QStringLiteral("chunkCount")).toInt())
                             .arg(depthMap.value(QStringLiteral("groundSlopeDegrees")).toDouble(), 0, 'f', 1)
                             .arg(depthMap.value(QStringLiteral("meshTriangleCount")).toInt()));
-                }
                 sensorRows += row(QStringLiteral("地图文件"),
-                    depthFusion ? QStringLiteral("PLY 点云、CSV TSDF 表、OBJ 三角网格、俯视 PNG 与 JSON")
-                                : QStringLiteral("PLY 点云、CSV 体素表、俯视 PNG 与 JSON 元数据"));
+                    QStringLiteral("PLY 点云、CSV TSDF 表、OBJ 三角网格、俯视 PNG 与 JSON"));
                 sensorRows += row(QStringLiteral("地图范围说明"),
                     QStringLiteral("前向深度相机局部表面；未观测区域保持未知，不代表 360° SLAM"));
             } else {

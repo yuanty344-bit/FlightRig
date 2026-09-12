@@ -12,8 +12,9 @@ bool DepthMapReader::readPoints(QIODevice &file, double resolution,
     const int ix = column("east_m"), iy = column("up_m"), iz = column("south_m");
     const int io = column("observations"), iw = column("weight"), it = column("tsdf");
     const int ioc = column("occupancy"), ifree = column("free_observations");
-    if (ix < 0 || iy < 0 || iz < 0) {
-        if (errorMessage) *errorMessage = QStringLiteral("地图 CSV 缺少坐标列");
+    if (ix < 0 || iy < 0 || iz < 0 || io < 0 || iw < 0 || it < 0
+        || ioc < 0 || ifree < 0) {
+        if (errorMessage) *errorMessage = QStringLiteral("地图 CSV 不是当前 DepthFusion 格式");
         return false;
     }
     while (!file.atEnd()) {
@@ -29,17 +30,16 @@ bool DepthMapReader::readPoints(QIODevice &file, double resolution,
         const int z = qFloor(pz / resolution);
         DepthVoxel voxel;
         voxel.center = QVector3D(px, py, pz);
-        const int savedObservations = io >= 0 && io < parts.size() ? parts[io].toInt() : 2;
+        if (parts.size() <= std::max({io, iw, it, ioc, ifree})) continue;
+        const int savedObservations = parts[io].toInt();
         voxel.observations = static_cast<quint16>(
             std::clamp(std::max(4, savedObservations), 4, 65535));
-        const float savedWeight = iw >= 0 && iw < parts.size()
-            ? parts[iw].toFloat() : static_cast<float>(voxel.observations);
+        const float savedWeight = parts[iw].toFloat();
         voxel.weight = std::max(6.0f, savedWeight);
-        voxel.tsdf = it >= 0 && it < parts.size() ? parts[it].toFloat() : 0.0f;
-        voxel.occupancy = std::max(2.0f,
-            ioc >= 0 && ioc < parts.size() ? parts[ioc].toFloat() : 2.0f);
-        voxel.freeObservations = ifree >= 0 && ifree < parts.size()
-            ? static_cast<quint16>(std::clamp(parts[ifree].toInt(), 0, 65535)) : 0;
+        voxel.tsdf = parts[it].toFloat();
+        voxel.occupancy = std::max(2.0f, parts[ioc].toFloat());
+        voxel.freeObservations = static_cast<quint16>(
+            std::clamp(parts[ifree].toInt(), 0, 65535));
         accept(x, y, z, voxel);
     }
     return true;

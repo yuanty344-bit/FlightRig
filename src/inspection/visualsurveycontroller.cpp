@@ -347,74 +347,28 @@ bool VisualSurveyController::loadFromSession(const QString &sessionFolder)
     const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
     if (!document.isObject()) return false;
     const QVariantMap root = document.object().toVariantMap();
-    const bool upgradeQualityMetrics = root.value(
-        QStringLiteral("qualityMetricVersion"), 1).toInt() < 2;
+    if (root.value(QStringLiteral("formatVersion")).toInt() != 2
+        || root.value(QStringLiteral("qualityMetricVersion")).toInt() != 2)
+        return false;
     m_sessionFolder = sessionFolder;
     m_historical = true;
     m_keyframes = root.value(QStringLiteral("keyframes")).toList();
-    QSet<QString> reconstructedCapturedViews;
-    QSet<QString> reconstructedVisitedAreas;
     for (int i = 0; i < m_keyframes.size(); ++i) {
         QVariantMap frame = m_keyframes.at(i).toMap();
         frame.insert(QStringLiteral("index"), i);
         frame.insert(QStringLiteral("source"), QUrl::fromLocalFile(
             QDir(directory).filePath(frame.value(QStringLiteral("relativeFile")).toString())));
-        if (upgradeQualityMetrics) {
-            QFile imageFile(frame.value(QStringLiteral("source")).toUrl().toLocalFile());
-            if (imageFile.open(QIODevice::ReadOnly)) {
-                const ImageQuality quality = analyze(imageFile.readAll());
-                frame.insert(QStringLiteral("qualityScore"), quality.score);
-                frame.insert(QStringLiteral("qualityLabel"), quality.label);
-                frame.insert(QStringLiteral("qualityReason"), quality.reason);
-                frame.insert(QStringLiteral("brightness"), quality.brightness);
-                frame.insert(QStringLiteral("sharpness"), quality.sharpness);
-                frame.insert(QStringLiteral("edgeRatio"), quality.edgeRatio);
-            }
-        }
-        const double east = frame.value(QStringLiteral("eastMeters")).toDouble();
-        const double north = frame.value(QStringLiteral("northMeters")).toDouble();
-        const double heading = frame.value(QStringLiteral("headingDegrees")).toDouble();
-        reconstructedCapturedViews.insert(QStringLiteral("%1:%2:%3")
-            .arg(qFloor(east / 4.0)).arg(qFloor(north / 4.0))
-            .arg(qFloor((heading + 22.5) / 45.0)));
-        reconstructedVisitedAreas.insert(QStringLiteral("%1:%2")
-            .arg(qFloor(east / 20.0)).arg(qFloor(north / 20.0)));
         m_keyframes[i] = frame;
     }
     m_rejectedCount = root.value(QStringLiteral("rejectedCount")).toInt();
     m_duplicateCount = root.value(QStringLiteral("duplicateCount")).toInt();
     m_candidateCount = root.value(QStringLiteral("candidateCount")).toInt();
-    const bool missingSpatialCoverage = !root.contains(
-        QStringLiteral("spatialCoveragePercent"));
-    m_loadedCoverageEstimated = missingSpatialCoverage
-        || root.value(QStringLiteral("coverageDefinition")).toString()
-               == QStringLiteral("legacy-candidate-frame-estimate");
-    m_loadedCoveragePercent = missingSpatialCoverage
-        ? (m_candidateCount > 0
-              ? 100.0 * m_keyframes.size() / m_candidateCount
-              : (m_keyframes.isEmpty() ? 0.0 : 100.0))
-        : root.value(QStringLiteral("spatialCoveragePercent")).toDouble();
-    m_loadedQualityPassPercent = root.contains(QStringLiteral("qualityPassPercent"))
-        ? root.value(QStringLiteral("qualityPassPercent")).toDouble()
-        : (m_keyframes.isEmpty() ? 0.0
-           : 100.0 * root.value(QStringLiteral("goodKeyframeCount")).toInt()
-               / m_keyframes.size());
+    m_loadedCoveragePercent = root.value(QStringLiteral("spatialCoveragePercent")).toDouble();
+    m_loadedQualityPassPercent = root.value(QStringLiteral("qualityPassPercent")).toDouble();
     m_loadedObservedViewCount = root.value(QStringLiteral("observedViewCount")).toInt();
     m_loadedCapturedViewCount = root.value(QStringLiteral("capturedViewCount")).toInt();
     m_loadedVisitedAreaCount = root.value(QStringLiteral("visitedAreaCount")).toInt();
-    // Version 1 manifests did not store rejected candidate cells, so exact
-    // view-grid coverage cannot be reconstructed. Preserve the values that
-    // can be proven from saved keyframes and expose accepted/candidate frames
-    // as an explicitly labelled estimate instead of reusing the old quality
-    // percentage under a new name.
-    if (m_loadedCapturedViewCount <= 0)
-        m_loadedCapturedViewCount = reconstructedCapturedViews.size();
-    if (m_loadedObservedViewCount <= 0)
-        m_loadedObservedViewCount = m_loadedCapturedViewCount;
-    if (m_loadedVisitedAreaCount <= 0)
-        m_loadedVisitedAreaCount = reconstructedVisitedAreas.size();
     rebuildCounts();
-    if (upgradeQualityMetrics) writeManifest(true);
     m_selectedIndex = m_keyframes.isEmpty() ? -1 : 0;
     setStatus(m_keyframes.isEmpty() ? QStringLiteral("该会话没有视觉巡检关键帧")
                                     : QStringLiteral("正在查看历史视觉巡检"));
@@ -432,7 +386,6 @@ void VisualSurveyController::clear()
     m_loadedCoveragePercent = 0.0;
     m_loadedQualityPassPercent = 0.0;
     m_loadedObservedViewCount = m_loadedCapturedViewCount = m_loadedVisitedAreaCount = 0;
-    m_loadedCoverageEstimated = false;
     m_statusMessage = QStringLiteral("尚未开始视觉巡检");
     emit surveyChanged(); emit selectedIndexChanged(); emit stateChanged();
 }

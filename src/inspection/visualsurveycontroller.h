@@ -55,12 +55,7 @@ public:
     {
         return m_observedCells.isEmpty() ? m_loadedVisitedAreaCount : m_visitedAreas.size();
     }
-    QString coverageDefinition() const
-    {
-        return m_historical && m_loadedCoverageEstimated
-                   ? QStringLiteral("legacy-candidate-frame-estimate")
-                   : QStringLiteral("candidate-view-grid");
-    }
+    QString coverageDefinition() const { return QStringLiteral("candidate-view-grid"); }
     QVariantList keyframes() const { return m_keyframes; }
     int selectedIndex() const { return m_selectedIndex; }
     QVariantMap selectedKeyframe() const;
@@ -131,6 +126,5 @@ private:
     int m_loadedObservedViewCount{0};
     int m_loadedCapturedViewCount{0};
     int m_loadedVisitedAreaCount{0};
-    bool m_loadedCoverageEstimated{false};
     QString m_statusMessage{QStringLiteral("尚未开始视觉巡检")};
 };

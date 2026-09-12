@@ -45,6 +45,9 @@ int main(int argc, char **argv)
             "[12:00:00] [连接] 已发现飞行器\n"
             "[12:00:00] [健康] 检查通过\n"
             "[12:00:01] [任务] 完成\n"))
+        || !writeText(QDir(sensorPath).filePath(QStringLiteral("manifest.json")),
+            QStringLiteral("{\"format\":\"FlightBenchSensorSession\",\"formatVersion\":2,"
+                           "\"kind\":\"gimbal-camera\"}\n"))
         || !writeText(QDir(sensorPath).filePath(QStringLiteral("timeline.ndjson")),
             QStringLiteral("{\"type\":\"scan\",\"elapsedMs\":500,\"hz\":10,"
                            "\"nearestDistance\":2.5,\"nearestAngle\":45,"
@@ -99,19 +102,6 @@ int main(int argc, char **argv)
     if (controller.timeMs() != 0 || controller.currentEventIndex() != 2) return 11;
     controller.seekNextEvent();
     if (controller.timeMs() != 1000 || controller.currentEventIndex() != 3) return 12;
-    controller.stop();
-    // Historical wall-clock differences must not reappear as trusted latency.
-    const QString legacyTimeline = QDir(sensorPath).filePath(QStringLiteral("timeline.ndjson"));
-    if (!writeText(legacyTimeline, QStringLiteral(
-        "{\"type\":\"camera\",\"stream\":\"rgb\",\"elapsedMs\":500,"
-        "\"hz\":10,\"latencyMilliseconds\":308,\"file\":\"rgb/frame.jpg\"}\n"))) return 17;
-    if (!controller.start(csvPath, eventsPath, QStringLiteral("2026-08-21T12:00:00"),
-                          directory.path())) return 18;
-    controller.pause();
-    controller.seek(500);
-    if (controller.rgbFrameDataUrl().isEmpty() || controller.rgbLatencyMilliseconds() != -1) return 19;
-    controller.seek(0);
-    if (controller.rgbLatencyMilliseconds() != -1) return 20;
     controller.stop();
     return 0;
 }

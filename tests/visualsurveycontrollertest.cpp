@@ -119,5 +119,14 @@ int main(int argc, char **argv)
     loaded.setSelectedIndex(2);
     if (!loaded.selectedKeyframe().value(QStringLiteral("anomaly")).toBool())
         return fail("saved annotation missing");
+    QFile obsoleteManifest(directory.filePath(
+        QStringLiteral("sensor/visual-survey/visual-survey.json")));
+    if (!obsoleteManifest.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return fail("could not prepare obsolete survey manifest");
+    obsoleteManifest.write("{\"formatVersion\":1,\"qualityMetricVersion\":1,\"keyframes\":[]}");
+    obsoleteManifest.close();
+    VisualSurveyController obsolete;
+    if (obsolete.loadFromSession(directory.path()))
+        return fail("obsolete survey format was accepted");
     return 0;
 }

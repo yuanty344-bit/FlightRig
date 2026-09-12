@@ -95,19 +95,13 @@ Rectangle {
             Text {
                 visible: Boolean(sensorSummary.sensor.lidarMapAvailable)
                 Layout.fillWidth: true
-                text: Number((sensorSummary.sensor.lidarMap || {}).formatVersion || 1) >= 3
-                      ? "位姿图 SLAM · "
-                        + Number((sensorSummary.sensor.lidarMap || {}).keyframeCount || 0)
-                        + " 个关键帧 · "
-                        + Number((sensorSummary.sensor.lidarMap || {}).loopClosureCount || 0)
-                        + " 次回环 · 匹配置信度 "
-                        + Math.round(Number((sensorSummary.sensor.lidarMap || {}).localizationConfidence || 0) * 100)
-                        + "% · 已随会话保存"
-                      : "累计地图 · "
-                      + Number((sensorSummary.sensor.lidarMap || {}).exploredAreaSquareMeters || 0).toFixed(1)
-                      + " m² · 分辨率 "
-                      + Number((sensorSummary.sensor.lidarMap || {}).resolutionMeters || 0.25).toFixed(2)
-                      + " m · 已随会话保存"
+                text: "位姿图 SLAM · "
+                      + Number((sensorSummary.sensor.lidarMap || {}).keyframeCount || 0)
+                      + " 个关键帧 · "
+                      + Number((sensorSummary.sensor.lidarMap || {}).loopClosureCount || 0)
+                      + " 次回环 · 匹配置信度 "
+                      + Math.round(Number((sensorSummary.sensor.lidarMap || {}).localizationConfidence || 0) * 100)
+                      + "% · 已随会话保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
@@ -116,23 +110,13 @@ Rectangle {
             Text {
                 visible: Boolean(sensorSummary.sensor.depthMapAvailable)
                 Layout.fillWidth: true
-                text: Number((sensorSummary.sensor.depthObstacleMap || {}).formatVersion || 1) >= 2
-                      ? "DepthFusion 三维表面 · "
-                        + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
-                        + " 个稳定体素 · 置信度 "
-                        + Number((sensorSummary.sensor.depthObstacleMap || {}).mapConfidencePercent || 0).toFixed(0)
-                        + "% · "
-                        + Number((sensorSummary.sensor.depthObstacleMap || {}).meshTriangleCount || 0)
-                        + " 个三角面 · 已随会话保存"
-                      : "前向三维障碍图 · "
+                text: "DepthFusion 三维表面 · "
                       + Number((sensorSummary.sensor.depthObstacleMap || {}).confirmedVoxelCount || 0)
-                      + " 个确认体素 · "
-                      + Number((sensorSummary.sensor.depthObstacleMap || {}).widthMeters || 0).toFixed(1)
-                      + " × "
-                      + Number((sensorSummary.sensor.depthObstacleMap || {}).depthMeters || 0).toFixed(1)
-                      + " × "
-                      + Number((sensorSummary.sensor.depthObstacleMap || {}).heightMeters || 0).toFixed(1)
-                      + " m · 已随会话保存"
+                      + " 个稳定体素 · 置信度 "
+                      + Number((sensorSummary.sensor.depthObstacleMap || {}).mapConfidencePercent || 0).toFixed(0)
+                      + "% · "
+                      + Number((sensorSummary.sensor.depthObstacleMap || {}).meshTriangleCount || 0)
+                      + " 个三角面 · 已随会话保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
@@ -145,13 +129,8 @@ Rectangle {
                 text: "视觉巡检影像地图 · "
                       + Number(survey.keyframeCount || 0) + " 张关键帧 · "
                       + Number(survey.goodKeyframeCount || 0) + " 张清晰 · 采集覆盖 "
-                      + Number(survey.spatialCoveragePercent !== undefined
-                              ? survey.spatialCoveragePercent
-                               : survey.coveragePercent || 0).toFixed(0)
+                      + Number(survey.spatialCoveragePercent || 0).toFixed(0)
                       + "%"
-                      + (String(survey.coverageDefinition || "")
-                         === "legacy-candidate-frame-estimate"
-                         ? "（旧记录估算）" : "")
                       + " · 已随会话保存"
                 color: Theme.accent
                 font.family: Theme.fontFamily

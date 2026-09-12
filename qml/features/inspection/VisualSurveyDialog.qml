@@ -32,8 +32,6 @@ Dialog {
                           + App.visualSurvey.warningKeyframeCount + " 张需复核 · 自动跳过 "
                           + App.visualSurvey.rejectedCount + " 张 · 采集覆盖 "
                           + Number(App.visualSurvey.spatialCoveragePercent).toFixed(0) + "%"
-                          + (App.visualSurvey.coverageDefinition === "legacy-candidate-frame-estimate"
-                             ? "（旧记录估算）" : "")
                     color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; elide: Text.ElideRight
                 }
             }

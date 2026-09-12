@@ -114,8 +114,7 @@ Rectangle {
                         Layout.fillWidth: true
                         text: App.visualSurvey.keyframeCount + " 张关键帧 · 采集覆盖 "
                               + Number(App.visualSurvey.spatialCoveragePercent).toFixed(0) + "%"
-                              + (App.visualSurvey.coverageDefinition === "legacy-candidate-frame-estimate"
-                                 ? "（旧记录估算）" : "") + " · 清晰帧 "
+                              + " · 清晰帧 "
                               + Number(App.visualSurvey.qualityPassPercent).toFixed(0) + "%"
                         color: Theme.textMuted; font.family: Theme.fontFamily
                         font.pixelSize: Theme.textTiny; elide: Text.ElideRight

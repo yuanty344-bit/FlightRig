@@ -231,7 +231,6 @@ class AppController final : public QObject
     Q_PROPERTY(QString replayWorldId READ replayWorldId NOTIFY replayStateChanged)
     Q_PROPERTY(QString replayWorldName READ replayWorldName NOTIFY replayStateChanged)
     Q_PROPERTY(QUrl replayWorldPreviewDirectory READ replayWorldPreviewDirectory NOTIFY replayStateChanged)
-    Q_PROPERTY(bool replayWorldRecorded READ replayWorldRecorded NOTIFY replayStateChanged)
     Q_PROPERTY(QVariantList replayEvents READ replayEvents NOTIFY replayDataChanged)
     Q_PROPERTY(int replayCurrentEventIndex READ replayCurrentEventIndex NOTIFY replayTimeChanged)
     Q_PROPERTY(QString replayCurrentEventLabel READ replayCurrentEventLabel NOTIFY replayTimeChanged)
@@ -578,7 +577,6 @@ public:
     [[nodiscard]] QString replayWorldId() const { return m_replayWorldId; }
     [[nodiscard]] QString replayWorldName() const { return m_replayWorldName; }
     [[nodiscard]] QUrl replayWorldPreviewDirectory() const { return m_replayWorldPreviewDirectory; }
-    [[nodiscard]] bool replayWorldRecorded() const { return m_replayWorldRecorded; }
     [[nodiscard]] QVariantList replayEvents() const { return m_replay.events(); }
     [[nodiscard]] int replayCurrentEventIndex() const { return m_replay.currentEventIndex(); }
     [[nodiscard]] QString replayCurrentEventLabel() const { return m_replay.currentEventLabel(); }
@@ -915,7 +913,6 @@ private:
     QString m_lastReplayCapturePath;
     QString m_sessionEndReason;
     QUrl m_replayWorldPreviewDirectory;
-    bool m_replayWorldRecorded{false};
 };
 
 // Keep AppController allocation in the implementation translation unit. The

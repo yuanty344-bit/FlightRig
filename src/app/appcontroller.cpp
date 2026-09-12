@@ -1789,21 +1789,8 @@ bool AppController::loadSessionVisualSurvey(const QString &sessionId)
         useStatus(QStringLiteral("这条会话没有可读取的视觉巡检影像地图"));
         return false;
     }
-    QVariantMap details = m_sessionRecorder.sessionDetails(sessionId);
-    QVariantMap sensor = details.value(QStringLiteral("sensorRecording")).toMap();
-    const QVariantMap storedSurvey = sensor.value(QStringLiteral("visualSurvey")).toMap();
-    bool summaryUpgradeFailed = false;
-    if (storedSurvey.value(QStringLiteral("qualityMetricVersion"), 1).toInt() < 2) {
-        sensor.insert(QStringLiteral("visualSurveyAvailable"), m_visualSurvey.available());
-        sensor.insert(QStringLiteral("visualSurvey"), m_visualSurvey.finishSession());
-        if (!m_sessionRecorder.updateSessionSensorSummary(sessionId, sensor)) {
-            summaryUpgradeFailed = true;
-        }
-    }
     m_loadedVisualSurveySessionId = sessionId;
-    useStatus(summaryUpgradeFailed
-                  ? QStringLiteral("影像地图已加载，但旧版质量统计升级未能写入会话摘要")
-                  : QStringLiteral("已加载会话保存的视觉巡检影像地图"));
+    useStatus(QStringLiteral("已加载会话保存的视觉巡检影像地图"));
     return true;
 }
 
@@ -2430,8 +2417,6 @@ QVariantMap AppController::sessionDetails(const QString &sessionId) const
         details.insert(QStringLiteral("replayAvailable"),
                        ReplayController::containsPositionSamples(
                            details.value(QStringLiteral("csvPath")).toString()));
-        if (!details.contains(QStringLiteral("formatVersion")))
-            details.insert(QStringLiteral("formatVersion"), 1);
     }
     return details;
 }
@@ -2797,7 +2782,6 @@ bool AppController::restoreSession(const QString &sessionId)
 bool AppController::permanentlyDeleteSession(const QString &sessionId)
 {
     if (!m_sessionRecorder.permanentlyDeleteSession(sessionId)) return false;
-    QSettings().remove(QStringLiteral("replay/worldOverrides/%1").arg(sessionId));
     appendDiagnostic(QStringLiteral("记录"), QStringLiteral("已永久删除飞行会话：%1").arg(sessionId));
     useStatus(QStringLiteral("飞行会话已永久删除"));
     return true;
@@ -2820,8 +2804,6 @@ bool AppController::setReplayWorldId(const QString &worldId)
                                                     .arg(world->previewModelDirectory));
         m_replayWorldPreviewDirectory = QUrl::fromLocalFile(QDir::cleanPath(directory));
     }
-    QSettings().setValue(QStringLiteral("replay/worldOverrides/%1").arg(m_replaySessionId),
-                         m_replayWorldId);
     emit replayStateChanged();
     useStatus(QStringLiteral("回放场景已切换为 %1").arg(m_replayWorldName));
     return true;
@@ -2843,6 +2825,12 @@ bool AppController::startSessionReplay(const QString &sessionId)
         useStatus(QStringLiteral("没有找到这个飞行会话"));
         return false;
     }
+    const QString recordedWorldId = details.value(QStringLiteral("worldId")).toString();
+    const auto *recordedWorld = findSimulationWorld(recordedWorldId);
+    if (recordedWorldId.isEmpty() || !recordedWorld) {
+        useStatus(QStringLiteral("该会话没有当前可用的仿真场景，无法回放"));
+        return false;
+    }
     const QString csvPath = details.value(QStringLiteral("csvPath")).toString();
     if (!m_replay.start(csvPath,
                         details.value(QStringLiteral("eventsPath")).toString(),
@@ -2861,25 +2849,11 @@ bool AppController::startSessionReplay(const QString &sessionId)
         m_replaySessionName = details.value(QStringLiteral("missionRouteName")).toString();
     if (m_replaySessionName.isEmpty())
         m_replaySessionName = details.value(QStringLiteral("startedLabel"), QStringLiteral("历史会话")).toString();
-    m_replayModelId = details.value(QStringLiteral("modelId"), QStringLiteral("gz_x500")).toString();
-    m_replayModelName = details.value(QStringLiteral("modelName"), QStringLiteral("x500")).toString();
-    const QString recordedWorldId = details.value(QStringLiteral("worldId")).toString();
-    m_replayWorldRecorded = !recordedWorldId.isEmpty();
+    m_replayModelId = details.value(QStringLiteral("modelId")).toString();
+    m_replayModelName = details.value(QStringLiteral("modelName")).toString();
     m_replayWorldId = recordedWorldId;
-    if (m_replayWorldId.isEmpty()) {
-        m_replayWorldId = QSettings().value(
-            QStringLiteral("replay/worldOverrides/%1").arg(sessionId), m_selectedWorldId).toString();
-    }
-    const auto *world = findSimulationWorld(m_replayWorldId);
-    if (!world) {
-        m_replayWorldId = QStringLiteral("default");
-        m_replayWorldRecorded = false;
-        world = findSimulationWorld(m_replayWorldId);
-    }
-    m_replayWorldName = m_replayWorldRecorded
-                            ? details.value(QStringLiteral("worldName"),
-                                            world ? world->name : QStringLiteral("默认场地")).toString()
-                            : (world ? world->name : QStringLiteral("默认场地"));
+    const auto *world = recordedWorld;
+    m_replayWorldName = details.value(QStringLiteral("worldName")).toString();
     m_replayWorldPreviewDirectory = {};
     if (world && !world->previewModelDirectory.isEmpty()) {
         const QString directory = QDir(QCoreApplication::applicationDirPath())
@@ -2891,22 +2865,10 @@ bool AppController::startSessionReplay(const QString &sessionId)
     QVector<QVector3D> plannedPoints;
     const QVariantList missionWaypoints = details.value(QStringLiteral("missionWaypoints")).toList();
     if (!missionWaypoints.isEmpty()) {
-        QVector3D fallbackStart = m_replay.position();
-        if (!details.contains(QStringLiteral("missionStartEastMeters"))) {
-            for (const QVariant &eventValue : m_replay.events()) {
-                const QVariantMap event = eventValue.toMap();
-                if (!event.value(QStringLiteral("label")).toString()
-                         .contains(QStringLiteral("执行航线快照"))) continue;
-                m_replay.seek(event.value(QStringLiteral("timeMs")).toLongLong());
-                fallbackStart = m_replay.position();
-                m_replay.seek(0);
-                break;
-            }
-        }
         const QVector3D missionStart(
-            static_cast<float>(details.value(QStringLiteral("missionStartEastMeters"), fallbackStart.x()).toDouble()),
-            static_cast<float>(details.value(QStringLiteral("missionStartUpMeters"), fallbackStart.y()).toDouble()),
-            static_cast<float>(details.value(QStringLiteral("missionStartSouthMeters"), fallbackStart.z()).toDouble()));
+            static_cast<float>(details.value(QStringLiteral("missionStartEastMeters")).toDouble()),
+            static_cast<float>(details.value(QStringLiteral("missionStartUpMeters")).toDouble()),
+            static_cast<float>(details.value(QStringLiteral("missionStartSouthMeters")).toDouble()));
         plannedPoints.append(missionStart);
         for (const QVariant &value : missionWaypoints) {
             const QVariantMap waypoint = value.toMap();
@@ -2940,7 +2902,6 @@ void AppController::stopSessionReplay()
     m_replayWorldId.clear();
     m_replayWorldName.clear();
     m_replayWorldPreviewDirectory = {};
-    m_replayWorldRecorded = false;
     m_replayRouteAnalysis.clear();
     m_replayPlannedPathGeometry.clearPath();
     if (!m_lastReplayCapturePath.isEmpty()) {
@@ -3224,7 +3185,7 @@ QVariantMap AppController::reuseSessionTestPlan(const QString &sessionId)
     const QString modelId = session.value(QStringLiteral("modelId")).toString();
     const QString worldId = session.value(QStringLiteral("worldId")).toString();
     if (!findSimulationModel(modelId) || !findSimulationWorld(worldId)) {
-        const QString message = QStringLiteral("旧会话缺少当前可用的机型或仿真场景，无法直接复用");
+        const QString message = QStringLiteral("会话缺少当前可用的机型或仿真场景，无法直接复用");
         useStatus(message);
         return response(false, message);
     }

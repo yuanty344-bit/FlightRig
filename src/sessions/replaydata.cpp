@@ -100,7 +100,10 @@ QVector<ReplayData::Sample> ReplayData::loadSamples(const QString &csvPath,
         columns.insert(header.at(index).trimmed(), index);
     const QStringList required{QStringLiteral("elapsed_ms"), QStringLiteral("local_position_available"),
         QStringLiteral("scene_x_east_m"), QStringLiteral("scene_y_up_m"),
-        QStringLiteral("scene_z_south_m")};
+        QStringLiteral("scene_z_south_m"), QStringLiteral("heading_deg"),
+        QStringLiteral("roll_deg"), QStringLiteral("pitch_deg"), QStringLiteral("yaw_deg"),
+        QStringLiteral("altitude_m"), QStringLiteral("horizontal_speed_m_s"),
+        QStringLiteral("vertical_speed_m_s")};
     for (const QString &name : required) {
         if (!columns.contains(name)) {
             if (errorMessage) *errorMessage = QStringLiteral("遥测文件缺少位置列：%1").arg(name);
@@ -129,13 +132,16 @@ QVector<ReplayData::Sample> ReplayData::loadSamples(const QString &csvPath,
         Sample sample;
         sample.elapsedMs = elapsedMs;
         sample.position = QVector3D(static_cast<float>(east), static_cast<float>(up), static_cast<float>(south));
-        parseFinite(fields, column("heading_deg"), &sample.headingDegrees);
-        parseFinite(fields, column("roll_deg"), &sample.rollDegrees);
-        parseFinite(fields, column("pitch_deg"), &sample.pitchDegrees);
-        parseFinite(fields, column("yaw_deg"), &sample.yawDegrees);
-        parseFinite(fields, column("altitude_m"), &sample.altitudeMeters);
-        parseFinite(fields, column("horizontal_speed_m_s"), &sample.horizontalSpeedMetersPerSecond);
-        parseFinite(fields, column("vertical_speed_m_s"), &sample.verticalSpeedMetersPerSecond);
+        if (!parseFinite(fields, column("heading_deg"), &sample.headingDegrees)
+            || !parseFinite(fields, column("roll_deg"), &sample.rollDegrees)
+            || !parseFinite(fields, column("pitch_deg"), &sample.pitchDegrees)
+            || !parseFinite(fields, column("yaw_deg"), &sample.yawDegrees)
+            || !parseFinite(fields, column("altitude_m"), &sample.altitudeMeters)
+            || !parseFinite(fields, column("horizontal_speed_m_s"),
+                            &sample.horizontalSpeedMetersPerSecond)
+            || !parseFinite(fields, column("vertical_speed_m_s"),
+                            &sample.verticalSpeedMetersPerSecond))
+            continue;
         sample.rotation = sceneRotation(sample.rollDegrees, sample.pitchDegrees, sample.yawDegrees);
         if (!samples.isEmpty() && sample.elapsedMs < samples.constLast().elapsedMs) continue;
         if (!samples.isEmpty() && sample.elapsedMs == samples.constLast().elapsedMs) samples.last() = sample;
@@ -156,14 +162,21 @@ void ReplayData::SensorTimeline::load(const QString &sessionFolder)
     gimbalFeedbackSamples.clear();
     available = false;
     kind.clear();
+    path.clear();
     if (sessionFolder.isEmpty()) return;
     const QDir sensorDirectory(QDir(sessionFolder).filePath(QStringLiteral("sensor")));
     QFile manifestFile(sensorDirectory.filePath(QStringLiteral("manifest.json")));
     if (manifestFile.open(QIODevice::ReadOnly)) {
         const QJsonDocument manifest = QJsonDocument::fromJson(manifestFile.readAll());
-        if (manifest.isObject())
-            kind = manifest.object().value(QStringLiteral("kind")).toString();
-    }
+        if (!manifest.isObject()) return;
+        const QJsonObject manifestObject = manifest.object();
+        if (manifestObject.value(QStringLiteral("format")).toString()
+                != QStringLiteral("FlightBenchSensorSession")
+            || manifestObject.value(QStringLiteral("formatVersion")).toInt() != 2)
+            return;
+        kind = manifestObject.value(QStringLiteral("kind")).toString();
+        if (kind.isEmpty()) return;
+    } else return;
     path = sensorDirectory.filePath(QStringLiteral("timeline.ndjson"));
     QFile timeline(path);
     if (!timeline.open(QIODevice::ReadOnly | QIODevice::Text)) return;
@@ -204,14 +217,6 @@ void ReplayData::SensorTimeline::load(const QString &sessionFolder)
     // an empty camera page.
     available = !rgbSamples.isEmpty() || !depthSamples.isEmpty()
                         || !lidarSamples.isEmpty();
-    if (kind.isEmpty()) {
-        if (!lidarSamples.isEmpty()) kind = QStringLiteral("lidar-2d");
-        else if (!depthSamples.isEmpty()) kind = QStringLiteral("depth-camera");
-        else if (!rgbSamples.isEmpty()
-                 && (!gimbalTargetSamples.isEmpty() || !gimbalFeedbackSamples.isEmpty()))
-            kind = QStringLiteral("gimbal-camera");
-        else if (!rgbSamples.isEmpty()) kind = QStringLiteral("mono-camera");
-    }
 }
 
 QVariantMap ReplayData::SensorTimeline::read(const SensorSample &sample) const

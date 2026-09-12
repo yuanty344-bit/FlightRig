@@ -239,7 +239,6 @@ Item {
                     text: App.replayActive
                           ? App.replaySessionName + " · " + App.replayModelName + " · "
                             + App.replayWorldName
-                            + (App.replayWorldRecorded ? "" : "（旧会话推定）")
                           : App.hasIssue ? App.issueMessage
                                        : String(App.selectedTestPlan.name || App.selectedModelName)
                                          + " · " + App.testRunStageLabel
@@ -346,7 +345,7 @@ Item {
                     iconSource: "qrc:/icons/map-pin.svg"
                     accessibleLabel: "查看或选择回放场景"
                     toolTipText: "查看回放场景"
-                    normalIconColor: App.replayWorldRecorded ? Theme.textSecondary : Theme.warning
+                    normalIconColor: Theme.textSecondary
                     onClicked: replayWorldDialog.open()
                 }
 
@@ -733,9 +732,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: App.replayWorldRecorded
-                      ? "会话已记录原始场景；也可以临时切换查看。"
-                      : "旧会话没有保存场景，选择后会为这条记录记住。"
+                text: "会话已记录原始场景；也可以在本次回放中临时切换查看。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall

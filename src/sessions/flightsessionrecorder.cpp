@@ -15,58 +15,6 @@
 #include <cmath>
 #include <utility>
 
-namespace {
-struct RecordedFlightSummary
-{
-    bool available{false};
-    bool sawTelemetry{false};
-    bool sawInAir{false};
-    double maximumTelemetryGapSeconds{0.0};
-};
-
-RecordedFlightSummary summarizeRecordedFlight(const QString &csvPath)
-{
-    QFile file(csvPath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
-    QTextStream stream(&file);
-    const QStringList header = stream.readLine().split(QLatin1Char(','));
-    const int elapsedColumn = header.indexOf(QStringLiteral("elapsed_ms"));
-    const int inAirColumn = header.indexOf(QStringLiteral("in_air"));
-    const int telemetryColumn = header.indexOf(QStringLiteral("telemetry_available"));
-    if (elapsedColumn < 0 || inAirColumn < 0 || telemetryColumn < 0) return {};
-
-    RecordedFlightSummary summary;
-    summary.available = true;
-    qint64 gapStartedMs = -1;
-    qint64 maximumGapMs = 0;
-    qint64 lastElapsedMs = 0;
-    const int largestColumn = std::max({elapsedColumn, inAirColumn, telemetryColumn});
-    while (!stream.atEnd()) {
-        const QStringList fields = stream.readLine().split(QLatin1Char(','));
-        if (fields.size() <= largestColumn) continue;
-        bool elapsedValid = false;
-        const qint64 elapsedMs = fields.at(elapsedColumn).toLongLong(&elapsedValid);
-        if (!elapsedValid) continue;
-        lastElapsedMs = elapsedMs;
-        summary.sawInAir = summary.sawInAir
-                           || fields.at(inAirColumn) == QStringLiteral("1");
-        const bool telemetryAvailable = fields.at(telemetryColumn) == QStringLiteral("1");
-        if (telemetryAvailable) {
-            if (summary.sawTelemetry && gapStartedMs >= 0)
-                maximumGapMs = std::max(maximumGapMs, elapsedMs - gapStartedMs);
-            summary.sawTelemetry = true;
-            gapStartedMs = -1;
-        } else if (summary.sawTelemetry && gapStartedMs < 0) {
-            gapStartedMs = elapsedMs;
-        }
-    }
-    if (summary.sawTelemetry && gapStartedMs >= 0)
-        maximumGapMs = std::max(maximumGapMs, lastElapsedMs - gapStartedMs);
-    summary.maximumTelemetryGapSeconds = maximumGapMs / 1000.0;
-    return summary;
-}
-}
-
 FlightSessionRecorder::FlightSessionRecorder(QObject *parent,
                                              const QString &sessionsDirectory)
     : QObject(parent)
@@ -622,49 +570,6 @@ QVariantMap FlightSessionRecorder::sessionDetails(const QString &sessionId) cons
     QVariantMap details = metadataForSession(sessionId);
     if (details.isEmpty()) return {};
 
-    // Sessions created before 0.10.0 counted the initial PX4 connection wait as
-    // a telemetry outage and only recognised takeoff/landing when the matching
-    // UI button had been pressed. Recompute those facts from the recorded CSV so
-    // an old report does not contradict its own altitude and completed mission.
-    const RecordedFlightSummary recorded = summarizeRecordedFlight(
-        details.value(QStringLiteral("csvPath")).toString());
-    bool adjustedLegacyMetrics = false;
-    if (recorded.available && recorded.sawTelemetry) {
-        const double storedGap = details.value(
-            QStringLiteral("maximumTelemetryGapSeconds")).toDouble();
-        if (std::abs(storedGap - recorded.maximumTelemetryGapSeconds) > 0.001) {
-            details.insert(QStringLiteral("maximumTelemetryGapSeconds"),
-                           recorded.maximumTelemetryGapSeconds);
-            adjustedLegacyMetrics = true;
-        }
-    }
-    if (recorded.sawInAir
-        && details.value(QStringLiteral("takeoffResult")).toString()
-               != QStringLiteral("成功")) {
-        details.insert(QStringLiteral("takeoffResult"), QStringLiteral("成功"));
-        adjustedLegacyMetrics = true;
-    }
-    if (recorded.sawInAir
-        && !details.value(QStringLiteral("endedInAir")).toBool()
-        && !details.value(QStringLiteral("endedArmed")).toBool()
-        && details.value(QStringLiteral("landingResult")).toString()
-               != QStringLiteral("成功")) {
-        details.insert(QStringLiteral("landingResult"), QStringLiteral("成功"));
-        adjustedLegacyMetrics = true;
-    }
-    if (adjustedLegacyMetrics
-        && !(m_active && activeSessionId() == sessionId)
-        && !details.value(QStringLiteral("testPlanType")).toString().isEmpty()) {
-        const QVariantMap evaluation = AcceptanceEvaluator::evaluate(details);
-        details.insert(QStringLiteral("testResult"), evaluation.value(QStringLiteral("result")));
-        details.insert(QStringLiteral("testResultLabel"), evaluation.value(QStringLiteral("resultLabel")));
-        details.insert(QStringLiteral("testResultReason"), evaluation.value(QStringLiteral("reason")));
-        details.insert(QStringLiteral("acceptanceChecks"), evaluation.value(QStringLiteral("checks")));
-        details.insert(QStringLiteral("acceptancePassedCount"), evaluation.value(QStringLiteral("passedCount")));
-        details.insert(QStringLiteral("acceptanceWarningCount"), evaluation.value(QStringLiteral("warningCount")));
-        details.insert(QStringLiteral("acceptanceFailedCount"), evaluation.value(QStringLiteral("failedCount")));
-        details.insert(QStringLiteral("acceptancePresetLabel"), evaluation.value(QStringLiteral("presetLabel")));
-    }
     QFile eventsFile(details.value(QStringLiteral("eventsPath")).toString());
     QStringList events;
     if (eventsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -675,21 +580,6 @@ QVariantMap FlightSessionRecorder::sessionDetails(const QString &sessionId) cons
         }
     }
     details.insert(QStringLiteral("events"), events);
-    if (!(m_active && activeSessionId() == sessionId)
-        && !details.contains(QStringLiteral("routeAnalysis"))) {
-        const QVariantList waypoints = details.value(QStringLiteral("missionWaypoints")).toList();
-        if (!waypoints.isEmpty()) {
-            const QVariantMap routeAnalysis = RouteDeviationAnalyzer::analyze(
-                details.value(QStringLiteral("csvPath")).toString(), waypoints,
-                details.value(QStringLiteral("missionStartEastMeters")).toDouble(),
-                details.value(QStringLiteral("missionStartUpMeters")).toDouble(),
-                details.value(QStringLiteral("missionStartSouthMeters")).toDouble(),
-                details.value(QStringLiteral("missionStartElapsedMs"), -1).toLongLong(),
-                details.value(QStringLiteral("missionEndElapsedMs"), -1).toLongLong());
-            if (routeAnalysis.value(QStringLiteral("available")).toBool())
-                details.insert(QStringLiteral("routeAnalysis"), routeAnalysis);
-        }
-    }
     return details;
 }
 
@@ -973,14 +863,19 @@ bool FlightSessionRecorder::deleteSessionSensorData(const QString &sessionId)
     const QString sensorPath = QDir(folderPath).filePath(QStringLiteral("sensor"));
     const QFileInfo folderInfo(folderPath);
     const QFileInfo sensorInfo(sensorPath);
+    const QString normalizedFolderPath = QDir::fromNativeSeparators(
+        QDir::cleanPath(folderInfo.absoluteFilePath()));
+    const QString normalizedSensorPath = QDir::fromNativeSeparators(
+        QDir::cleanPath(sensorInfo.absoluteFilePath()));
     if (!folderInfo.exists() || !sensorInfo.exists() || !sensorInfo.isDir()
-        || !QDir::cleanPath(sensorInfo.absoluteFilePath()).startsWith(
-               QDir::cleanPath(folderInfo.absoluteFilePath()) + QDir::separator())) {
+        || !normalizedSensorPath.startsWith(normalizedFolderPath + QLatin1Char('/'))) {
         return false;
     }
     if (!QDir(sensorInfo.absoluteFilePath()).removeRecursively()) return false;
     metadata.insert(QStringLiteral("sensorRecording"),
-                    QVariantMap{{QStringLiteral("available"), false},
+                    QVariantMap{{QStringLiteral("format"), QStringLiteral("FlightBenchSensorSession")},
+                                {QStringLiteral("formatVersion"), 2},
+                                {QStringLiteral("available"), false},
                                 {QStringLiteral("deleted"), true},
                                 {QStringLiteral("statusLabel"), QStringLiteral("传感器数据已删除")}});
     if (!saveStandaloneMetadata(metadata, folderPath)) return false;

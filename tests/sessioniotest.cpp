@@ -71,6 +71,9 @@ int main(int argc, char **argv) {
     CHECK(!avi.hasFrames() && !avi.finish());
 
     CHECK(QDir().mkpath(temp.filePath("sensor")));
+    CHECK(writeFile(temp.filePath("sensor/manifest.json"),
+        "{\"format\":\"FlightBenchSensorSession\",\"formatVersion\":2,"
+        "\"kind\":\"depth-camera\"}\n"));
     const QString timeline = temp.filePath("sensor/timeline.ndjson");
     CHECK(writeFile(timeline,
         "{\"type\":\"camera\",\"elapsedMs\":0,\"stream\":\"rgb\",\"file\":\"frame.jpg\",\"jpegBase64\":\"YWJj\"}\n"
@@ -91,6 +94,14 @@ int main(int argc, char **argv) {
     CHECK(index.rgbSamples[0].metadata.value("file").toString() == temp.filePath("sensor/frame.jpg"));
     CHECK(index.read(index.depthSamples[0]).value("depthMillimetresBase64").toString() == "AAAA");
     CHECK(index.read(index.gimbalFeedbackSamples[0]).value("yaw").toInt() == 5);
+    CHECK(writeFile(temp.filePath("sensor/manifest.json"),
+        "{\"format\":\"FlightBenchSensorSession\",\"formatVersion\":1,"
+        "\"kind\":\"depth-camera\"}\n"));
+    index.load(temp.path());
+    CHECK(!index.available && index.rgbSamples.isEmpty() && index.depthSamples.isEmpty());
+    CHECK(writeFile(temp.filePath("sensor/manifest.json"),
+        "{\"format\":\"FlightBenchSensorSession\",\"formatVersion\":2,"
+        "\"kind\":\"depth-camera\"}\n"));
     CHECK(writeFile(timeline, "{\"type\":\"gimbal-state\",\"elapsedMs\":0,\"actual\":true}\n"));
     index.load(temp.path());
     CHECK(!index.available && index.rgbSamples.isEmpty() && index.gimbalFeedbackSamples.size() == 1);
@@ -98,8 +109,10 @@ int main(int argc, char **argv) {
     CHECK(!index.available && index.gimbalFeedbackSamples.isEmpty());
 
     const QString csv = temp.filePath("telemetry.csv");
-    CHECK(writeFile(csv, "elapsed_ms,local_position_available,scene_x_east_m,scene_y_up_m,scene_z_south_m\n"
-        "0,1,1,2,3\n100,1,4,5,6\n100,1,7,8,9\n90,1,0,0,0\n200,1,nan,1,2\n"));
+    CHECK(writeFile(csv, "elapsed_ms,local_position_available,scene_x_east_m,scene_y_up_m,scene_z_south_m,heading_deg,roll_deg,pitch_deg,yaw_deg,altitude_m,horizontal_speed_m_s,vertical_speed_m_s\n"
+        "0,1,1,2,3,0,0,0,0,2,1,0\n100,1,4,5,6,0,0,0,0,2,1,0\n"
+        "100,1,7,8,9,0,0,0,0,2,1,0\n90,1,0,0,0,0,0,0,0,2,1,0\n"
+        "200,1,nan,1,2,0,0,0,0,2,1,0\n"));
     const auto samples = ReplayData::loadSamples(csv);
     CHECK(samples.size() == 2 && samples[1].position == QVector3D(7,8,9));
     QString error;

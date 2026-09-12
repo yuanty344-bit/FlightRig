@@ -278,7 +278,7 @@ QString GimbalInspectionController::guidance() const
     if (m_diagnosticFailed) return QStringLiteral("诊断日志写入失败，请检查磁盘；本次原因记录可能不完整");
     if (!m_hasTarget) return {};
     if (m_historical) return m_views[m_selected].toMap().value(QStringLiteral("lastDiagnostic"),
-        QStringLiteral("旧记录未保存采集阻碍，无法推断未完成原因")).toString();
+        QStringLiteral("该视角没有保存采集阻碍，无法推断未完成原因")).toString();
     if (!m_ready) return QStringLiteral("等待新鲜的位置与云台反馈，暂不提供移动参考");
     const int reference = m_guide;
     const auto observer = m_position + m_orientation.rotatedVector(cameraOrigin(m_yaw, m_tilt)) - m_target;

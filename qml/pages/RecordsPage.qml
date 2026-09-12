@@ -58,7 +58,7 @@ Item {
 
     function selectedWorldText() {
         const name = String(selectedSession.worldName || "")
-        return name.length > 0 ? name : "旧记录未保存"
+        return name.length > 0 ? name : "未记录"
     }
 
     function sessionTitle(session) {
@@ -110,7 +110,7 @@ Item {
             if (worldValue.length > 0 && !seenWorlds[worldValue]) {
                 seenWorlds[worldValue] = true
                 worldOptions.push({ label: worldValue === "__unknown__"
-                                           ? "旧记录未保存"
+                                           ? "未记录"
                                            : String(session.worldName || worldValue),
                                     value: worldValue })
             }
@@ -623,7 +623,7 @@ Item {
                                 }
                             }
 
-                            DetailValue { label: "测试方案"; value: String(root.selectedSession.testPlanName || "旧会话未保存") }
+                            DetailValue { label: "测试方案"; value: String(root.selectedSession.testPlanName || "未记录") }
                             DetailValue { label: "仿真场景"; value: root.selectedWorldText() }
                             DetailValue { label: "健康检查"; value: String(root.selectedSession.healthResult || "未记录") }
                             DetailValue { label: "异常事件"; value: Number(root.selectedSession.issueCount || 0) + " 项" }

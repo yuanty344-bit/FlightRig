@@ -456,7 +456,19 @@ bool DepthMappingController::saveMap(const QString &directoryPath){return saveTo
 
 bool DepthMappingController::loadMap(const QString &directoryPath)
 {
-    const QDir directory(directoryPath); QString csvPath=directory.filePath("depth-obstacles.csv"); QFile file(csvPath);
+    const QDir directory(directoryPath);
+    QFile metadata(directory.filePath("depth-map.json"));
+    if (!metadata.open(QIODevice::ReadOnly)) {
+        setStatusMessage(QStringLiteral("无法读取三维地图元数据"));
+        return false;
+    }
+    const QVariantMap values = QJsonDocument::fromJson(metadata.readAll()).object().toVariantMap();
+    if (values.value("format").toString() != QStringLiteral("FlightBenchDepthFusionMap")
+        || values.value("formatVersion").toInt() != 2) {
+        setStatusMessage(QStringLiteral("该三维地图不是当前 DepthFusion 格式"));
+        return false;
+    }
+    QString csvPath=directory.filePath("depth-obstacles.csv"); QFile file(csvPath);
     if(!file.open(QIODevice::ReadOnly|QIODevice::Text)){setStatusMessage(QStringLiteral("无法读取已保存的三维地图"));return false;}
     clear();
     QString readError;
@@ -469,7 +481,7 @@ bool DepthMappingController::loadMap(const QString &directoryPath)
         setStatusMessage(readError);
         return false;
     }
-    QFile metadata(directory.filePath("depth-map.json")); if(metadata.open(QIODevice::ReadOnly)){const QVariantMap values=QJsonDocument::fromJson(metadata.readAll()).object().toVariantMap();m_processedFrameCount=values.value("processedFrameCount").toInt();m_skippedFrameCount=values.value("skippedFrameCount").toInt();m_filteredGroundPointCount=values.value("filteredGroundPointCount").toInt();m_clearedVoxelCount=values.value("clearedVoxelCount").toInt();m_meshTriangleCount=values.value("meshTriangleCount").toInt();m_minimumObservedObstacleMeters=values.value("minimumObservedObstacleMeters",values.value("nearestObstacleMeters")).toDouble();m_minimumObservedCorridorMeters=values.value("minimumObservedCorridorMeters",values.value("corridorClearanceMeters")).toDouble();m_groundPlaneAvailable=values.value("groundPlaneAvailable").toBool();m_groundSlopeDegrees=values.value("groundSlopeDegrees").toDouble();}
+    m_processedFrameCount=values.value("processedFrameCount").toInt();m_skippedFrameCount=values.value("skippedFrameCount").toInt();m_filteredGroundPointCount=values.value("filteredGroundPointCount").toInt();m_clearedVoxelCount=values.value("clearedVoxelCount").toInt();m_meshTriangleCount=values.value("meshTriangleCount").toInt();m_minimumObservedObstacleMeters=values.value("minimumObservedObstacleMeters").toDouble();m_minimumObservedCorridorMeters=values.value("minimumObservedCorridorMeters").toDouble();m_groundPlaneAvailable=values.value("groundPlaneAvailable").toBool();m_groundSlopeDegrees=values.value("groundSlopeDegrees").toDouble();
     updateBoundsAndMetrics();m_loadedFromDisk=true;m_lastSavedPath=QDir::toNativeSeparators(directoryPath);m_geometryDirty=true;setStatusMessage(QStringLiteral("已直接加载保存的 DepthFusion 地图"));if(m_visualizationActive)rebuildGeometry();emit lastSavedPathChanged();emit mapChanged();return available();
 }
 

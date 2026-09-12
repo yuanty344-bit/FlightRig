@@ -232,15 +232,5 @@ int main(int argc, char *argv[])
     const QByteArray previewContents = previewHtml.readAll();
     if (!previewContents.contains("未测量")
         || !previewContents.contains("仅预览")) return 11;
-    manualPreview.remove(QStringLiteral("latencyMethod"));
-    manualPreview.insert(QStringLiteral("latencyMeasured"), true);
-    manualPreview.insert(QStringLiteral("averageLatencyMilliseconds"), 308.0);
-    manualPreviewSession.insert(QStringLiteral("sensorRecording"), manualPreview);
-    const QString legacyReport = TestReportGenerator::generate(
-        manualPreviewSession, directory.filePath(QStringLiteral("legacy-report")), &error);
-    QFile legacyHtml(legacyReport);
-    if (!legacyHtml.open(QIODevice::ReadOnly)) return 12;
-    const auto legacyContents = legacyHtml.readAll();
-    if (!legacyContents.contains("旧版时钟差未经校准") || legacyContents.contains("308 ms")) return 13;
     return 0;
 }

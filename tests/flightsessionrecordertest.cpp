@@ -99,39 +99,38 @@ int main(int argc, char *argv[])
     if (QDir::fromNativeSeparators(
             reloadedDetails.value(QStringLiteral("reportPath")).toString())
         != QDir::fromNativeSeparators(QFileInfo(reportPath).absoluteFilePath())) return 20;
-    const QString sensorDirectory = QDir(sessionPath).filePath(QStringLiteral("sensor"));
-    if (!QDir().mkpath(sensorDirectory)) return 40;
-    QFile timeline(QDir(sensorDirectory).filePath(QStringLiteral("timeline.ndjson")));
-    if (!timeline.open(QIODevice::WriteOnly | QIODevice::Truncate)
-        || timeline.write("{\"type\":\"camera\",\"stream\":\"rgb\",\"elapsedMs\":10}\n") <= 0)
-        return 41;
-    timeline.close();
-    QSaveFile manifest(QDir(sensorDirectory).filePath(QStringLiteral("manifest.json")));
-    const QByteArray manifestData = QJsonDocument(QJsonObject{
-        {QStringLiteral("available"), true},
-        {QStringLiteral("recorded"), true},
-        {QStringLiteral("kind"), QStringLiteral("mono-camera")},
-        {QStringLiteral("rgbFrameCount"), 1},
-        {QStringLiteral("statusLabel"), QStringLiteral("已记录并可同步回放")},
+    const QString sensorPath = QDir(sessionPath).filePath(QStringLiteral("sensor"));
+    if (!QDir().mkpath(sensorPath)) return 43;
+    QFile sensorFile(QDir(sensorPath).filePath(QStringLiteral("sample.bin")));
+    if (!sensorFile.open(QIODevice::WriteOnly | QIODevice::Truncate)
+        || sensorFile.write("sensor") != 6) return 44;
+    sensorFile.close();
+    if (!reloaded.deleteSessionSensorData(sessionId)) return 45;
+    if (QFileInfo::exists(sensorPath)) return 46;
+    FlightSessionRecorder sensorDataDeletedReload(nullptr, sessionsPath);
+    const QVariantMap sensorDataDeletedDetails = sensorDataDeletedReload.sessionDetails(sessionId);
+    const QVariantMap deletedSensorSummary = sensorDataDeletedDetails
+                                                 .value(QStringLiteral("sensorRecording"))
+                                                 .toMap();
+    if (sensorDataDeletedDetails.isEmpty()
+        || deletedSensorSummary.value(QStringLiteral("format")).toString()
+               != QStringLiteral("FlightBenchSensorSession")
+        || deletedSensorSummary.value(QStringLiteral("formatVersion")).toInt() != 2
+        || !deletedSensorSummary.value(QStringLiteral("deleted")).toBool()) return 47;
+    const QString obsoletePath = QDir(sessionsPath).filePath(QStringLiteral("obsolete-session"));
+    if (!QDir().mkpath(obsoletePath)) return 40;
+    QSaveFile obsoleteFile(QDir(obsoletePath).filePath(QStringLiteral("session.json")));
+    const QByteArray obsoleteData = QJsonDocument(QJsonObject{
+        {QStringLiteral("format"), QStringLiteral("FlightBenchSession")},
+        {QStringLiteral("formatVersion"), 4},
+        {QStringLiteral("id"), QStringLiteral("obsolete-session")},
     }).toJson(QJsonDocument::Indented);
-    if (!manifest.open(QIODevice::WriteOnly | QIODevice::Truncate)
-        || manifest.write(manifestData) != manifestData.size() || !manifest.commit()) return 42;
-    const QString metadataPath = QDir(sessionPath).filePath(QStringLiteral("session.json"));
-    QFile metadataInput(metadataPath);
-    if (!metadataInput.open(QIODevice::ReadOnly)) return 43;
-    QJsonObject metadataObject = QJsonDocument::fromJson(metadataInput.readAll()).object();
-    metadataInput.close();
-    metadataObject.insert(QStringLiteral("sensorRecording"), QJsonObject{});
-    QSaveFile metadataOutput(metadataPath);
-    const QByteArray metadataData = QJsonDocument(metadataObject).toJson(QJsonDocument::Indented);
-    if (!metadataOutput.open(QIODevice::WriteOnly | QIODevice::Truncate)
-        || metadataOutput.write(metadataData) != metadataData.size()
-        || !metadataOutput.commit()) return 44;
-    FlightSessionRecorder recovered(nullptr, sessionsPath);
-    const QVariantMap recoveredSensor = recovered.sessionDetails(sessionId)
-                                            .value(QStringLiteral("sensorRecording")).toMap();
-    if (!recoveredSensor.value(QStringLiteral("replayable")).toBool()
-        || !recoveredSensor.value(QStringLiteral("recordingComplete")).toBool()) return 45;
+    if (!obsoleteFile.open(QIODevice::WriteOnly | QIODevice::Truncate)
+        || obsoleteFile.write(obsoleteData) != obsoleteData.size()
+        || !obsoleteFile.commit()) return 41;
+    FlightSessionRecorder currentOnly(nullptr, sessionsPath);
+    if (currentOnly.completedSessions().size() != 1
+        || !currentOnly.sessionDetails(QStringLiteral("obsolete-session")).isEmpty()) return 42;
     if (!reloaded.deleteSession(sessionId)) return 21;
     if (QFileInfo::exists(sessionPath)) return 22;
     if (!reloaded.completedSessions().isEmpty()) return 23;

@@ -104,8 +104,8 @@ packing to both fusion and geometry. DepthMapExport receives stable surface
 centres and bounds to write OBJ/PNG without depending on a controller or Quick3D
 object. PLY/CSV writing also delegates there using the shared DepthVoxel value
 type and read-only references, preserving column names and numeric precision.
-DepthMapReader streams CSV cells into the controller's chunk index, preserving
-file order, legacy defaults and clear-after-open behavior. The controller still
+DepthMapReader streams current-format CSV cells into the controller's chunk index,
+preserving file order and clear-after-open behavior. The controller still
 applies metadata and owns fusion/surface selection. Rendering topology, mesh
 scale, colours and precision are unchanged. The depth regression exports only
 into a fresh QTemporaryDir rather than deleting a working-directory test folder.
@@ -144,10 +144,10 @@ cohesive algorithm or orchestration policy, rather than split by line count.
   stores lightweight metadata and byte offsets; large depth/scan fields remain
   lazily read. Target and actual gimbal samples stay separate. No second
   playback clock or copied index is introduced.
-- `sessions/SessionArchive` owns completed/trash catalog loading and legacy
-  metadata repair, including the existing repair writes and 50-session limit.
-  The recorder still owns active recording, timers, signals and destructive
-  operations. Catalog loading is explicitly not described as read-only.
+- `sessions/SessionArchive` owns completed/trash catalog loading for
+  `FlightBenchSession` format version 5 and the 50-session limit. Older formats
+  are ignored without repair or migration. The recorder still owns active
+  recording, timers, signals and destructive operations.
 - `FlightBench.SessionIo` covers AVI layout/index/padding, empty recordings,
   timeline metadata stripping/lazy reads, gimbal sample separation and CSV
   duplicate/out-of-order handling. Existing replay, sensor and recorder tests
@@ -231,8 +231,9 @@ key, migration completion and all four persistence keys.
   the main executable. Keep explicit resource/source registration.
 - Run QML lint and responsive layout tests. Then build and launch the actual
   application before moving on to behavioral ownership changes.
-- Existing recordings and maps are read-only regression inputs, never migration
-  output. Keep plan/session schemas and persistent settings unchanged.
+- Recordings and derived maps support only their current schema versions. Loading
+  never upgrades or repairs an older format, and never deletes unsupported data.
+  Plan and persistent-setting compatibility remain separate concerns.
 - Check publishing and test scripts for old paths.
 - Each logical change must be independently reviewable/revertible. Do not mix
   a structural refactor with dependency upgrades, threshold tuning or new flight

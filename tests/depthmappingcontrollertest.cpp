@@ -31,21 +31,28 @@ bool require(bool condition, const char *message)
 int main(int argc, char **argv)
 {
     QCoreApplication application(argc, argv);
-    QBuffer legacy;
-    legacy.setData("east_m,up_m,south_m\n-0.01,2,3\ninvalid,2,3\n");
-    legacy.open(QIODevice::ReadOnly);
+    QBuffer obsolete;
+    obsolete.setData("east_m,up_m,south_m\n-0.01,2,3\n");
+    obsolete.open(QIODevice::ReadOnly);
+    if (!require(!DepthMapReader::readPoints(obsolete, 0.25,
+                    [](int, int, int, const DepthVoxel &) {}, nullptr),
+                 "obsolete depth CSV format was accepted")) return 1;
+    QBuffer current;
+    current.setData("east_m,up_m,south_m,observations,weight,tsdf,occupancy,free_observations\n"
+                    "-0.01,2,3,4,6,0,2,0\ninvalid,2,3,4,6,0,2,0\n");
+    current.open(QIODevice::ReadOnly);
     int parsed = 0;
-    bool legacyValid = true;
+    bool currentValuesValid = true;
     QString parseError;
-    const bool read = DepthMapReader::readPoints(legacy, 0.25,
+    const bool read = DepthMapReader::readPoints(current, 0.25,
         [&](int x, int y, int z, const DepthVoxel &voxel) {
             ++parsed;
-            legacyValid = legacyValid && x == -1 && y == 8 && z == 12
+            currentValuesValid = currentValuesValid && x == -1 && y == 8 && z == 12
                 && voxel.observations == 4 && voxel.weight == 6.0f
                 && voxel.occupancy == 2.0f && voxel.freeObservations == 0;
         }, &parseError);
-    if (!require(read && parsed == 1 && legacyValid,
-                 "legacy defaults and negative coordinate decoding changed")) return 1;
+    if (!require(read && parsed == 1 && currentValuesValid,
+                 "current depth CSV parsing or negative coordinate decoding changed")) return 1;
     DepthMappingController controller;
     const QByteArray depth = constantDepthGrid(64, 36, 6000);
     const QVector3D pose(0.0f, 5.0f, 0.0f);

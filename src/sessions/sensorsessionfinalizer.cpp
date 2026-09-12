@@ -30,7 +30,6 @@ void SensorSessionFinalizer::finalize(const QString &sensorType, SensorServiceCo
             QDir(sessionFolder).filePath(QStringLiteral("sensor")));
         const bool mapSaved = mapSummary.value(QStringLiteral("saved")).toBool();
         const bool slamMapAvailable = mapSaved
-            && mapSummary.value(QStringLiteral("formatVersion")).toInt() >= 3
             && mapSummary.value(QStringLiteral("keyframeCount")).toInt() >= 2
             && mapSummary.value(QStringLiteral("poseGraphConstraintCount")).toInt() >= 1;
         sensorSummary.insert(QStringLiteral("lidarMapAvailable"), mapSaved);

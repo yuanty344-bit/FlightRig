@@ -34,7 +34,7 @@ QVariantMap AcceptanceEvaluator::evaluate(const QVariantMap &session)
     if (planType.isEmpty()) {
         return {{QStringLiteral("result"), QStringLiteral("not-rated")},
                 {QStringLiteral("resultLabel"), QStringLiteral("未评估")},
-                {QStringLiteral("reason"), QStringLiteral("旧会话没有保存测试方案与验收规则")},
+                {QStringLiteral("reason"), QStringLiteral("会话没有保存测试方案与验收规则")},
                 {QStringLiteral("checks"), QVariantList{}},
                 {QStringLiteral("passedCount"), 0},
                 {QStringLiteral("warningCount"), 0},

@@ -247,9 +247,7 @@ void ReplayController::updateSensorState()
             if (!interrupted && QFileInfo::exists(framePath))
                 dataUrl = QUrl::fromLocalFile(framePath).toString();
             frameHz = data.value(QStringLiteral("hz")).toDouble();
-            latencyMs = data.value(QStringLiteral("latencyMethod")).toString()
-                            == QStringLiteral("monotonic-sync-v1")
-                ? data.value(QStringLiteral("latencyMilliseconds"), -1).toInt() : -1;
+            latencyMs = data.value(QStringLiteral("latencyMilliseconds"), -1).toInt();
             if (depth && !interrupted) {
                 m_depthCenterDistanceMeters = data.value(QStringLiteral("centerDistance")).toDouble();
                 m_depthNearestDistanceMeters = data.value(QStringLiteral("nearestDistance")).toDouble();
