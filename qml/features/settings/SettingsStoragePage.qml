@@ -11,7 +11,8 @@ ScrollView {
     signal returnRequested()
     signal clearTrashRequested()
     clip: true; leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 18; contentWidth: availableWidth
-    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
     ColumnLayout {
         width: root.availableWidth; spacing: 3
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "记录与存储"; subtitle: "遥测采样、报告和会话回收站" }

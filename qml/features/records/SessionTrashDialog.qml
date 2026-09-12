@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     anchors.centerIn: parent
     width: Math.min(560, parent ? parent.width - 40 : 560)
@@ -15,7 +15,7 @@ Dialog {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     property string pendingDeleteId: ""
 
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surfaceRaised
         border.width: 1
@@ -52,7 +52,7 @@ Dialog {
                     elide: Text.ElideRight
                 }
             }
-            CompactIconButton {
+            PanelCloseButton {
                 id: closeButton
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
@@ -121,13 +121,13 @@ Dialog {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: permanentDeleteDialog
         anchors.centerIn: parent
         width: Math.min(390, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { color: Theme.surfaceRaised }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "永久删除这个会话？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }

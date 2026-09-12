@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
 
     property string selectedWorldId: ""
@@ -58,7 +58,7 @@ Dialog {
     padding: 0
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -91,7 +91,7 @@ Dialog {
                     font.pixelSize: Theme.textTiny
                 }
             }
-            CompactIconButton {
+            PanelCloseButton {
                 id: closeButton
                 anchors.right: parent.right
                 anchors.rightMargin: 12
@@ -166,11 +166,15 @@ Dialog {
             Layout.fillWidth: true
             Layout.fillHeight: true
             leftPadding: 16
-            rightPadding: 12
+            rightPadding: 12 + (worldScrollBar.visible ? Theme.scrollBarExtent : 0)
             topPadding: 8
             bottomPadding: 12
             clip: true
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: InsetScrollBar {
+                id: worldScrollBar
+                policy: ScrollBar.AsNeeded
+            }
 
             GridLayout {
                 id: worldGrid

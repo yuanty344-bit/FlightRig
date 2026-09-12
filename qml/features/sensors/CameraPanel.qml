@@ -116,15 +116,6 @@ SurfaceCard {
                 }
             }
 
-            SegmentedControl {
-                visible: root.depthCamera
-                enabled: !App.cameraRecording
-                Layout.preferredWidth: 194
-                options: ["彩色", "深度", "三维"]
-                currentIndex: root.viewMode
-                onSelected: index => root.viewMode = index
-            }
-
             ActionButton {
                 visible: root.monoCamera && !App.replayActive
                 text: App.visualSurvey.active ? "暂停巡检" : "开始视觉巡检"
@@ -179,6 +170,16 @@ SurfaceCard {
                 toolTipText: "打开保存位置"
                 onClicked: App.openSensorCapturesFolder()
             }
+
+            SegmentedControl {
+                visible: root.depthCamera
+                enabled: !App.cameraRecording
+                Layout.preferredWidth: 194
+                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                options: ["彩色", "深度", "三维"]
+                currentIndex: root.viewMode
+                onSelected: index => root.viewMode = index
+            }
         }
 
         GimbalInspectionPanel {
@@ -207,12 +208,18 @@ SurfaceCard {
                 contentHeight: height
                 flickableDirection: Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded; height: 6 }
+                ScrollBar.horizontal: InsetScrollBar {
+                    id: gimbalScrollBar
+                    policy: gimbalScroller.contentWidth > gimbalScroller.width + 1
+                            ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
 
                 RowLayout {
                     id: gimbalControls
                     width: gimbalScroller.contentWidth
-                    height: gimbalScroller.height - 8
+                    height: Math.max(0, gimbalScroller.height
+                                        - (gimbalScrollBar.visible
+                                           ? Theme.scrollBarExtent : 0))
                     spacing: 8
 
                     ColumnLayout {

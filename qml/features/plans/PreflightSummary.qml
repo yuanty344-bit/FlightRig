@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     signal startRequested()
     signal planRequested()
@@ -22,7 +22,7 @@ Dialog {
     padding: 0
     closePolicy: Popup.CloseOnEscape
 
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -66,7 +66,7 @@ Dialog {
                         elide: Text.ElideRight
                     }
                 }
-                CompactIconButton {
+                PanelCloseButton {
                     iconSource: "qrc:/icons/x.svg"
                     accessibleLabel: "关闭启动检查"
                     toolTipText: "关闭"
@@ -88,12 +88,16 @@ Dialog {
             spacing: 2
             model: root.checks
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: InsetScrollBar {
+                id: checkListScrollBar
+                policy: ScrollBar.AsNeeded
+            }
 
             delegate: Item {
                 id: checkRow
                 required property var modelData
-                width: ListView.view.width
+                width: Math.max(0, ListView.view.width
+                                - (checkListScrollBar.visible ? Theme.scrollBarExtent : 0))
                 height: Math.max(50, detailText.implicitHeight + 28)
                 readonly property string status: String(modelData.status || "pass")
                 RowLayout {

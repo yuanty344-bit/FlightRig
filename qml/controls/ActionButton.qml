@@ -21,8 +21,14 @@ Button {
                                                    : (root.toolTipText.length > 0
                                                       ? root.toolTipText
                                                       : "当前状态下不可用"))
-    readonly property color fillColor: kind === "danger" ? Theme.dangerSoft : kind === "secondary" ? Theme.surfaceRaised : Theme.accent
-    readonly property color foregroundColor: kind === "danger" ? Theme.danger : kind === "secondary" ? Theme.textPrimary : Theme.accentContent
+    readonly property bool glassKind: kind === "glass"
+    readonly property color fillColor: kind === "danger" ? Theme.dangerSoft
+                                        : kind === "secondary" ? Theme.surfaceRaised
+                                        : glassKind ? Qt.rgba(1, 1, 1, 0.08) : Theme.accent
+    readonly property color foregroundColor: kind === "danger" ? Theme.danger
+                                              : kind === "secondary" ? Theme.textPrimary
+                                              : glassKind ? Theme.heroText : Theme.accentContent
+    readonly property color disabledForegroundColor: glassKind ? Theme.heroMuted : Theme.textMuted
     readonly property real calculatedContentWidth: buttonLabel.implicitWidth
                                                    + (iconSource.toString().length > 0 ? 24 : 0)
                                                    + 32
@@ -42,22 +48,32 @@ Button {
 
     background: Rectangle {
         radius: Theme.radiusMedium
-        color: !root.enabled ? Theme.surfaceRaised : root.down ? Qt.darker(root.fillColor, 1.15) : root.hovered ? Qt.lighter(root.fillColor, 1.08) : root.fillColor
+        color: !root.enabled ? (root.glassKind ? Qt.rgba(1, 1, 1, 0.035) : Theme.surfaceRaised)
+                             : root.down ? Qt.darker(root.fillColor, 1.15)
+                             : root.hovered ? Qt.lighter(root.fillColor, 1.08) : root.fillColor
         border.width: 1
-        border.color: !root.enabled ? Theme.lineStrong : root.visualFocus ? Theme.accentHover : root.kind === "danger" ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b, 0.45) : root.kind === "secondary" ? Theme.lineStrong : Theme.accent
-        Behavior on color { ColorAnimation { duration: Theme.animationDuration(100) } }
+        border.color: !root.enabled ? (root.glassKind ? Theme.heroLine : Theme.lineStrong)
+                                    : root.visualFocus ? Theme.accentHover
+                                    : root.kind === "danger" ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b, 0.45)
+                                    : root.kind === "secondary" ? Theme.lineStrong
+                                    : root.glassKind ? Qt.rgba(1, 1, 1, 0.18) : Theme.accent
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     contentItem: RowLayout {
         clip: true
         spacing: Theme.space8
+        scale: root.enabled && root.down ? 0.985 : root.enabled && root.hovered ? 1.008 : 1
+        Behavior on scale {
+            NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
+        }
         Item { Layout.fillWidth: true }
         ThemedIcon {
             visible: root.iconSource.toString().length > 0
             Layout.preferredWidth: 16
             Layout.preferredHeight: 16
             source: root.iconSource
-            iconColor: root.enabled ? root.foregroundColor : Theme.textMuted
+            iconColor: root.enabled ? root.foregroundColor : root.disabledForegroundColor
             opacity: root.enabled ? 0.95 : 0.45
         }
         Text {
@@ -66,7 +82,7 @@ Button {
                                              - (root.iconSource.toString().length > 0 ? 24 : 0)
                                              - 24)
             text: root.text
-            color: root.enabled ? root.foregroundColor : Theme.textMuted
+            color: root.enabled ? root.foregroundColor : root.disabledForegroundColor
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textSmall
             font.weight: Font.DemiBold

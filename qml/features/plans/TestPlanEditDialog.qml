@@ -6,7 +6,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
 
     property string planId: ""
@@ -232,7 +232,7 @@ Dialog {
     padding: 20
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     onOpened: nameField.forceActiveFocus(Qt.PopupFocusReason)
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surfaceRaised
         border.width: 1
@@ -252,7 +252,7 @@ Dialog {
                 font.pixelSize: Theme.textTitle
                 font.weight: Font.Medium
             }
-            CompactIconButton {
+            PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭测试方案编辑"
                 toolTipText: "关闭"
@@ -264,13 +264,12 @@ Dialog {
             id: editorScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.rightMargin: -10
             clip: true
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
 
             ColumnLayout {
-                width: Math.max(0, editorScroll.availableWidth - 10)
+                width: Math.max(0, editorScroll.availableWidth)
                 spacing: 10
 
                 Text { text: "方案名称"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }

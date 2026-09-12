@@ -206,7 +206,28 @@ Item {
         }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.canvasSoft }
+            GradientStop { position: 1; color: Theme.canvas }
+        }
+    }
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.leftMargin: -180
+        anchors.top: parent.top
+        anchors.topMargin: -250
+        width: 540
+        height: 540
+        radius: 270
+        color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                       Theme.darkMode ? 0.07 : 0.04)
+    }
+
     ColumnLayout {
+        z: 1
         anchors.fill: parent
         anchors.leftMargin: root.compactLayout ? 20 : 28
         anchors.rightMargin: root.compactLayout ? 20 : 28
@@ -214,14 +235,35 @@ Item {
         anchors.bottomMargin: root.compactLayout ? 10 : 18
         spacing: root.compactLayout ? 8 : 12
 
-        Item {
+        SurfaceCard {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compactLayout ? 50 : 58
+            elevated: true
+            clip: true
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Theme.heroEnd }
+                GradientStop { position: 1; color: Theme.heroStart }
+            }
+            border.color: Theme.heroLine
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: Theme.accentRailInset
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.accentRailInset
+                anchors.leftMargin: Theme.accentRailInset
+                width: 3
+                radius: 2
+                color: Theme.accent
+            }
 
             ColumnLayout {
                 anchors.left: parent.left
+                anchors.leftMargin: Theme.panelInset
                 anchors.right: headerActions.left
-                anchors.rightMargin: 8
+                anchors.rightMargin: Theme.space12
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Text {
@@ -229,10 +271,10 @@ Item {
                     text: App.replayActive ? "飞行回放"
                           : root.viewIndex === 2 ? "任务"
                           : root.viewIndex === 3 ? "传感器" : "飞行"
-                    color: Theme.textPrimary
+                    color: Theme.heroText
                     font.family: Theme.fontFamily
                     font.pixelSize: 24
-                    font.weight: Font.Medium
+                    font.weight: Font.DemiBold
                 }
                 Text {
                     Layout.fillWidth: true
@@ -242,7 +284,7 @@ Item {
                           : App.hasIssue ? App.issueMessage
                                        : String(App.selectedTestPlan.name || App.selectedModelName)
                                          + " · " + App.testRunStageLabel
-                    color: App.hasIssue ? Theme.warning : Theme.textMuted
+                    color: App.hasIssue ? "#F6BB69" : Theme.heroMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textSmall
                     elide: Text.ElideRight
@@ -252,6 +294,7 @@ Item {
             Row {
                 id: headerActions
                 anchors.right: parent.right
+                anchors.rightMargin: Theme.edgeInset
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
 
@@ -263,6 +306,7 @@ Item {
                                  ? "中止测试并安全降落后停止仿真"
                                  : "中止测试并停止仿真"
                     danger: true
+                    onDarkSurface: true
                     onClicked: abortTestDialog.open()
                 }
 
@@ -271,6 +315,7 @@ Item {
                     iconSource: "qrc:/icons/route.svg"
                     accessibleLabel: "打开航线规划"
                     toolTipText: "航线规划"
+                    onDarkSurface: true
                     onClicked: root.openMissionPlanner(false)
                 }
 
@@ -279,6 +324,7 @@ Item {
                     iconSource: "qrc:/icons/gauge.svg"
                     accessibleLabel: "打开更多遥测"
                     toolTipText: "更多遥测"
+                    onDarkSurface: true
                     onClicked: root.openTelemetry()
                 }
 
@@ -287,7 +333,8 @@ Item {
                     iconSource: "qrc:/icons/heart-pulse.svg"
                     accessibleLabel: "打开健康检查"
                     toolTipText: App.vehicleReady ? "健康检查通过" : "健康检查"
-                    normalIconColor: App.vehicleReady ? Theme.success : Theme.textSecondary
+                    onDarkSurface: true
+                    normalIconColor: App.vehicleReady ? Theme.success : Theme.heroIcon
                     onClicked: root.openHealth()
                 }
 
@@ -299,8 +346,9 @@ Item {
                                 ? "qrc:/icons/radar.svg" : "qrc:/icons/camera.svg"
                     accessibleLabel: "打开传感器视图"
                     toolTipText: App.displayedSensorKind === "lidar-2d" ? "查看二维雷达" : "查看相机"
+                    onDarkSurface: true
                     normalIconColor: App.sensorServiceConnected ? Theme.success
-                                     : App.sensorServiceRunning ? Theme.accent : Theme.textSecondary
+                                     : App.sensorServiceRunning ? "#79ADFF" : Theme.heroIcon
                     onClicked: {
                         if (root.viewIndex !== 3) root.previousViewIndex = root.viewIndex
                         root.viewIndex = 3
@@ -324,6 +372,7 @@ Item {
                     iconSource: "qrc:/icons/folder-open.svg"
                     accessibleLabel: "打开航线库"
                     toolTipText: "航线库"
+                    onDarkSurface: true
                     onClicked: missionPlanner.openRouteLibrary()
                 }
 
@@ -333,7 +382,8 @@ Item {
                     accessibleLabel: "查看飞行事件"
                     toolTipText: "飞行事件"
                     outlined: root.replayEventPanelOpen
-                    normalIconColor: root.replayEventPanelOpen ? Theme.accent : Theme.textSecondary
+                    onDarkSurface: true
+                    normalIconColor: root.replayEventPanelOpen ? "#79ADFF" : Theme.heroIcon
                     onClicked: {
                         root.replayAnalysisOpen = false
                         root.replayEventPanelOpen = !root.replayEventPanelOpen
@@ -345,34 +395,31 @@ Item {
                     iconSource: "qrc:/icons/map-pin.svg"
                     accessibleLabel: "查看或选择回放场景"
                     toolTipText: "查看回放场景"
-                    normalIconColor: Theme.textSecondary
+                    onDarkSurface: true
                     onClicked: replayWorldDialog.open()
                 }
 
-                CompactIconButton {
+                PanelCloseButton {
                     visible: App.replayActive
-                    outlined: true
-                    iconSource: "qrc:/icons/x.svg"
                     accessibleLabel: "退出历史回放"
                     toolTipText: "退出回放"
+                    onDarkSurface: true
                     onClicked: root.replayClosed()
                 }
 
-                CompactIconButton {
+                PanelCloseButton {
                     visible: root.viewIndex === 2
-                    outlined: true
-                    iconSource: "qrc:/icons/x.svg"
                     accessibleLabel: "关闭任务规划"
                     toolTipText: "返回飞行"
+                    onDarkSurface: true
                     onClicked: root.viewIndex = root.previousViewIndex
                 }
 
-                CompactIconButton {
+                PanelCloseButton {
                     visible: root.viewIndex === 3 && !App.replayActive
-                    outlined: true
-                    iconSource: "qrc:/icons/x.svg"
                     accessibleLabel: "关闭传感器视图"
                     toolTipText: "返回飞行"
+                    onDarkSurface: true
                     onClicked: root.viewIndex = root.previousViewIndex < 2
                                                ? root.previousViewIndex : 1
                 }
@@ -447,21 +494,15 @@ Item {
                 flickableDirection: Flickable.VerticalFlick
                 boundsBehavior: Flickable.StopAtBounds
 
-                ScrollBar.vertical: ScrollBar {
+                ScrollBar.vertical: InsetScrollBar {
                     id: sensorVerticalScrollBar
                     policy: ScrollBar.AsNeeded
-                    width: 6
-                    contentItem: Rectangle {
-                        radius: 3
-                        color: sensorVerticalScrollBar.pressed || sensorVerticalScrollBar.hovered
-                               ? Theme.textFaint : Theme.lineStrong
-                    }
                 }
 
                 Item {
                     id: sensorContent
                     width: Math.max(0, sensorScroller.width
-                                    - (sensorVerticalScrollBar.visible ? 10 : 0))
+                                    - (sensorVerticalScrollBar.visible ? Theme.scrollBarExtent : 0))
                     // 460 px still fits every radar summary card at 110% text
                     // scale, while avoiding a few pixels of needless overflow
                     // in a maximized 900p-class window.
@@ -496,6 +537,13 @@ Item {
             Layout.preferredHeight: App.keyboardControlActive
                                     ? (root.compactLayout ? 68 : 76)
                                     : (root.compactLayout ? 62 : 70)
+            elevated: true
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Theme.heroEnd }
+                GradientStop { position: 1; color: Theme.heroStart }
+            }
+            border.color: Theme.heroLine
 
             RowLayout {
                 anchors.fill: parent
@@ -512,7 +560,7 @@ Item {
                             : root.viewIndex === 2 ? "qrc:/icons/route.svg"
                                                  : App.keyboardControlActive ? "qrc:/icons/keyboard.svg"
                                                                              : "qrc:/icons/plane.svg"
-                    iconColor: root.missionActive || App.keyboardControlActive ? Theme.accent : Theme.textMuted
+                    iconColor: root.missionActive || App.keyboardControlActive ? "#79ADFF" : Theme.heroIcon
                 }
 
                 ColumnLayout {
@@ -521,7 +569,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: root.controlTitle()
-                        color: Theme.textPrimary
+                        color: Theme.heroText
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSmall
                         font.weight: Font.Medium
@@ -530,7 +578,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: root.controlSubtitle()
-                        color: Theme.textMuted
+                        color: Theme.heroMuted
                         font.family: App.keyboardControlActive ? Theme.monoFontFamily : Theme.fontFamily
                         font.pixelSize: Theme.textTiny
                         elide: Text.ElideRight
@@ -543,15 +591,15 @@ Item {
                              && !App.keyboardControlTransitioning
                     Layout.preferredWidth: 90
                     spacing: 2
-                    Text { text: "目标高度"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
-                    Text { text: App.takeoffAltitude.toFixed(1) + " m"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+                    Text { text: "目标高度"; color: Theme.heroMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                    Text { text: App.takeoffAltitude.toFixed(1) + " m"; color: Theme.heroText; font.family: Theme.monoFontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
                 }
 
                 Rectangle {
                     visible: App.keyboardControlActive && root.viewIndex !== 2
                     Layout.preferredWidth: 1
                     Layout.preferredHeight: 28
-                    color: Theme.line
+                    color: Theme.heroLine
                 }
 
                 Flickable {
@@ -576,7 +624,7 @@ Item {
 
                         Text {
                             text: "水平速度"
-                            color: Theme.textMuted
+                            color: Theme.heroMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textTiny
                             verticalAlignment: Text.AlignVCenter
@@ -596,7 +644,7 @@ Item {
 
                         Text {
                             text: "垂直速度"
-                            color: Theme.textMuted
+                            color: Theme.heroMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.textTiny
                             verticalAlignment: Text.AlignVCenter
@@ -616,6 +664,7 @@ Item {
 
                         CompactIconButton {
                             outlined: true
+                            onDarkSurface: true
                             iconSource: "qrc:/icons/rotate-ccw.svg"
                             accessibleLabel: "精确转向"
                             toolTipText: "精确转向"
@@ -624,10 +673,9 @@ Item {
                         }
                     }
 
-                    ScrollBar.horizontal: ScrollBar {
+                    ScrollBar.horizontal: InsetScrollBar {
                         policy: keyboardSpeedScroller.contentWidth > keyboardSpeedScroller.width
                                 ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
-                        height: 4
                     }
                 }
 
@@ -637,7 +685,7 @@ Item {
                     compact: true
                     text: App.missionPaused ? "继续" : "暂停"
                     iconSource: App.missionPaused ? "qrc:/icons/play.svg" : "qrc:/icons/pause.svg"
-                    kind: "secondary"
+                    kind: "glass"
                     enabled: !App.busy
                     onClicked: App.missionPaused ? App.resumeMission() : App.pauseMission()
                 }
@@ -659,7 +707,7 @@ Item {
                     compact: true
                     text: App.keyboardControlTransitioning ? "处理中" : App.keyboardControlActive ? "退出" : "键盘"
                     iconSource: "qrc:/icons/keyboard.svg"
-                    kind: "secondary"
+                    kind: "glass"
                     toolTipText: root.keyboardHint()
                     enabled: !App.keyboardControlTransitioning
                              && (App.keyboardControlActive || root.keyboardControlAvailable)
@@ -707,7 +755,7 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: replayWorldDialog
         anchors.centerIn: parent
         width: Math.min(430, root.width - 40)
@@ -715,7 +763,7 @@ Item {
                          128 + Math.max(1, Math.min(App.simulationWorlds.length, 5)) * 54)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -745,7 +793,7 @@ Item {
                 spacing: 2
                 model: App.simulationWorlds
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
                 delegate: Rectangle {
                     id: replayWorldOption
                     required property var modelData
@@ -825,7 +873,7 @@ Item {
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: if (App.keyboardControlActive) root.forceActiveFocus(Qt.OtherFocusReason)
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 8
             Text { text: "精确转向"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
@@ -850,13 +898,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: takeoffDialog
         anchors.centerIn: parent
         width: Math.min(410, root.width - 48)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "确认起飞"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
@@ -877,13 +925,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: abortTestDialog
         anchors.centerIn: parent
         width: Math.min(420, root.width - 48)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "中止当前测试？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }

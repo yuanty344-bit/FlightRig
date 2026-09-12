@@ -167,36 +167,79 @@ Drawer {
     edge: Qt.RightEdge
     modal: true
     interactive: true
-    width: Math.min(340, parent ? parent.width * 0.9 : 340)
+    width: Math.min(380, parent ? parent.width * 0.92 : 380)
     height: parent ? parent.height : 700
     padding: 0
 
-    background: Rectangle {
+    enter: Transition {
+        NumberAnimation {
+            property: "position"
+            from: 0
+            to: 1
+            duration: Theme.motionSlow
+            easing.type: Easing.OutCubic
+        }
+    }
+    exit: Transition {
+        NumberAnimation {
+            property: "position"
+            from: 1
+            to: 0
+            duration: Theme.motionNormal
+            easing.type: Easing.InCubic
+        }
+    }
+
+    Overlay.modal: Rectangle { color: Theme.overlay }
+
+    background: SurfaceCard {
+        radius: 0
         color: Theme.surface
         border.width: 1
         border.color: Theme.lineStrong
+        elevated: true
     }
 
     contentItem: ColumnLayout {
         spacing: 0
+        opacity: 0.72 + root.position * 0.28
 
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 62
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0; color: Theme.heroEnd }
+                    GradientStop { position: 1; color: Theme.heroStart }
+                }
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: Theme.accentRailInset
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.accentRailInset
+                anchors.leftMargin: Theme.accentRailInset
+                width: 3
+                radius: 2
+                color: Theme.accent
+            }
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 20
                 anchors.rightMargin: 14
                 spacing: 10
-                Text { Layout.fillWidth: true; text: root.panelTitle; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
-                CompactIconButton {
-                    iconSource: "qrc:/icons/x.svg"
+                Text { Layout.fillWidth: true; text: root.panelTitle; color: Theme.heroText; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.DemiBold }
+                PanelCloseButton {
                     accessibleLabel: "关闭" + root.panelTitle
                     toolTipText: "关闭"
+                    onDarkSurface: true
                     onClicked: root.close()
                 }
             }
-            Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.line }
+            Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.heroLine }
         }
 
         StackLayout {

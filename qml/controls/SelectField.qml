@@ -65,7 +65,10 @@ ComboBox {
         id: option
         required property int index
         required property var modelData
-        width: root.width
+        width: root.popup.contentItem
+               ? Math.max(0, root.popup.contentItem.width
+                            - (optionScrollBar.visible ? Theme.scrollBarExtent : 0))
+               : root.width
         height: 38
         highlighted: root.highlightedIndex === index
         contentItem: Text {
@@ -92,7 +95,11 @@ ComboBox {
             model: root.popup.visible ? root.delegateModel : null
             currentIndex: root.highlightedIndex
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: InsetScrollBar {
+                id: optionScrollBar
+                objectName: "selectFieldScrollBar"
+                policy: ScrollBar.AsNeeded
+            }
         }
         background: Rectangle {
             radius: Theme.radiusMedium

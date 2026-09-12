@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import FlightBench
 import "../../controls"
 
-Dialog {
+MotionDialog {
     id: root
     required property Item host
     property var routes: []
@@ -25,7 +25,7 @@ Dialog {
     height: Math.min(root.routes.length === 0 ? 320 : 440, root.host.height - 40)
     modal: true
     padding: 16
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surface
         border.width: 1
@@ -49,7 +49,7 @@ Dialog {
                 toolTipText: "打开保存目录"
                 onClicked: root.folderRequested()
             }
-            CompactIconButton {
+            PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭航线库"
                 toolTipText: "关闭"
@@ -90,11 +90,18 @@ Dialog {
                 spacing: 4
                 model: root.routes
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                ScrollBar.vertical: InsetScrollBar {
+                    id: routeLibraryScrollBar
+                    objectName: "routeLibraryScrollBar"
+                    policy: routeLibraryList.contentHeight > routeLibraryList.height + 1
+                            ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
                 delegate: Rectangle {
                     id: routeLibraryRow
                     required property var modelData
-                    width: routeLibraryList.width
+                    width: Math.max(0, routeLibraryList.width
+                                         - (routeLibraryScrollBar.visible
+                                            ? Theme.scrollBarExtent : 0))
                     height: 62
                     radius: Theme.radiusSmall
                     color: root.selectedRouteId === modelData.id
@@ -115,6 +122,7 @@ Dialog {
                     }
                     Rectangle {
                         anchors.left: parent.left
+                        anchors.leftMargin: 6
                         anchors.verticalCenter: parent.verticalCenter
                         width: 2
                         height: 34

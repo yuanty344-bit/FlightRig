@@ -148,7 +148,7 @@ Rectangle {
             toolTipText: "恢复全部"
             onClicked: root.resetView()
         }
-        CompactIconButton {
+        PanelCloseButton {
             outlined: true
             iconSource: "qrc:/icons/x.svg"
             accessibleLabel: "关闭遥测趋势"

@@ -12,7 +12,8 @@ ScrollView {
     signal importRequested()
     signal resetAllRequested()
     clip: true; leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 18; contentWidth: availableWidth
-    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
     ColumnLayout {
         width: root.availableWidth; spacing: 2
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "软件与环境"; subtitle: "版本、数据位置与设置备份" }

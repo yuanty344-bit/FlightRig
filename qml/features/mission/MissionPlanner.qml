@@ -1329,13 +1329,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: routeNewDialog
         anchors.centerIn: parent
         width: Math.min(390, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -1381,13 +1381,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: routeNameDialog
         anchors.centerIn: parent
         width: Math.min(390, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -1467,13 +1467,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: routeDeleteDialog
         anchors.centerIn: parent
         width: Math.min(390, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -1531,13 +1531,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: executeDialog
         anchors.centerIn: parent
         width: Math.min(430, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "确认执行航点任务"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
@@ -1576,13 +1576,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: clearDialog
         anchors.centerIn: parent
         width: Math.min(390, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "清除飞行器任务？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }

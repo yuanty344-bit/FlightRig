@@ -13,6 +13,12 @@ Rectangle {
     signal refreshRequested()
 
     color: Theme.canvasSoft
+    gradient: Gradient {
+        orientation: Gradient.Horizontal
+        GradientStop { position: 0; color: Theme.heroEnd }
+        GradientStop { position: 0.58; color: Theme.heroStart }
+        GradientStop { position: 1; color: "#1D3C5D" }
+    }
     implicitHeight: 68
 
     RowLayout {
@@ -24,8 +30,13 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 34
             Layout.preferredHeight: 34
-            radius: 9
-            color: Theme.accent
+            radius: 10
+            gradient: Gradient {
+                GradientStop { position: 0; color: Theme.accentHover }
+                GradientStop { position: 1; color: Theme.accent }
+            }
+            border.width: 1
+            border.color: Qt.rgba(1, 1, 1, 0.2)
             Image {
                 anchors.centerIn: parent
                 width: 22
@@ -38,14 +49,14 @@ Rectangle {
             spacing: 1
             Text {
                 text: "FlightBench"
-                color: Theme.textPrimary
+                color: Theme.heroText
                 font.family: Theme.fontFamily
                 font.pixelSize: 15
                 font.weight: Font.DemiBold
             }
             Text {
                 text: "PX4 本地仿真"
-                color: Theme.textMuted
+                color: Theme.heroMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
             }
@@ -55,31 +66,59 @@ Rectangle {
 
         Button {
             id: environmentButton
+            readonly property bool waiting: App.busy
+                                             || (App.simulationRunning && !App.vehicleConnected)
+            readonly property string statusText: App.vehicleConnected ? "飞行器已连接"
+                                                 : App.simulationRunning ? "正在连接"
+                                                 : App.dockerAvailable ? "环境可用" : "检查环境"
             implicitWidth: environmentRow.implicitWidth + 24
             implicitHeight: 34
             hoverEnabled: true
             focusPolicy: Qt.StrongFocus
-            Accessible.name: App.dockerAvailable ? "Docker 可用，打开仿真环境" : "检查 Docker 环境"
+            Accessible.name: statusText + "，打开仿真环境"
             Accessible.role: Accessible.Button
             onClicked: root.environmentRequested()
             background: Rectangle {
-                radius: Theme.radiusMedium
-                color: environmentButton.hovered ? Theme.surfaceRaised : Theme.surface
+                radius: Theme.radiusLarge
+                color: environmentButton.hovered ? Qt.rgba(1, 1, 1, 0.12)
+                                                 : Qt.rgba(1, 1, 1, 0.075)
                 border.width: 1
-                border.color: environmentButton.visualFocus ? Theme.accent : Theme.line
+                border.color: environmentButton.visualFocus ? "#79ADFF" : Theme.heroLine
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
             }
             contentItem: RowLayout {
                 id: environmentRow
                 spacing: 8
-                Rectangle {
-                    Layout.preferredWidth: 7
-                    Layout.preferredHeight: 7
-                    radius: 4
-                    color: App.dockerAvailable ? Theme.success : Theme.textFaint
+                Item {
+                    Layout.preferredWidth: 10
+                    Layout.preferredHeight: 10
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 10
+                        height: 10
+                        radius: 5
+                        color: environmentButton.waiting ? Theme.accentSoft : "transparent"
+                        opacity: 0.8
+                        SequentialAnimation on scale {
+                            running: environmentButton.waiting && !Theme.reducedMotion
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 0.65; to: 1.35; duration: 700; easing.type: Easing.OutCubic }
+                            NumberAnimation { from: 1.35; to: 0.65; duration: 700; easing.type: Easing.InCubic }
+                        }
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 7
+                        height: 7
+                        radius: 4
+                        color: App.vehicleConnected ? Theme.success
+                               : environmentButton.waiting ? Theme.accent
+                               : App.dockerAvailable ? Theme.success : Theme.textFaint
+                    }
                 }
                 Text {
-                    text: App.dockerAvailable ? "Docker 可用" : "检查 Docker"
-                    color: Theme.textSecondary
+                    text: environmentButton.statusText
+                    color: Theme.heroText
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.textSmall
                 }
@@ -93,6 +132,7 @@ Rectangle {
             accessibleLabel: "重新检测"
             toolTipText: "重新检测"
             enabled: !App.busy
+            onDarkSurface: true
             onClicked: root.refreshRequested()
         }
 
@@ -102,6 +142,7 @@ Rectangle {
             iconSource: "qrc:/icons/sliders-horizontal.svg"
             accessibleLabel: "打开设置"
             toolTipText: "设置"
+            onDarkSurface: true
             onClicked: root.settingsRequested()
         }
     }
@@ -111,6 +152,6 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 1
-        color: Theme.line
+        color: Theme.heroLine
     }
 }

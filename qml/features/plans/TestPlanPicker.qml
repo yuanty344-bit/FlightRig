@@ -6,7 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs as PlatformDialogs
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     property string pendingId: ""
     readonly property var pendingPlan: {
@@ -56,7 +56,7 @@ Dialog {
     modal: true
     padding: 20
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surfaceRaised
         border.width: 1
@@ -123,7 +123,7 @@ Dialog {
                 }
             }
 
-            CompactIconButton {
+            PanelCloseButton {
                 id: closeButton
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
@@ -138,14 +138,11 @@ Dialog {
             id: planScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Preserve the cards' right padding while placing the scrollbar in
-            // the otherwise unused dialog gutter.
-            Layout.rightMargin: -10
             clip: true
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
             Column {
-                width: Math.max(0, planScroll.availableWidth - 10)
+                width: Math.max(0, planScroll.availableWidth)
                 spacing: 6
                 Repeater {
                     model: App.testPlans

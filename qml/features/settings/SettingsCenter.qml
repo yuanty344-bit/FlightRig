@@ -101,7 +101,8 @@ Item {
             clip: true
             leftPadding: 20; rightPadding: 20; topPadding: 16; bottomPadding: 18
             contentWidth: availableWidth
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
             ColumnLayout {
                 width: settingsHomeScroll.availableWidth
                 spacing: 8
@@ -169,14 +170,14 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: pathColorDialog
         anchors.centerIn: parent
         width: Math.min(410, root.width - 28)
         modal: true
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -214,7 +215,7 @@ Item {
                         elide: Text.ElideRight
                     }
                 }
-                CompactIconButton {
+                PanelCloseButton {
                     id: colorDialogCloseButton
                     anchors.right: parent.right
                     anchors.rightMargin: 12
@@ -477,14 +478,14 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: clearTrashDialog
         anchors.centerIn: parent
         width: Math.min(340, root.width - 24)
         modal: true
         padding: 18
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "清空会话回收站？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
@@ -498,14 +499,14 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: resetAllDialog
         anchors.centerIn: parent
         width: Math.min(340, root.width - 24)
         modal: true
         padding: 18
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+        background: DialogSurface { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
         contentItem: ColumnLayout {
             spacing: 12
             Text { text: "恢复全部设置？"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }

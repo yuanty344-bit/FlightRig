@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     property string sessionId: ""
     signal replayRequested(string sessionId, int elapsedMs)
@@ -16,7 +16,7 @@ Dialog {
     modal: true; padding: 0
     closePolicy: Dialog.CloseOnEscape
     onClosed: App.closeLoadedVisualSurvey()
-    background: Rectangle { radius: Theme.radiusLarge; color: Theme.surface; border.width: 1; border.color: Theme.lineStrong }
+    background: DialogSurface { }
     contentItem: ColumnLayout {
         spacing: 0
         RowLayout {
@@ -35,17 +35,72 @@ Dialog {
                     color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; elide: Text.ElideRight
                 }
             }
-            CompactIconButton { iconSource: "qrc:/icons/x.svg"; accessibleLabel: "关闭影像地图"; toolTipText: "关闭"; onClicked: root.close() }
+            PanelCloseButton { accessibleLabel: "关闭影像地图"; onClicked: root.close() }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
-        VisualSurveyMap {
+        Item {
+            id: surveyViewport
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 14
-            compact: false
-            onReplayRequested: elapsedMs => {
-                root.close()
-                root.replayRequested(root.sessionId, elapsedMs)
+
+            readonly property real minimumContentWidth: 980 * Theme.textScale
+            readonly property real minimumContentHeight: 620 * Theme.textScale
+            // Account for the other bar taking up space without introducing a
+            // visibility binding loop at the responsive breakpoint.
+            readonly property bool needsHorizontalScroll:
+                width - (height < minimumContentHeight ? Theme.scrollBarExtent : 0)
+                < minimumContentWidth
+            readonly property bool needsVerticalScroll:
+                height - (width < minimumContentWidth ? Theme.scrollBarExtent : 0)
+                < minimumContentHeight
+
+            Flickable {
+                id: surveyScroller
+                objectName: "visualSurveyScroller"
+                anchors.fill: parent
+                anchors.rightMargin: surveyViewport.needsVerticalScroll
+                                     ? Theme.scrollBarExtent : 0
+                anchors.bottomMargin: surveyViewport.needsHorizontalScroll
+                                      ? Theme.scrollBarExtent : 0
+                clip: true
+                contentWidth: Math.max(width, surveyViewport.minimumContentWidth)
+                contentHeight: Math.max(height, surveyViewport.minimumContentHeight)
+                flickableDirection: Flickable.HorizontalAndVerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+
+                ScrollBar.vertical: InsetScrollBar {
+                    objectName: "visualSurveyVerticalScrollBar"
+                    parent: surveyViewport
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: surveyViewport.needsHorizontalScroll
+                                          ? Theme.scrollBarExtent : 0
+                    policy: surveyViewport.needsVerticalScroll
+                            ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
+                ScrollBar.horizontal: InsetScrollBar {
+                    objectName: "visualSurveyHorizontalScrollBar"
+                    parent: surveyViewport
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: surveyViewport.needsVerticalScroll
+                                         ? Theme.scrollBarExtent : 0
+                    policy: surveyViewport.needsHorizontalScroll
+                            ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
+
+                VisualSurveyMap {
+                    width: surveyScroller.contentWidth
+                    height: surveyScroller.contentHeight
+                    compact: false
+                    onReplayRequested: elapsedMs => {
+                        root.close()
+                        root.replayRequested(root.sessionId, elapsedMs)
+                    }
+                }
             }
         }
     }

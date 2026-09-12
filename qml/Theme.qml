@@ -31,6 +31,11 @@ QtObject {
         return reducedMotion ? 0 : normalDuration
     }
 
+    readonly property int motionFast: animationDuration(100)
+    readonly property int motionNormal: animationDuration(180)
+    readonly property int motionSlow: animationDuration(240)
+    readonly property real pageTravel: reducedMotion ? 0 : 14
+
     readonly property color canvas: darkMode ? "#0C1118" : "#EEF2F6"
     readonly property color canvasSoft: darkMode ? "#111720" : "#FBFCFE"
     readonly property color surface: darkMode ? "#171F2A" : "#FFFFFF"
@@ -54,6 +59,15 @@ QtObject {
     readonly property color danger: darkMode ? "#EF7777" : "#C44242"
     readonly property color dangerSoft: darkMode ? "#28191D" : "#FBE9EA"
     readonly property color accentContent: "#FFFFFF"
+    readonly property color overlay: darkMode ? "#99070B10" : "#700C1724"
+    readonly property color shadow: darkMode ? "#90000000" : "#38091828"
+    readonly property color heroStart: darkMode ? "#172638" : "#18304C"
+    readonly property color heroEnd: darkMode ? "#0D1723" : "#0D1B2D"
+    readonly property color heroText: "#F4F8FC"
+    readonly property color heroMuted: "#A9BCD0"
+    readonly property color heroIcon: "#DCE8F3"
+    readonly property color heroLine: "#36506B"
+    readonly property color heroSurface: "#243A52"
 
     readonly property color instrumentSky: darkMode ? "#316CA8" : "#79AEDC"
     readonly property color instrumentGround: darkMode ? "#72543D" : "#B4957D"
@@ -73,9 +87,16 @@ QtObject {
     readonly property int radiusSmall: 6
     readonly property int radiusMedium: 8
     readonly property int radiusLarge: 12
+    readonly property int radiusXLarge: 16
 
     readonly property int space8: 8
     readonly property int space12: 12
+    readonly property int edgeInset: 12
+    readonly property int panelInset: 20
+    readonly property int accentRailInset: 10
+    readonly property int scrollBarExtent: 12
+    readonly property int scrollBarEdgeGap: 4
+    readonly property int closeButtonExtent: 36
 
     readonly property int textTiny: scaledFontSize(11)
     readonly property int textSmall: scaledFontSize(12)

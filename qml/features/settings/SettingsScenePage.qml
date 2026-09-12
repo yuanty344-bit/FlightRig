@@ -10,7 +10,8 @@ ScrollView {
     property int controlColumnWidth: 190
     signal returnRequested()
     clip: true; leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 18; contentWidth: availableWidth
-    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
     ColumnLayout {
         width: root.availableWidth; spacing: 3
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "三维视图"; subtitle: "相机、位置标记与城市图层" }

@@ -125,6 +125,9 @@ TestCase {
         library.routes = [{id:"test-route",name:"测试航线",waypointCount:3,distanceMeters:40,estimatedSeconds:20,updatedLabel:"今天"}]
         wait(30)
         compare(library.height, 440)
+        const routeScrollBar = findChild(library.contentItem, "routeLibraryScrollBar")
+        verify(routeScrollBar !== null)
+        compare(routeScrollBar.visible, false)
         const row = findChildWhere(library.contentItem, item => typeof item.selectRoute === "function")
         verify(row !== null)
         routeSelection.clear(); routeLoad.clear(); routeDuplicate.clear()
@@ -145,11 +148,17 @@ TestCase {
         tryCompare(duplicate, "enabled", false)
         mouseClick(duplicate)
         compare(routeDuplicate.count, 1)
+        library.routes = Array.from({length: 8}, (_, index) => ({
+            id:"route-" + index,name:"航线 " + index,waypointCount:3,
+            distanceMeters:40,estimatedSeconds:20,updatedLabel:"今天"
+        }))
+        tryCompare(routeScrollBar, "visible", true)
         library.routes = []
         library.selectedRouteId = ""
         wait(20)
         compare(library.height, 320)
         library.close()
+        tryCompare(library, "visible", false)
         library.editingLocked = false
     }
     function findChildWhere(item, predicate) {

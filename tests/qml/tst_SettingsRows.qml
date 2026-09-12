@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtTest
 import FlightBench
+import "../../qml/controls"
 import "../../qml/features/settings"
 
 TestCase {
@@ -24,6 +25,43 @@ TestCase {
     SignalSpy { id: categorySpy; target: category; signalName: "activated" }
     SignalSpy { id: toggleSpy; target: toggle; signalName: "toggled" }
     SignalSpy { id: headerSpy; target: header; signalName: "returnRequested" }
+
+    SelectField {
+        id: dropdown
+        x: 470
+        y: 20
+        width: 190
+        model: [
+            {label:"浅色",value:"light"},
+            {label:"深色",value:"dark"},
+            {label:"跟随系统",value:"system"}
+        ]
+        selectedValue: "light"
+    }
+
+    function cleanup() {
+        dropdown.popup.close()
+        dropdown.model = [
+            {label:"浅色",value:"light"},
+            {label:"深色",value:"dark"},
+            {label:"跟随系统",value:"system"}
+        ]
+    }
+
+    function test_dropdownScrollbarIsConditional() {
+        dropdown.popup.open()
+        tryCompare(dropdown.popup, "opened", true)
+        const bar = findChild(dropdown.popup.contentItem, "selectFieldScrollBar")
+        verify(bar !== null)
+        compare(bar.visible, false)
+
+        dropdown.model = Array.from({length: 10}, (_, index) => ({
+            label: "选项 " + index,
+            value: String(index)
+        }))
+        tryCompare(bar, "visible", true)
+    }
+
     function test_interaction() {
         categorySpy.clear(); toggleSpy.clear(); headerSpy.clear()
         mouseClick(category, category.width/2, category.height/2)

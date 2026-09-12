@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     property string fallbackTitle: "飞行会话"
     signal saveRequested(string displayName, string notes)
@@ -22,7 +22,7 @@ Dialog {
     padding: 20
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     onOpened: nameField.forceActiveFocus(Qt.PopupFocusReason)
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surfaceRaised
         border.width: 1
@@ -42,7 +42,7 @@ Dialog {
                 font.weight: Font.Medium
                 elide: Text.ElideRight
             }
-            CompactIconButton {
+            PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭会话编辑"
                 toolTipText: "关闭"

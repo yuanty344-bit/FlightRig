@@ -11,7 +11,8 @@ ScrollView {
     signal returnRequested()
     signal colorRequested()
     clip: true; leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 18; contentWidth: availableWidth
-    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
     ColumnLayout {
         width: root.availableWidth; spacing: 3
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "飞行轨迹"; subtitle: "同样作用于三维视图和任务地图" }

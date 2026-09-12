@@ -215,7 +215,7 @@ Item {
                                                      : 4.0)
         }
 
-        CompactIconButton {
+        PanelCloseButton {
             outlined: true
             iconSource: "qrc:/icons/x.svg"
             accessibleLabel: "退出回放"

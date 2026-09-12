@@ -157,8 +157,12 @@ qt_add_qml_module(FlightBench
         qml/controls/AppToolTip.qml
         qml/controls/CompactIconButton.qml
         qml/controls/DisclosureRow.qml
+        qml/controls/DialogSurface.qml
+        qml/controls/InsetScrollBar.qml
         qml/features/plans/HealthCheckRow.qml
         qml/controls/IconLink.qml
+        qml/controls/MotionDialog.qml
+        qml/controls/PanelCloseButton.qml
         qml/features/mission/MissionPlanner.qml
         qml/features/mission/WaypointMapMarker.qml
         qml/features/mission/MissionMapInteraction.qml
@@ -772,6 +776,14 @@ if(BUILD_TESTING)
                              -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_GimbalInspectionPanel.qml"
                              -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
             set_tests_properties(FlightBench.GimbalLayout.Scale${_scale} PROPERTIES
+                LABELS "ui;unit" TIMEOUT 30
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
+                ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+            add_test(NAME FlightBench.ShellChrome.Scale${_scale}
+                     COMMAND "${FLIGHTBENCH_QML_TEST_RUNNER}"
+                             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/tst_ShellChrome.qml"
+                             -import "${CMAKE_CURRENT_SOURCE_DIR}/tests/qml/imports")
+            set_tests_properties(FlightBench.ShellChrome.Scale${_scale} PROPERTIES
                 LABELS "ui;unit" TIMEOUT 30
                 ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_SCALE_FACTOR=${_scale};QT_FORCE_STDERR_LOGGING=1"
                 ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")

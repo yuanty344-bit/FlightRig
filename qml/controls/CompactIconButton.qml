@@ -17,8 +17,11 @@ Button {
                                                       : "当前状态下不可用"))
     property bool outlined: false
     property bool danger: false
+    property bool onDarkSurface: false
     property real iconRotation: 0
-    property color normalIconColor: danger ? Theme.danger : Theme.textSecondary
+    property color normalIconColor: danger ? Theme.danger
+                                           : onDarkSurface ? Theme.heroIcon
+                                                           : Theme.textSecondary
 
     implicitWidth: 32
     implicitHeight: 32
@@ -32,21 +35,29 @@ Button {
     background: Rectangle {
         radius: Theme.radiusSmall
         color: !root.enabled ? "transparent"
+                             : root.onDarkSurface && root.down ? Qt.rgba(1, 1, 1, 0.16)
+                             : root.onDarkSurface && root.hovered ? Qt.rgba(1, 1, 1, 0.10)
                              : root.down ? Theme.surfaceInteractive
                              : root.hovered ? (root.danger ? Theme.dangerSoft : Theme.surfaceInteractive)
                                             : "transparent"
         border.width: root.visualFocus || root.outlined ? 1 : 0
-        border.color: root.visualFocus ? Theme.accent : Theme.line
-        Behavior on color { ColorAnimation { duration: Theme.animationDuration(90) } }
+        border.color: root.visualFocus ? (root.onDarkSurface ? "#79ADFF" : Theme.accent)
+                                       : root.onDarkSurface ? Theme.heroLine : Theme.line
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     contentItem: Item {
+        scale: root.enabled && root.down ? 0.9 : root.enabled && root.hovered ? 1.06 : 1
+        Behavior on scale {
+            NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
+        }
         ThemedIcon {
             anchors.centerIn: parent
             width: 16
             height: 16
             source: root.iconSource
-            iconColor: root.enabled ? root.normalIconColor : Theme.textFaint
+            iconColor: root.enabled ? root.normalIconColor
+                                    : root.onDarkSurface ? Theme.heroMuted : Theme.textFaint
             opacity: root.enabled ? 0.92 : 0.42
             rotation: root.iconRotation
         }

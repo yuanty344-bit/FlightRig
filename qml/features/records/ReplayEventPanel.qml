@@ -66,7 +66,7 @@ Rectangle {
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTiny
             }
-            CompactIconButton {
+            PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭事件列表"
                 toolTipText: "关闭"
@@ -85,7 +85,10 @@ Rectangle {
             currentIndex: App.replayCurrentEventIndex
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            ScrollBar.vertical: InsetScrollBar {
+                id: eventListScrollBar
+                policy: ScrollBar.AsNeeded
+            }
             onCurrentIndexChanged: {
                 if (visible && currentIndex >= 0)
                     positionViewAtIndex(currentIndex, ListView.Contain)
@@ -95,7 +98,8 @@ Rectangle {
                 id: eventRow
                 required property int index
                 required property var modelData
-                width: eventList.width
+                width: Math.max(0, eventList.width
+                                - (eventListScrollBar.visible ? Theme.scrollBarExtent : 0))
                 height: Math.max(52, eventText.implicitHeight + 22)
                 activeFocusOnTab: true
                 Accessible.name: root.formatTime(eventRow.modelData.timeMs) + " "

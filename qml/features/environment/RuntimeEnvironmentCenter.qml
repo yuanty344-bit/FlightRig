@@ -291,7 +291,8 @@ Item {
             rightPadding: 14
             topPadding: 18
             bottomPadding: 18
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
 
             ColumnLayout {
                 width: environmentScroll.availableWidth
@@ -918,14 +919,14 @@ Item {
         onWorldPicked: worldId => App.selectedWorldId = String(worldId || "")
     }
 
-    Dialog {
+    MotionDialog {
         id: stopConfirmDialog
         anchors.centerIn: Overlay.overlay
         width: Math.min(390, Overlay.overlay ? Overlay.overlay.width - 40 : 390)
         modal: true
         padding: 18
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surface
             border.width: 1

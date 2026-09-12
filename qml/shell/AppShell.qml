@@ -15,6 +15,31 @@ Item {
         utilityDrawer.openMode(mode)
     }
 
+    component PageStage: Item {
+        id: stage
+        required property int pageIndex
+        default property alias contentData: contentHost.data
+        readonly property bool selected: root.currentIndex === pageIndex
+
+        visible: selected || opacity > 0
+        enabled: selected
+        opacity: selected ? 1 : 0
+        x: selected ? 0 : (pageIndex < root.currentIndex ? -Theme.pageTravel : Theme.pageTravel)
+        z: selected ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.motionNormal; easing.type: Easing.OutCubic }
+        }
+        Behavior on x {
+            NumberAnimation { duration: Theme.motionNormal; easing.type: Easing.OutCubic }
+        }
+
+        Item {
+            id: contentHost
+            anchors.fill: parent
+        }
+    }
+
     Connections {
         target: App
         function onActiveFlightSessionChanged() {
@@ -53,56 +78,67 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            WorkbenchPage {
-                id: workbenchPage
+            PageStage {
                 anchors.fill: parent
-                visible: root.currentIndex === 0
-                onOpenEnvironment: utilityDrawer.openMode("environment")
-                onOpenFlight: root.currentIndex = 1
-                onOpenMission: showLibrary => {
-                    root.currentIndex = 1
-                    flightPage.openMissionPlanner(showLibrary)
-                }
-                onOpenHealth: utilityDrawer.openMode("health")
-                onLoadRoute: routeId => {
-                    root.currentIndex = 1
-                    flightPage.loadSavedRoute(routeId)
-                }
-            }
-            FlightPage {
-                id: flightPage
-                anchors.fill: parent
-                visible: root.currentIndex === 1
-                onOpenSettings: utilityDrawer.openMode("settings")
-                onOpenHealth: utilityDrawer.openMode("health")
-                onOpenTelemetry: utilityDrawer.openMode("telemetry")
-                onReplayClosed: {
-                    App.stopSessionReplay()
-                    root.currentIndex = 2
-                }
-            }
-            RecordsPage {
-                id: recordsPage
-                anchors.fill: parent
-                visible: root.currentIndex === 2
-                onOpenHealth: utilityDrawer.openMode("health")
-                onReplayRequested: sessionId => {
-                    if (App.startSessionReplay(sessionId)) {
+                pageIndex: 0
+                WorkbenchPage {
+                    id: workbenchPage
+                    anchors.fill: parent
+                    onOpenEnvironment: utilityDrawer.openMode("environment")
+                    onOpenFlight: root.currentIndex = 1
+                    onOpenMission: showLibrary => {
                         root.currentIndex = 1
-                        flightPage.openReplay()
+                        flightPage.openMissionPlanner(showLibrary)
+                    }
+                    onOpenHealth: utilityDrawer.openMode("health")
+                    onLoadRoute: routeId => {
+                        root.currentIndex = 1
+                        flightPage.loadSavedRoute(routeId)
                     }
                 }
-                onReplayAtRequested: (sessionId, elapsedMs) => {
-                    if (App.startSessionReplay(sessionId)) {
-                        App.seekReplay(elapsedMs)
-                        root.currentIndex = 1
-                        flightPage.openReplay()
+            }
+
+            PageStage {
+                anchors.fill: parent
+                pageIndex: 1
+                FlightPage {
+                    id: flightPage
+                    anchors.fill: parent
+                    onOpenSettings: utilityDrawer.openMode("settings")
+                    onOpenHealth: utilityDrawer.openMode("health")
+                    onOpenTelemetry: utilityDrawer.openMode("telemetry")
+                    onReplayClosed: {
+                        App.stopSessionReplay()
+                        root.currentIndex = 2
                     }
                 }
-                onReusePlanRequested: sessionId => {
-                    const response = App.reuseSessionTestPlan(sessionId)
-                    if (response.success)
-                        root.currentIndex = 0
+            }
+
+            PageStage {
+                anchors.fill: parent
+                pageIndex: 2
+                RecordsPage {
+                    id: recordsPage
+                    anchors.fill: parent
+                    onOpenHealth: utilityDrawer.openMode("health")
+                    onReplayRequested: sessionId => {
+                        if (App.startSessionReplay(sessionId)) {
+                            root.currentIndex = 1
+                            flightPage.openReplay()
+                        }
+                    }
+                    onReplayAtRequested: (sessionId, elapsedMs) => {
+                        if (App.startSessionReplay(sessionId)) {
+                            App.seekReplay(elapsedMs)
+                            root.currentIndex = 1
+                            flightPage.openReplay()
+                        }
+                    }
+                    onReusePlanRequested: sessionId => {
+                        const response = App.reuseSessionTestPlan(sessionId)
+                        if (response.success)
+                            root.currentIndex = 0
+                    }
                 }
             }
         }

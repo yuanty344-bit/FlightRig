@@ -294,7 +294,7 @@ Item {
         font.pixelSize: Theme.textTiny
     }
 
-    Dialog {
+    MotionDialog {
         id: clearDialog
         anchors.centerIn: parent
         modal: true

@@ -10,7 +10,8 @@ ScrollView {
     property int controlColumnWidth: 190
     signal returnRequested()
     clip: true; leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 18; contentWidth: availableWidth
-    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+    ScrollBar.horizontal: InsetScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
     ColumnLayout {
         width: root.availableWidth; spacing: 3
         SettingsPageHeader { onReturnRequested: root.returnRequested(); title: "操作与快捷键"; subtitle: "只调整交互习惯，不改变安全规则" }

@@ -182,7 +182,28 @@ Item {
         }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.canvasSoft }
+            GradientStop { position: 1; color: Theme.canvas }
+        }
+    }
+
+    Rectangle {
+        anchors.right: parent.right
+        anchors.rightMargin: -190
+        anchors.top: parent.top
+        anchors.topMargin: -260
+        width: 560
+        height: 560
+        radius: 280
+        color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                       Theme.darkMode ? 0.07 : 0.04)
+    }
+
     ColumnLayout {
+        z: 1
         anchors.fill: parent
         anchors.leftMargin: root.compactLayout ? 20 : 28
         anchors.rightMargin: root.compactLayout ? 20 : 28
@@ -190,56 +211,88 @@ Item {
         anchors.bottomMargin: root.compactLayout ? 10 : 18
         spacing: root.compactLayout ? 10 : 14
 
-        RowLayout {
+        SurfaceCard {
             Layout.fillWidth: true
             Layout.preferredHeight: root.compactLayout ? 50 : 58
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                Text {
+            elevated: true
+            clip: true
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: Theme.heroEnd }
+                GradientStop { position: 1; color: Theme.heroStart }
+            }
+            border.color: Theme.heroLine
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.topMargin: Theme.accentRailInset
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.accentRailInset
+                anchors.leftMargin: Theme.accentRailInset
+                width: 3
+                radius: 2
+                color: Theme.accent
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Theme.panelInset
+                anchors.rightMargin: Theme.edgeInset
+                spacing: 8
+                ColumnLayout {
                     Layout.fillWidth: true
-                    text: "记录"
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 24
-                    font.weight: Font.Medium
+                    spacing: 2
+                    Text {
+                        Layout.fillWidth: true
+                        text: "飞行记录"
+                        color: Theme.heroText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: root.compactLayout ? 21 : 24
+                        font.weight: Font.DemiBold
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: "会话、遥测、传感器证据与测试结论"
+                        color: Theme.heroMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSmall
+                    }
                 }
-                Text {
-                    Layout.fillWidth: true
-                    text: "每次仿真自动保存为一个会话"
-                    color: Theme.textMuted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textSmall
+                CompactIconButton {
+                    iconSource: "qrc:/icons/archive-restore.svg"
+                    accessibleLabel: "打开会话回收站"
+                    toolTipText: App.trashSessionCount > 0 ? "会话回收站（" + App.trashSessionCount + "）" : "会话回收站"
+                    outlined: App.trashSessionCount > 0
+                    onDarkSurface: true
+                    onClicked: trashDialog.open()
                 }
-            }
-            CompactIconButton {
-                iconSource: "qrc:/icons/archive-restore.svg"
-                accessibleLabel: "打开会话回收站"
-                toolTipText: App.trashSessionCount > 0 ? "会话回收站（" + App.trashSessionCount + "）" : "会话回收站"
-                outlined: App.trashSessionCount > 0
-                onClicked: trashDialog.open()
-            }
-            CompactIconButton {
-                iconSource: "qrc:/icons/sliders-horizontal.svg"
-                accessibleLabel: "筛选飞行会话"
-                toolTipText: root.filtersActive ? "已筛选会话" : "筛选会话"
-                outlined: root.filtersActive
-                normalIconColor: root.filtersActive ? Theme.accent : Theme.textSecondary
-                onClicked: filterDialog.open()
-            }
-            ActionButton {
-                Layout.preferredWidth: 114
-                compact: true
-                text: "保存位置"
-                iconSource: "qrc:/icons/folder-open.svg"
-                kind: "secondary"
-                onClicked: App.openSessionsFolder()
+                CompactIconButton {
+                    iconSource: "qrc:/icons/sliders-horizontal.svg"
+                    accessibleLabel: "筛选飞行会话"
+                    toolTipText: root.filtersActive ? "已筛选会话" : "筛选会话"
+                    outlined: root.filtersActive
+                    onDarkSurface: true
+                    normalIconColor: root.filtersActive ? "#79ADFF" : Theme.heroIcon
+                    onClicked: filterDialog.open()
+                }
+                ActionButton {
+                    Layout.preferredWidth: 114
+                    compact: true
+                    text: "保存位置"
+                    iconSource: "qrc:/icons/folder-open.svg"
+                    kind: "glass"
+                    onClicked: App.openSessionsFolder()
+                }
             }
         }
 
         SurfaceCard {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            elevated: true
+            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                  Theme.darkMode ? 0.34 : 0.2)
 
             RowLayout {
                 anchors.fill: parent
@@ -289,7 +342,7 @@ Item {
                             Rectangle {
                                 anchors.fill: parent
                                 color: root.selectedSessionId === String(App.activeFlightSession.id || "")
-                                       ? Theme.accentSoft : activeMouse.containsMouse ? Theme.surfaceRaised : "transparent"
+                                       ? Theme.accent : activeMouse.containsMouse ? Theme.surfaceRaised : "transparent"
                             }
                             Rectangle {
                                 visible: activeSessionRow.activeFocus
@@ -304,12 +357,12 @@ Item {
                                 anchors.leftMargin: 16
                                 anchors.rightMargin: 14
                                 spacing: 10
-                                Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 4; color: Theme.accent }
+                                Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 4; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? Theme.accentContent : Theme.accent }
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 3
-                                    Text { text: "当前会话"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.Medium }
-                                    Text { text: String(App.activeFlightSession.durationLabel || "00:00") + " · 正在记录"; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
+                                    Text { text: "当前会话"; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? Theme.accentContent : Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textSmall; font.weight: Font.DemiBold }
+                                    Text { text: String(App.activeFlightSession.durationLabel || "00:00") + " · 正在记录"; color: root.selectedSessionId === String(App.activeFlightSession.id || "") ? "#DDEAFF" : Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                                 }
                             }
                             Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.line }
@@ -333,13 +386,18 @@ Item {
                             clip: true
                             model: root.filteredSessions
                             boundsBehavior: Flickable.StopAtBounds
-                            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                            ScrollBar.vertical: InsetScrollBar {
+                                id: sessionListScrollBar
+                                policy: ScrollBar.AsNeeded
+                            }
 
                             delegate: Item {
                                 id: sessionRow
                                 required property int index
                                 required property var modelData
-                                width: sessionList.width
+                                width: Math.max(0, sessionList.width
+                                                - (sessionListScrollBar.visible
+                                                   ? Theme.scrollBarExtent : 0))
                                 height: 74
                                 activeFocusOnTab: true
                                 Accessible.name: root.sessionTitle(modelData)
@@ -351,7 +409,7 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     color: root.selectedSessionId === String(sessionRow.modelData.id || "")
-                                           ? Theme.accentSoft : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent"
+                                           ? Theme.accent : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent"
                                 }
                                 Rectangle {
                                     visible: sessionRow.activeFocus
@@ -370,7 +428,8 @@ Item {
                                     Text {
                                         Layout.fillWidth: true
                                         text: root.sessionTitle(sessionRow.modelData)
-                                        color: Theme.textPrimary
+                                        color: root.selectedSessionId === String(sessionRow.modelData.id || "")
+                                               ? Theme.accentContent : Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.textSmall
                                         font.weight: Font.Medium
@@ -381,7 +440,9 @@ Item {
                                         text: String(sessionRow.modelData.startedLabel || "") + " · "
                                               + String(sessionRow.modelData.durationLabel || "00:00") + " · "
                                               + String(sessionRow.modelData.testResultLabel || "未评估")
-                                        color: root.resultColor(String(sessionRow.modelData.testResult || "not-rated"))
+                                        color: root.selectedSessionId === String(sessionRow.modelData.id || "")
+                                               ? "#DDEAFF"
+                                               : root.resultColor(String(sessionRow.modelData.testResult || "not-rated"))
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.textTiny
                                         elide: Text.ElideRight
@@ -431,7 +492,7 @@ Item {
                         contentHeight: sessionDetailsColumn.y
                                        + sessionDetailsColumn.implicitHeight
                                        + (root.compactLayout ? 12 : 20)
-                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
 
                     ColumnLayout {
                         id: sessionDetailsColumn
@@ -564,14 +625,14 @@ Item {
                                 Layout.fillHeight: true
                                 Column {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: summaryValue.divider ? 18 : 0
+                                    anchors.leftMargin: summaryValue.divider ? 18 : 16
                                     anchors.right: parent.right
-                                    anchors.rightMargin: 6
+                                    anchors.rightMargin: 12
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 7
                                     Text { text: summaryValue.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.textTiny }
                                     Text {
-                                        width: Math.max(0, parent.width - (summaryValue.divider ? 18 : 0))
+                                        width: parent.width
                                         text: summaryValue.value
                                         color: summaryValue.valueColor
                                         font.family: summaryValue.monospace ? Theme.monoFontFamily : Theme.fontFamily
@@ -721,7 +782,7 @@ Item {
                             clip: true
                             model: root.selectedSession.events || []
                             boundsBehavior: Flickable.StopAtBounds
-                            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                            ScrollBar.vertical: InsetScrollBar { policy: ScrollBar.AsNeeded }
                             delegate: Item {
                                 id: eventRow
 
@@ -834,7 +895,7 @@ Item {
         width: Math.min(220, root.width - 24)
         padding: 8
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusMedium
             color: Theme.surfaceRaised
             border.width: 1
@@ -899,13 +960,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: deleteSessionDialog
         anchors.centerIn: parent
         width: Math.min(410, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1
@@ -966,13 +1027,13 @@ Item {
         }
     }
 
-    Dialog {
+    MotionDialog {
         id: deleteSensorDataDialog
         anchors.centerIn: parent
         width: Math.min(430, root.width - 40)
         modal: true
         padding: 20
-        background: Rectangle {
+        background: DialogSurface {
             radius: Theme.radiusLarge
             color: Theme.surfaceRaised
             border.width: 1

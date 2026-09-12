@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     property var session: ({})
     signal recordsRequested()
@@ -20,7 +20,7 @@ Dialog {
                                           : testOutcome === "warning" ? Theme.warning
                                           : testOutcome === "failed" || testOutcome === "aborted" ? Theme.danger
                                                                                                     : Theme.textMuted
-    background: Rectangle { radius: Theme.radiusLarge; color: Theme.surfaceRaised; border.width: 1; border.color: Theme.lineStrong }
+    background: DialogSurface { color: Theme.surfaceRaised }
     contentItem: ColumnLayout {
         spacing: 14
         RowLayout {
@@ -31,7 +31,7 @@ Dialog {
                 iconColor: root.resultColor
             }
             Text { Layout.fillWidth: true; text: "测试" + String(root.session.testResultLabel || "已结束"); color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.textTitle; font.weight: Font.Medium }
-            CompactIconButton { iconSource: "qrc:/icons/x.svg"; accessibleLabel: "关闭测试结果"; toolTipText: "关闭"; onClicked: root.close() }
+            PanelCloseButton { accessibleLabel: "关闭测试结果"; onClicked: root.close() }
         }
         Text { Layout.fillWidth: true; text: String(root.session.testResultReason || "本次会话已经保存"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.textBody; wrapMode: Text.WordWrap }
         Rectangle {

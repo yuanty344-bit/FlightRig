@@ -5,7 +5,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FlightBench
 
-Dialog {
+MotionDialog {
     id: root
     property var modelOptions: []
     property var worldOptions: []
@@ -30,7 +30,7 @@ Dialog {
     modal: true
     padding: 20
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    background: Rectangle {
+    background: DialogSurface {
         radius: Theme.radiusLarge
         color: Theme.surfaceRaised
         border.width: 1
@@ -48,7 +48,7 @@ Dialog {
                 font.pixelSize: Theme.textTitle
                 font.weight: Font.Medium
             }
-            CompactIconButton {
+            PanelCloseButton {
                 iconSource: "qrc:/icons/x.svg"
                 accessibleLabel: "关闭会话筛选"
                 toolTipText: "关闭"
