@@ -48,7 +48,11 @@ Rectangle {
             width: dock.cellWidth
             height: dock.height - 8
             radius: Theme.radiusLarge
-            color: Theme.accent
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: Qt.lighter(Theme.accent, 1.08) }
+                GradientStop { position: 1; color: Theme.accent }
+            }
             border.width: 1
             border.color: Theme.accentHover
 

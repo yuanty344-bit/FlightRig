@@ -21,6 +21,10 @@ Item {
     property var filteredSessions: []
     property var modelFilterOptions: [{ label: "全部飞行器", value: "" }]
     property var worldFilterOptions: [{ label: "全部场景", value: "" }]
+    property bool batchMode: false
+    property var selectedSessionIds: []
+    property var pendingDeleteSessionIds: []
+    readonly property int selectedSessionCount: selectedSessionIds.length
     readonly property bool filtersActive: modelFilter.length > 0
                                           || worldFilter.length > 0
                                           || resultFilter.length > 0
@@ -29,6 +33,40 @@ Item {
     signal replayRequested(string sessionId)
     signal replayAtRequested(string sessionId, int elapsedMs)
     signal reusePlanRequested(string sessionId)
+
+    function hasSelectedSession(sessionId) {
+        return selectedSessionIds.indexOf(String(sessionId || "")) >= 0
+    }
+
+    function toggleSelectedSession(sessionId) {
+        const id = String(sessionId || "")
+        if (id.length === 0 || id === String(App.activeFlightSession.id || "")) return
+        const next = selectedSessionIds.slice()
+        const index = next.indexOf(id)
+        if (index >= 0) next.splice(index, 1)
+        else next.push(id)
+        selectedSessionIds = next
+    }
+
+    function selectableSessionIds() {
+        const ids = []
+        const activeId = String(App.activeFlightSession.id || "")
+        for (let index = 0; index < filteredSessions.length; ++index) {
+            const id = String(filteredSessions[index].id || "")
+            if (id.length > 0 && id !== activeId) ids.push(id)
+        }
+        return ids
+    }
+
+    function leaveBatchMode() {
+        batchMode = false
+        selectedSessionIds = []
+    }
+
+    function requestSessionDelete(sessionIds) {
+        pendingDeleteSessionIds = sessionIds.slice()
+        if (pendingDeleteSessionIds.length > 0) deleteSessionDialog.open()
+    }
 
     function numberText(value, suffix) {
         return Number(value || 0).toFixed(1) + suffix
@@ -324,6 +362,16 @@ Item {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.textTiny
                             }
+                            CompactIconButton {
+                                visible: root.filteredSessions.length > 1 || root.batchMode
+                                implicitWidth: 30
+                                implicitHeight: 30
+                                iconSource: "qrc:/icons/square.svg"
+                                accessibleLabel: root.batchMode ? "退出批量选择" : "批量选择飞行记录"
+                                toolTipText: root.batchMode ? "退出批量选择" : "批量删除飞行记录"
+                                outlined: root.batchMode
+                                onClicked: root.batchMode ? root.leaveBatchMode() : root.batchMode = true
+                            }
                         }
 
                         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.line }
@@ -402,14 +450,18 @@ Item {
                                 activeFocusOnTab: true
                                 Accessible.name: root.sessionTitle(modelData)
                                 Accessible.role: Accessible.Button
-                                Keys.onReturnPressed: root.selectSession(String(modelData.id || ""))
-                                Keys.onEnterPressed: root.selectSession(String(modelData.id || ""))
-                                Keys.onSpacePressed: root.selectSession(String(modelData.id || ""))
+                                Keys.onReturnPressed: root.batchMode ? root.toggleSelectedSession(modelData.id) : root.selectSession(String(modelData.id || ""))
+                                Keys.onEnterPressed: root.batchMode ? root.toggleSelectedSession(modelData.id) : root.selectSession(String(modelData.id || ""))
+                                Keys.onSpacePressed: root.batchMode ? root.toggleSelectedSession(modelData.id) : root.selectSession(String(modelData.id || ""))
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    color: root.selectedSessionId === String(sessionRow.modelData.id || "")
-                                           ? Theme.accent : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent"
+                                    color: root.batchMode
+                                           ? (root.hasSelectedSession(sessionRow.modelData.id)
+                                              ? Theme.accentSoft
+                                              : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent")
+                                           : root.selectedSessionId === String(sessionRow.modelData.id || "")
+                                             ? Theme.accent : rowMouse.containsMouse ? Theme.surfaceRaised : "transparent"
                                 }
                                 Rectangle {
                                     visible: sessionRow.activeFocus
@@ -419,16 +471,38 @@ Item {
                                     border.width: 1
                                     border.color: Theme.accent
                                 }
+                                Rectangle {
+                                    visible: root.batchMode
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 14
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 18
+                                    height: 18
+                                    radius: 4
+                                    color: root.hasSelectedSession(sessionRow.modelData.id) ? Theme.accent : "transparent"
+                                    border.width: 1
+                                    border.color: root.hasSelectedSession(sessionRow.modelData.id) ? Theme.accent : Theme.lineStrong
+                                    Text {
+                                        visible: root.hasSelectedSession(sessionRow.modelData.id)
+                                        anchors.centerIn: parent
+                                        text: "✓"
+                                        color: Theme.accentContent
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.textTiny
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
                                 ColumnLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 16
+                                    anchors.leftMargin: root.batchMode ? 44 : 16
                                     anchors.rightMargin: 14
                                     spacing: 3
                                     Item { Layout.fillHeight: true }
                                     Text {
                                         Layout.fillWidth: true
                                         text: root.sessionTitle(sessionRow.modelData)
-                                        color: root.selectedSessionId === String(sessionRow.modelData.id || "")
+                                        color: !root.batchMode
+                                               && root.selectedSessionId === String(sessionRow.modelData.id || "")
                                                ? Theme.accentContent : Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.textSmall
@@ -440,7 +514,8 @@ Item {
                                         text: String(sessionRow.modelData.startedLabel || "") + " · "
                                               + String(sessionRow.modelData.durationLabel || "00:00") + " · "
                                               + String(sessionRow.modelData.testResultLabel || "未评估")
-                                        color: root.selectedSessionId === String(sessionRow.modelData.id || "")
+                                        color: !root.batchMode
+                                               && root.selectedSessionId === String(sessionRow.modelData.id || "")
                                                ? "#DDEAFF"
                                                : root.resultColor(String(sessionRow.modelData.testResult || "not-rated"))
                                         font.family: Theme.fontFamily
@@ -450,7 +525,57 @@ Item {
                                     Item { Layout.fillHeight: true }
                                 }
                                 Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: Theme.line }
-                                MouseArea { id: rowMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { root.selectSession(String(sessionRow.modelData.id || "")); root.forceActiveFocus(Qt.MouseFocusReason) } }
+                                MouseArea {
+                                    id: rowMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (root.batchMode) root.toggleSelectedSession(sessionRow.modelData.id)
+                                        else root.selectSession(String(sessionRow.modelData.id || ""))
+                                        root.forceActiveFocus(Qt.MouseFocusReason)
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            visible: root.batchMode
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: visible ? 48 : 0
+                            color: Theme.surfaceRaised
+                            border.width: 1
+                            border.color: Theme.line
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+                                spacing: 6
+                                Text {
+                                    text: "已选 " + root.selectedSessionCount + " 项"
+                                    color: Theme.textMuted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.textTiny
+                                }
+                                Item { Layout.fillWidth: true }
+                                ActionButton {
+                                    compact: true
+                                    Layout.preferredWidth: 58
+                                    text: root.selectedSessionCount === root.selectableSessionIds().length ? "清空" : "全选"
+                                    kind: "secondary"
+                                    onClicked: root.selectedSessionCount === root.selectableSessionIds().length
+                                               ? root.selectedSessionIds = []
+                                               : root.selectedSessionIds = root.selectableSessionIds()
+                                }
+                                ActionButton {
+                                    Layout.preferredWidth: 58
+                                    compact: true
+                                    text: "删除"
+                                    kind: "danger"
+                                    enabled: root.selectedSessionCount > 0
+                                    disabledReason: "请至少选择一条飞行记录"
+                                    onClicked: root.requestSessionDelete(root.selectedSessionIds)
+                                }
                             }
                         }
 
@@ -601,7 +726,7 @@ Item {
                                 accessibleLabel: "删除当前飞行记录"
                                 toolTipText: "移到飞行记录回收站"
                                 danger: true
-                                onClicked: deleteSessionDialog.open()
+                                onClicked: root.requestSessionDelete([root.selectedSessionId])
                             }
                         }
 
@@ -954,7 +1079,7 @@ Item {
                 kind: "danger"
                 onClicked: {
                     sessionActionsPopup.close()
-                    deleteSessionDialog.open()
+                    root.requestSessionDelete([root.selectedSessionId])
                 }
             }
         }
@@ -975,7 +1100,9 @@ Item {
         contentItem: ColumnLayout {
             spacing: 12
             Text {
-                text: "移到飞行记录回收站？"
+                text: root.pendingDeleteSessionIds.length > 1
+                      ? "将 " + root.pendingDeleteSessionIds.length + " 条飞行记录移到回收站？"
+                      : "移到飞行记录回收站？"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTitle
@@ -983,7 +1110,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "飞行记录将保留 30 天，期间可以从记录页的回收站恢复。"
+                text: "所选飞行记录将按当前回收站保留规则保存，期间可以恢复。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textBody
@@ -991,6 +1118,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
+                visible: root.pendingDeleteSessionIds.length === 1
                 text: root.sessionTitle(root.selectedSession)
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
@@ -1011,16 +1139,16 @@ Item {
                     text: "移到回收站"
                     kind: "danger"
                     onClicked: {
-                        const sessionId = root.selectedSessionId
+                        const ids = root.pendingDeleteSessionIds.slice()
+                        for (let index = 0; index < ids.length; ++index)
+                            App.deleteSession(ids[index])
+                        root.pendingDeleteSessionIds = []
                         root.selectedSessionId = ""
                         root.selectedSession = ({})
-                        if (App.deleteSession(sessionId)) {
-                            root.exportPath = ""
-                            deleteSessionDialog.close()
-                            Qt.callLater(root.ensureSelection)
-                        } else {
-                            root.selectSession(sessionId)
-                        }
+                        root.exportPath = ""
+                        root.leaveBatchMode()
+                        deleteSessionDialog.close()
+                        Qt.callLater(root.ensureSelection)
                     }
                 }
             }

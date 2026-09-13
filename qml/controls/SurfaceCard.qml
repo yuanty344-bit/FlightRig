@@ -12,19 +12,15 @@ Rectangle {
     color: Theme.surface
     border.width: 1
     border.color: root.interactive && root.hovered ? Theme.lineStrong : Theme.line
-    scale: root.interactive && root.hovered ? 1.004 : 1
 
     layer.enabled: root.elevated
     layer.effect: MultiEffect {
         shadowEnabled: true
         shadowColor: Theme.shadow
-        shadowBlur: 0.72
-        shadowVerticalOffset: 4
+        shadowBlur: 0.62
+        shadowVerticalOffset: 3
     }
 
-    Behavior on scale {
-        NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
-    }
     Behavior on border.color {
         ColorAnimation { duration: Theme.motionFast }
     }

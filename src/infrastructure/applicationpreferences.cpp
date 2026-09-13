@@ -337,7 +337,7 @@ QString ApplicationPreferences::writeDocument(const QVariantMap &document,
         if (error) *error = QStringLiteral("无法创建设置导出目录");
         return {};
     }
-    const QString path = QDir(directory).filePath(QStringLiteral("flightbench-settings.json"));
+    const QString path = QDir(directory).filePath(QStringLiteral("flightrig-settings.json"));
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly)
         || file.write(QJsonDocument(QJsonObject::fromVariantMap(document))

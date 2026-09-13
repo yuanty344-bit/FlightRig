@@ -9,6 +9,9 @@ import FlightBench
 MotionDialog {
     id: root
     property string pendingId: ""
+    property bool batchMode: false
+    property var selectedPlanIds: []
+    readonly property int selectedPlanCount: selectedPlanIds.length
     readonly property var pendingPlan: {
         for (var i = 0; i < App.testPlans.length; ++i) {
             if (String(App.testPlans[i].id || "") === pendingId)
@@ -21,9 +24,36 @@ MotionDialog {
     signal editRequested(var plan)
     signal duplicateRequested(string planId)
     signal deleteRequested(string planId)
+    signal batchDeleteRequested(var planIds)
+
+    function hasSelectedPlan(planId) {
+        return selectedPlanIds.indexOf(String(planId || "")) >= 0
+    }
+
+    function toggleSelectedPlan(planId) {
+        const id = String(planId || "")
+        const next = selectedPlanIds.slice()
+        const index = next.indexOf(id)
+        if (index >= 0) next.splice(index, 1)
+        else if (id.length > 0) next.push(id)
+        selectedPlanIds = next
+    }
+
+    function selectAllPlans() {
+        const next = []
+        for (let index = 0; index < App.testPlans.length; ++index)
+            next.push(String(App.testPlans[index].id || ""))
+        selectedPlanIds = next
+    }
+
+    function leaveBatchMode() {
+        batchMode = false
+        selectedPlanIds = []
+    }
 
     function showPicker() {
         pendingId = App.selectedTestPlanId
+        leaveBatchMode()
         open()
     }
 
@@ -153,16 +183,18 @@ MotionDialog {
                         height: 68
                         radius: Theme.radiusMedium
                         color: root.pendingId === String(modelData.id || "")
-                               ? Theme.accentSoft
+                               && !root.batchMode ? Theme.accentSoft
+                               : root.hasSelectedPlan(modelData.id) ? Theme.accentSoft
                                : optionMouse.containsMouse ? Theme.surfaceInteractive : Theme.surface
-                        border.width: root.pendingId === String(modelData.id || "") || activeFocus ? 1 : 0
+                        border.width: (!root.batchMode && root.pendingId === String(modelData.id || ""))
+                                      || root.hasSelectedPlan(modelData.id) || activeFocus ? 1 : 0
                         border.color: activeFocus ? Theme.accentHover : Theme.accent
                         activeFocusOnTab: true
                         Accessible.name: String(modelData.name || "测试方案")
                         Accessible.role: Accessible.Button
-                        Keys.onReturnPressed: root.pendingId = String(modelData.id || "")
-                        Keys.onEnterPressed: root.pendingId = String(modelData.id || "")
-                        Keys.onSpacePressed: root.pendingId = String(modelData.id || "")
+                        Keys.onReturnPressed: root.batchMode ? root.toggleSelectedPlan(modelData.id) : root.pendingId = String(modelData.id || "")
+                        Keys.onEnterPressed: root.batchMode ? root.toggleSelectedPlan(modelData.id) : root.pendingId = String(modelData.id || "")
+                        Keys.onSpacePressed: root.batchMode ? root.toggleSelectedPlan(modelData.id) : root.pendingId = String(modelData.id || "")
 
                         RowLayout {
                             anchors.fill: parent
@@ -172,18 +204,20 @@ MotionDialog {
                             Rectangle {
                                 Layout.preferredWidth: 18
                                 Layout.preferredHeight: 18
-                                radius: 9
+                                radius: root.batchMode ? 4 : 9
                                 color: "transparent"
                                 border.width: 1
-                                border.color: root.pendingId === String(planOption.modelData.id || "")
+                                border.color: (root.batchMode && root.hasSelectedPlan(planOption.modelData.id))
+                                              || (!root.batchMode && root.pendingId === String(planOption.modelData.id || ""))
                                               ? Theme.accent : Theme.lineStrong
                                 Rectangle {
                                     anchors.centerIn: parent
-                                    width: 8
-                                    height: 8
-                                    radius: 4
+                                    width: root.batchMode ? 10 : 8
+                                    height: root.batchMode ? 10 : 8
+                                    radius: root.batchMode ? 2 : 4
                                     color: Theme.accent
-                                    visible: root.pendingId === String(planOption.modelData.id || "")
+                                    visible: root.batchMode ? root.hasSelectedPlan(planOption.modelData.id)
+                                                            : root.pendingId === String(planOption.modelData.id || "")
                                 }
                             }
                             ColumnLayout {
@@ -220,8 +254,10 @@ MotionDialog {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.pendingId = String(planOption.modelData.id || "")
+                            onClicked: root.batchMode ? root.toggleSelectedPlan(planOption.modelData.id)
+                                                      : root.pendingId = String(planOption.modelData.id || "")
                             onDoubleClicked: {
+                                if (root.batchMode) return
                                 root.pendingId = String(planOption.modelData.id || "")
                                 root.applyRequested(root.pendingId)
                             }
@@ -268,17 +304,43 @@ MotionDialog {
             ActionButton {
                 Layout.preferredWidth: 112
                 compact: true
-                text: "新建方案"
+                text: root.batchMode ? "取消多选" : "新建方案"
                 iconSource: "qrc:/icons/clipboard-plus.svg"
                 kind: "secondary"
                 enabled: !App.simulationRunning && !App.busy
                 toolTipText: enabled ? "把当前飞行器、仿真场景和飞行设置保存为新方案"
                                      : "停止仿真后才能保存方案"
-                onClicked: root.createRequested()
+                onClicked: root.batchMode ? root.leaveBatchMode() : root.createRequested()
+            }
+            ActionButton {
+                visible: !root.batchMode && App.testPlans.length > 1
+                Layout.preferredWidth: 96
+                compact: true
+                text: "批量删除"
+                iconSource: "qrc:/icons/trash-2.svg"
+                kind: "secondary"
+                enabled: !App.simulationRunning && !App.busy
+                onClicked: root.batchMode = true
+            }
+            Text {
+                visible: root.batchMode
+                text: "已选 " + root.selectedPlanCount + " 项"
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textTiny
+            }
+            ActionButton {
+                visible: root.batchMode
+                Layout.preferredWidth: 72
+                compact: true
+                text: root.selectedPlanCount === App.testPlans.length ? "取消全选" : "全选"
+                kind: "secondary"
+                onClicked: root.selectedPlanCount === App.testPlans.length
+                           ? root.selectedPlanIds = [] : root.selectAllPlans()
             }
             Item { Layout.fillWidth: true }
             CompactIconButton {
-                visible: root.pendingId.length > 0
+                visible: !root.batchMode && root.pendingId.length > 0
                 iconSource: "qrc:/icons/pencil.svg"
                 accessibleLabel: "编辑测试方案"
                 toolTipText: "编辑方案"
@@ -287,7 +349,7 @@ MotionDialog {
                 onClicked: root.editRequested(root.pendingPlan)
             }
             CompactIconButton {
-                visible: root.pendingId.length > 0
+                visible: !root.batchMode && root.pendingId.length > 0
                 iconSource: "qrc:/icons/copy.svg"
                 accessibleLabel: "复制测试方案"
                 toolTipText: "复制方案"
@@ -296,7 +358,7 @@ MotionDialog {
                 onClicked: root.duplicateRequested(root.pendingId)
             }
             CompactIconButton {
-                visible: root.pendingId.length > 0
+                visible: !root.batchMode && root.pendingId.length > 0
                 danger: true
                 iconSource: "qrc:/icons/trash-2.svg"
                 accessibleLabel: "删除测试方案"
@@ -306,6 +368,7 @@ MotionDialog {
                 onClicked: root.deleteRequested(root.pendingId)
             }
             ActionButton {
+                visible: !root.batchMode
                 Layout.preferredWidth: 88
                 compact: true
                 text: "使用"
@@ -313,6 +376,17 @@ MotionDialog {
                 toolTipText: enabled ? "应用选中的飞行器、仿真场景和起飞高度"
                                      : "停止仿真后才能更换方案"
                 onClicked: root.applyRequested(root.pendingId)
+            }
+            ActionButton {
+                visible: root.batchMode
+                Layout.preferredWidth: 104
+                compact: true
+                text: "删除所选"
+                iconSource: "qrc:/icons/trash-2.svg"
+                kind: "danger"
+                enabled: root.selectedPlanCount > 0
+                disabledReason: "请至少选择一个测试方案"
+                onClicked: root.batchDeleteRequested(root.selectedPlanIds.slice())
             }
         }
     }

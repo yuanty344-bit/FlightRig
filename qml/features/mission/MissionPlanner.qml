@@ -27,6 +27,7 @@ Item {
     property string selectedLibraryRouteName: ""
     property string routeNameDialogMode: "save"
     property string routeOperationMessage: ""
+    property var pendingDeleteRouteIds: []
     property real pixelsPerMeter: 2.2
     property real viewCenterEast: 0
     property real viewCenterNorth: 0
@@ -1311,7 +1312,14 @@ Item {
         onLoadRequested: routeId => root.loadLibraryRoute(routeId)
         onFolderRequested: App.openRoutesFolder()
         onNewRequested: missionModel.count > 0 ? routeNewDialog.open() : root.createNewRoute()
-        onDeleteRequested: routeDeleteDialog.open()
+        onDeleteRequested: {
+            root.pendingDeleteRouteIds = [root.selectedLibraryRouteId]
+            routeDeleteDialog.open()
+        }
+        onBatchDeleteRequested: routeIds => {
+            root.pendingDeleteRouteIds = routeIds.slice()
+            routeDeleteDialog.open()
+        }
         onDuplicateRequested: {
             var response = App.duplicateSavedRoute(root.selectedLibraryRouteId)
             root.routeOperationMessage = response.message || ""
@@ -1482,7 +1490,9 @@ Item {
         contentItem: ColumnLayout {
             spacing: 12
             Text {
-                text: "删除航线？"
+                text: root.pendingDeleteRouteIds.length > 1
+                      ? "删除 " + root.pendingDeleteRouteIds.length + " 条航线？"
+                      : "删除航线？"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textTitle
@@ -1490,8 +1500,10 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "将从本机航线库删除“" + root.selectedLibraryRouteName
-                      + "”。已经生成的飞行记录不会受影响。"
+                text: root.pendingDeleteRouteIds.length > 1
+                      ? "所选航线将从本机航线库删除。已经生成的飞行记录不会受影响。"
+                      : "将从本机航线库删除“" + root.selectedLibraryRouteName
+                        + "”。已经生成的飞行记录不会受影响。"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textBody
@@ -1511,20 +1523,32 @@ Item {
                     text: "删除"
                     kind: "danger"
                     onClicked: {
-                        var deletedId = root.selectedLibraryRouteId
-                        var response = App.deleteSavedRoute(deletedId)
-                        root.routeOperationMessage = response.message || ""
-                        if (response.success) {
-                            if (root.currentRouteId === deletedId) {
-                                root.currentRouteId = ""
-                                root.currentRouteName = "未命名航线"
-                                root.dirty = true
-                                root.rememberCurrentRoute()
+                        const ids = root.pendingDeleteRouteIds.slice()
+                        let deletedCount = 0
+                        for (let index = 0; index < ids.length; ++index) {
+                            const deletedId = ids[index]
+                            const response = App.deleteSavedRoute(deletedId)
+                            if (response.success) {
+                                ++deletedCount
+                                if (root.currentRouteId === deletedId) {
+                                    root.currentRouteId = ""
+                                    root.currentRouteName = "未命名航线"
+                                    root.dirty = true
+                                    root.rememberCurrentRoute()
+                                }
                             }
+                        }
+                        root.routeOperationMessage = deletedCount === ids.length
+                                                     ? "已删除 " + deletedCount + " 条航线"
+                                                     : "已删除 " + deletedCount + " / " + ids.length + " 条航线"
+                        if (ids.indexOf(root.selectedLibraryRouteId) >= 0) {
                             root.selectedLibraryRouteId = ""
                             root.selectedLibraryRouteName = ""
-                            routeDeleteDialog.close()
                         }
+                        root.pendingDeleteRouteIds = []
+                        routeLibraryDialog.batchMode = false
+                        routeLibraryDialog.selectedRouteIds = []
+                        routeDeleteDialog.close()
                     }
                 }
             }

@@ -20,7 +20,7 @@ Item {
                                                 && !Boolean(currentPlan.routeAvailable)
     readonly property bool environmentReady: App.dockerAvailable && App.imageAvailable
     readonly property bool compactLayout: width < 820 || height < 470
-    property string pendingDeletePlanId: ""
+    property var pendingDeletePlanIds: []
 
     function launchTitle() {
         if (App.busy) return "正在处理"
@@ -565,7 +565,11 @@ Item {
                 planPicker.pendingId = String(response.id || App.selectedTestPlanId)
         }
         onDeleteRequested: planId => {
-            root.pendingDeletePlanId = planId
+            root.pendingDeletePlanIds = [planId]
+            deletePlanDialog.open()
+        }
+        onBatchDeleteRequested: planIds => {
+            root.pendingDeletePlanIds = planIds.slice()
             deletePlanDialog.open()
         }
     }
@@ -625,7 +629,9 @@ Item {
         contentItem: ColumnLayout {
             spacing: 12
             Text {
-                text: "删除测试方案？"
+                text: root.pendingDeletePlanIds.length > 1
+                      ? "删除 " + root.pendingDeletePlanIds.length + " 个测试方案？"
+                      : "删除测试方案？"
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSubtitle
@@ -633,7 +639,9 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "这个方案将从本机删除，航线和飞行记录不会受到影响。"
+                text: root.pendingDeletePlanIds.length > 1
+                      ? "所选方案将从本机删除，航线和飞行记录不会受到影响。"
+                      : "这个方案将从本机删除，航线和飞行记录不会受到影响。"
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSmall
@@ -653,10 +661,13 @@ Item {
                     text: "删除"
                     kind: "danger"
                     onClicked: {
-                        var response = App.deleteTestPlan(root.pendingDeletePlanId)
-                        if (response.success)
-                            planPicker.pendingId = App.selectedTestPlanId
-                        root.pendingDeletePlanId = ""
+                        const ids = root.pendingDeletePlanIds.slice()
+                        for (let index = 0; index < ids.length; ++index)
+                            App.deleteTestPlan(ids[index])
+                        planPicker.pendingId = App.selectedTestPlanId
+                        planPicker.batchMode = false
+                        planPicker.selectedPlanIds = []
+                        root.pendingDeletePlanIds = []
                         deletePlanDialog.close()
                     }
                 }

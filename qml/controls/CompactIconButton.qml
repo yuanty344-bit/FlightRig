@@ -23,8 +23,8 @@ Button {
                                            : onDarkSurface ? Theme.heroIcon
                                                            : Theme.textSecondary
 
-    implicitWidth: 32
-    implicitHeight: 32
+    implicitWidth: 34
+    implicitHeight: 34
     padding: 0
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
@@ -40,10 +40,11 @@ Button {
                              : root.down ? Theme.surfaceInteractive
                              : root.hovered ? (root.danger ? Theme.dangerSoft : Theme.surfaceInteractive)
                                             : "transparent"
-        border.width: root.visualFocus || root.outlined ? 1 : 0
+        border.width: root.visualFocus ? 2 : root.outlined ? 1 : 0
         border.color: root.visualFocus ? (root.onDarkSurface ? "#79ADFF" : Theme.accent)
                                        : root.onDarkSurface ? Theme.heroLine : Theme.line
         Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     contentItem: Item {
@@ -53,8 +54,8 @@ Button {
         }
         ThemedIcon {
             anchors.centerIn: parent
-            width: 16
-            height: 16
+            width: 17
+            height: 17
             source: root.iconSource
             iconColor: root.enabled ? root.normalIconColor
                                     : root.onDarkSurface ? Theme.heroMuted : Theme.textFaint

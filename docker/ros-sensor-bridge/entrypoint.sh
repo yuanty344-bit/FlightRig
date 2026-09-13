@@ -89,7 +89,7 @@ elif [[ "${SENSOR_KIND}" == "gimbal-camera" ]]; then
   direction: ROS_TO_GZ
 YAML
 else
-    echo "[flightbench-ros] Unsupported sensor kind: ${SENSOR_KIND}" >&2
+    echo "[flightrig-ros] Unsupported sensor kind: ${SENSOR_KIND}" >&2
     exit 2
 fi
 
@@ -101,8 +101,8 @@ cat >> "${BRIDGE_CONFIG}" <<YAML
   direction: GZ_TO_ROS
 YAML
 
-echo "[flightbench-ros] Gazebo partition: ${GZ_PARTITION}"
-echo "[flightbench-ros] Sensor kind: ${SENSOR_KIND}"
+echo "[flightrig-ros] Gazebo partition: ${GZ_PARTITION}"
+echo "[flightrig-ros] Sensor kind: ${SENSOR_KIND}"
 
 ros2 run ros_gz_bridge parameter_bridge \
     --ros-args -p config_file:="${BRIDGE_CONFIG}" &

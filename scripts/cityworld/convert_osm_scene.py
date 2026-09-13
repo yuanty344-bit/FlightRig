@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert an Overpass JSON extract into a reusable FlightBench ENU scene.
+"""Convert an Overpass JSON extract into a reusable FlightRig ENU scene.
 
 The converter intentionally keeps the source data untouched. It uses an
 equirectangular projection around the scene origin, which is sufficiently
@@ -23,7 +23,7 @@ DEFAULT_LEVEL_HEIGHT_METERS = 3.2
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path, help="Overpass JSON input")
-    parser.add_argument("scene", type=Path, help="FlightBench scene JSON output")
+    parser.add_argument("scene", type=Path, help="FlightRig scene JSON output")
     parser.add_argument("--preview", type=Path, help="Optional SVG preview output")
     parser.add_argument("--world-id", required=True,
                         help="Stable lowercase id, for example xian_block_01")

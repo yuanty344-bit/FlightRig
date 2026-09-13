@@ -63,6 +63,27 @@ TestCase {
         visible: false
     }
 
+    SegmentedControl {
+        id: segmentedControl
+        width: 180
+        options: ["彩色", "深度", "三维"]
+        currentIndex: 0
+        visible: false
+    }
+
+    ActionButton {
+        id: regularAction
+        text: "确认操作"
+        visible: false
+    }
+
+    ActionButton {
+        id: compactAction
+        text: "确认操作"
+        compact: true
+        visible: false
+    }
+
     SignalSpy {
         id: navigationSpy
         target: navigation
@@ -72,6 +93,7 @@ TestCase {
     function init() {
         failOnWarning(/.*(recursive rearrange|Binding loop|Unable to assign|is not defined).*/)
         navigation.currentIndex = 0
+        segmentedControl.currentIndex = 0
         navigationSpy.clear()
         Theme.reducedMotion = false
     }
@@ -141,5 +163,18 @@ TestCase {
 
         asNeededScrollSample.contentHeight = asNeededScrollSample.height
         tryCompare(asNeededBar, "visible", false)
+    }
+
+    function test_refinedControlGeometry() {
+        const pill = findChild(segmentedControl, "segmentedSelectionPill")
+        verify(pill !== null)
+        verify(Math.abs(pill.width - (segmentedControl.width - 6) / 3) < 0.5)
+        compare(pill.x, 3)
+
+        segmentedControl.currentIndex = 2
+        wait(Theme.motionNormal + 30)
+        verify(Math.abs(pill.x - (3 + pill.width * 2)) < 0.5)
+        compare(regularAction.implicitHeight, 38)
+        compare(compactAction.implicitHeight, 34)
     }
 }

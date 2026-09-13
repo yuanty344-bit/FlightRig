@@ -202,7 +202,7 @@
       <sensor name="camera_imu" type="imu">
         <gz_frame_id>camera_link</gz_frame_id>
         <always_on>1</always_on>
-        <!-- FlightBench does not consume the camera IMU. 50 Hz preserves a
+        <!-- FlightRig does not consume the camera IMU. 50 Hz preserves a
              realistic auxiliary sensor without starving PX4 during flight. -->
         <update_rate>50</update_rate>
         <pose>-0.0412 0 -0.162 0 0 3.14</pose>

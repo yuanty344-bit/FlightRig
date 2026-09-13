@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate one generated FlightBench city world without launching Gazebo."""
+"""Validate one generated FlightRig city world without launching Gazebo."""
 
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ def validate_obj(path: Path, require_faces: bool, expected_material: str) -> dic
     faces = 0
     lines = path.read_text(encoding="ascii").splitlines()
     if f"mtllib flightbench_city.mtl" not in lines:
-        raise ValueError(f"OBJ has no FlightBench material library: {path}")
+        raise ValueError(f"OBJ has no FlightRig material library: {path}")
     if f"usemtl {expected_material}" not in lines:
         raise ValueError(f"OBJ has no expected material '{expected_material}': {path}")
     for line_number, line in enumerate(lines, start=1):
@@ -137,7 +137,7 @@ def main() -> None:
     map_root = root / "resources" / "worldmaps"
     map_data = json.loads((map_root / f"{args.world_id}.json").read_text(encoding="utf-8"))
     if map_data.get("format") != "FlightBenchWorldMap":
-        raise ValueError("Invalid FlightBench world-map format")
+        raise ValueError("Invalid FlightRig world-map format")
     if map_data.get("worldId") != args.world_id or not map_data.get("buildingRoofTriangles"):
         raise ValueError("World map has no matching building obstacles")
     for theme in ("light", "dark"):

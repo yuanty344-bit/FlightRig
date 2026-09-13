@@ -7,6 +7,12 @@ QtObject {
     property bool missionRunning: false
     property bool missionBusy: false
     property bool sensorServiceConnected: true
+    property bool busy: false
+    property string selectedTestPlanId: ""
+    property bool selectedTestPlanModified: false
+    property var testPlans: []
+    property var trashedFlightSessions: []
+    property int trashRetentionDays: 30
     property int lastSeek: -1
     function seekReplay(ms) { lastSeek = ms }
     property QtObject gimbalInspection: QtObject {

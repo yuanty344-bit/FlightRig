@@ -34,7 +34,7 @@ Button {
                                                    + 32
 
     implicitWidth: Math.max(120, calculatedContentWidth)
-    implicitHeight: Math.max(compact ? 32 : 36, buttonLabel.implicitHeight + 14)
+    implicitHeight: Math.max(compact ? 34 : 38, buttonLabel.implicitHeight + 14)
     Layout.minimumWidth: root.text.length === 0
                          ? (root.compact ? 38 : 44)
                          : (root.allowTextElide
@@ -51,13 +51,14 @@ Button {
         color: !root.enabled ? (root.glassKind ? Qt.rgba(1, 1, 1, 0.035) : Theme.surfaceRaised)
                              : root.down ? Qt.darker(root.fillColor, 1.15)
                              : root.hovered ? Qt.lighter(root.fillColor, 1.08) : root.fillColor
-        border.width: 1
+        border.width: root.visualFocus ? 2 : 1
         border.color: !root.enabled ? (root.glassKind ? Theme.heroLine : Theme.lineStrong)
                                     : root.visualFocus ? Theme.accentHover
                                     : root.kind === "danger" ? Qt.rgba(Theme.danger.r, Theme.danger.g, Theme.danger.b, 0.45)
                                     : root.kind === "secondary" ? Theme.lineStrong
                                     : root.glassKind ? Qt.rgba(1, 1, 1, 0.18) : Theme.accent
         Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
     }
 
     contentItem: RowLayout {

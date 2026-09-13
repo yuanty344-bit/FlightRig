@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only ROS 2 sensor gateway for FlightBench."""
+"""Read-only ROS 2 sensor gateway for FlightRig."""
 
 import base64
 import io
@@ -76,7 +76,7 @@ class ClientHub:
 
         A TCP client that briefly falls behind must not force Gazebo/ROS to queue
         seconds of old images. Each channel keeps only its newest unsent value;
-        FlightBench therefore catches up to the live view immediately.
+        FlightRig therefore catches up to the live view immediately.
         """
         try:
             while True:

@@ -3,6 +3,7 @@ import QtTest
 import FlightBench
 import "../../qml/features/mission"
 import "../../qml/features/records"
+import "../../qml/features/plans"
 import "../../qml/features/mission/RouteMapPainter.js" as RouteMapPainter
 
 TestCase {
@@ -48,6 +49,9 @@ TestCase {
     SignalSpy { id: routeSelection; target: library; signalName: "routeSelected" }
     SignalSpy { id: routeLoad; target: library; signalName: "loadRequested" }
     SignalSpy { id: routeDuplicate; target: library; signalName: "duplicateRequested" }
+    SignalSpy { id: routeBatchDelete; target: library; signalName: "batchDeleteRequested" }
+    TestPlanPicker { id: planPicker; visible: false }
+    SessionTrashDialog { id: trashDialog; visible: false }
     MissionMapInteraction { id: mapInput; x: 300; y: 200; width: 300; height: 200 }
     SignalSpy { id: pointSpy; target: mapInput; signalName: "pointRequested" }
     SignalSpy { id: panSpy; target: mapInput; signalName: "panRequested" }
@@ -130,7 +134,7 @@ TestCase {
         compare(routeScrollBar.visible, false)
         const row = findChildWhere(library.contentItem, item => typeof item.selectRoute === "function")
         verify(row !== null)
-        routeSelection.clear(); routeLoad.clear(); routeDuplicate.clear()
+        routeSelection.clear(); routeLoad.clear(); routeDuplicate.clear(); routeBatchDelete.clear()
         row.forceActiveFocus()
         keyClick(Qt.Key_Space)
         compare(routeSelection.count, 1)
@@ -153,6 +157,20 @@ TestCase {
             distanceMeters:40,estimatedSeconds:20,updatedLabel:"今天"
         }))
         tryCompare(routeScrollBar, "visible", true)
+        library.batchMode = true
+        library.toggleSelectedRoute("route-1")
+        library.toggleSelectedRoute("route-3")
+        compare(library.selectedRouteCount, 2)
+        const batchDelete = findChildWhere(library.contentItem,
+                                           item => item.text === "删除所选" && item.visible)
+        verify(batchDelete !== null)
+        mouseClick(batchDelete)
+        compare(routeBatchDelete.count, 1)
+        compare(routeBatchDelete.signalArguments[0][0].length, 2)
+        library.selectAllRoutes()
+        compare(library.selectedRouteCount, 8)
+        library.leaveBatchMode()
+        compare(library.selectedRouteCount, 0)
         library.routes = []
         library.selectedRouteId = ""
         wait(20)
@@ -160,6 +178,27 @@ TestCase {
         library.close()
         tryCompare(library, "visible", false)
         library.editingLocked = false
+    }
+    function test_batchSelectionHelpers() {
+        App.testPlans = [{id:"plan-a"}, {id:"plan-b"}, {id:"plan-c"}]
+        planPicker.selectedPlanIds = []
+        planPicker.toggleSelectedPlan("plan-a")
+        planPicker.toggleSelectedPlan("plan-c")
+        compare(planPicker.selectedPlanCount, 2)
+        planPicker.toggleSelectedPlan("plan-a")
+        compare(planPicker.selectedPlanIds[0], "plan-c")
+        planPicker.selectAllPlans()
+        compare(planPicker.selectedPlanCount, 3)
+        planPicker.leaveBatchMode()
+        compare(planPicker.selectedPlanCount, 0)
+
+        App.trashedFlightSessions = [{id:"trash-a"}, {id:"trash-b"}]
+        trashDialog.selectedTrashIds = []
+        trashDialog.toggleSelectedItem("trash-b")
+        compare(trashDialog.selectedTrashCount, 1)
+        compare(trashDialog.allTrashIds().length, 2)
+        trashDialog.leaveBatchMode()
+        compare(trashDialog.selectedTrashCount, 0)
     }
     function findChildWhere(item, predicate) {
         if (predicate(item)) return item

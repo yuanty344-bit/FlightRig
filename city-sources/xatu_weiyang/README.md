@@ -1,6 +1,6 @@
 # 西安工业大学未央校区
 
-`xatu_weiyang` 是 FlightBench 内置校园场景，覆盖西安工业大学未央校区。该场景最初由 CityInspect 工具链生成，现已将可追溯的原始资料迁入 FlightBench 的统一 `city-sources` 目录。
+`xatu_weiyang` 是 FlightRig 内置校园场景，覆盖西安工业大学未央校区。该场景最初由 CityInspect 工具链生成，现已将可追溯的原始资料迁入 FlightRig 的统一 `city-sources` 目录。
 
 ## 数据范围
 
@@ -19,7 +19,7 @@
 
 - `source/osm.json`：原始 OpenStreetMap 查询结果，不手工修改。
 - `source/overpass.query`：限定校园边界的 Overpass 查询语句。
-- `xatu_weiyang.scene.json`：统一 ENU 场景数据，场景 ID 已与 FlightBench 正式世界 ID 对齐。
+- `xatu_weiyang.scene.json`：统一 ENU 场景数据，场景 ID 已与 FlightRig 正式世界 ID 对齐。
 - `xatu_weiyang.preview.svg`：原始数据转换后的二维预览。
 
 当前正式运行资产位于 `simulation/worlds/xatu_weiyang.sdf`、`simulation/models/xatu_weiyang/` 和 `resources/worldmaps/xatu_weiyang*`。本次迁移只补齐源文件，没有重新生成或覆盖现有模型，避免改变已验证的坐标、几何和任务地图。

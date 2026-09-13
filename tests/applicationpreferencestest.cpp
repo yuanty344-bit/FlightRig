@@ -1,6 +1,7 @@
 #include "infrastructure/applicationpreferences.h"
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
@@ -126,6 +127,7 @@ int main(int argc, char **argv)
     CHECK(ApplicationPreferences::decodeDocument(QJsonDocument(QJsonObject::fromVariantMap(invalidVersion)).toJson(), &error).isEmpty());
     const QString path = ApplicationPreferences::writeDocument(document, directory.filePath("exports"), &error);
     CHECK(!path.isEmpty()); CHECK(error.isEmpty());
+    CHECK(QFileInfo(path).fileName() == "flightrig-settings.json");
     QFile file(path);
     CHECK(file.open(QIODevice::ReadOnly));
     CHECK(ApplicationPreferences::decodeDocument(file.readAll(), &error) == document);

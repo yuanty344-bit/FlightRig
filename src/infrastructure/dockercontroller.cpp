@@ -161,7 +161,7 @@ void DockerController::startSimulation(const QString &modelId,
         }
     }
 
-    // Mount FlightBench model overrides for every world. The LiDAR override
+    // Mount FlightRig model overrides for every world. The LiDAR override
     // expands the scanner to 360 degrees, while the camera overrides keep
     // sensor rendering aligned with the 10 FPS preview consumed by the app.
     // The nested stock gimbal is also resolved from this path so its original
@@ -190,7 +190,7 @@ void DockerController::startSimulation(const QString &modelId,
             });
         }
         // PX4_GZ_WORLDS replaces the image's built-in world directory. Only
-        // point it at FlightBench assets for custom worlds; the default world
+        // point it at FlightRig assets for custom worlds; the default world
         // must continue to resolve from the image.
         if (worldId != QStringLiteral("default")) {
             arguments.append({

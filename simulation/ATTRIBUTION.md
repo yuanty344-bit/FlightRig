@@ -8,7 +8,7 @@ Database License (ODbL).
 
 © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
 
-The FlightBench-specific SDF packaging and material treatment are part of this
+The FlightRig-specific SDF packaging and material treatment are part of this
 project. Keep this attribution file with every source and binary distribution
 that includes the world.
 

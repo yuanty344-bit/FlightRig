@@ -22,9 +22,10 @@ Rectangle {
         anchors.leftMargin: 22
         anchors.top: parent.top
         anchors.topMargin: Theme.edgeInset
-        width: 76
+        width: 68
         height: 3
         radius: 2
         color: Theme.accent
     }
+
 }

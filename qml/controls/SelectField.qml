@@ -15,6 +15,7 @@ ComboBox {
     rightPadding: 34
     font.family: Theme.fontFamily
     font.pixelSize: Theme.textSmall
+    hoverEnabled: true
     Accessible.name: displayText
 
     function syncSelection() {
@@ -54,12 +55,19 @@ ComboBox {
         height: 14
         source: "qrc:/icons/chevron-down.svg"
         iconColor: Theme.textMuted
+        rotation: root.popup.visible ? 180 : 0
+        Behavior on rotation {
+            NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
+        }
     }
     background: Rectangle {
         radius: Theme.radiusMedium
-        color: root.activeFocus ? Theme.surface : Theme.surfaceRaised
+        color: root.activeFocus ? Theme.surface
+                                : root.hovered ? Theme.surfaceInteractive : Theme.surfaceRaised
         border.width: root.activeFocus ? 2 : 1
         border.color: root.activeFocus ? Theme.accent : Theme.line
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        Behavior on border.color { ColorAnimation { duration: Theme.motionFast } }
     }
     delegate: ItemDelegate {
         id: option
@@ -89,6 +97,12 @@ ComboBox {
         width: root.width
         padding: 4
         implicitHeight: Math.min(230, contentItem.implicitHeight + 8)
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.motionFast }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.motionFast }
+        }
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight

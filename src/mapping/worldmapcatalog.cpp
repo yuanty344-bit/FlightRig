@@ -180,7 +180,7 @@ WorldMapData loadMap(const QString &worldId)
     }
     data.available = !data.obstacles.isEmpty();
     if (data.available) {
-        // All generated FlightBench worlds use their local origin as the PX4
+        // All generated FlightRig worlds use their local origin as the PX4
         // spawn point. Report the real spawn clearance instead of suggesting a
         // point that Gazebo would not actually use.
         data.recommendedTakeoffPoint = QPointF(0.0, 0.0);
